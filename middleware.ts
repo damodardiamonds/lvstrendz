@@ -1,6 +1,20 @@
 
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "./lib/auth";
+import { jwtVerify } from "jose";
+
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
+
+// Edge-compatible token verification
+async function verifyTokenEdge(
+  token: string
+): Promise<{ userId: string; role: string } | null> {
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    return payload as { userId: string; role: string };
+  } catch {
+    return null;
+  }
+}
 
 // Routes that require authentication
 const protectedRoutes = ["/account", "/wishlist", "/orders"];
@@ -8,7 +22,7 @@ const protectedRoutes = ["/account", "/wishlist", "/orders"];
 // Routes that require admin role
 const adminRoutes = ["/admin"];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get("lvs-session")?.value;
 
@@ -25,7 +39,7 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    const payload = verifyToken(token);
+    const payload = await verifyTokenEdge(token);
 
     if (!payload) {
       const loginUrl = new URL("/login", request.url);
@@ -42,7 +56,7 @@ export function middleware(request: NextRequest) {
   // Redirect logged-in users away from login/register pages
   if (pathname === "/login" || pathname === "/register") {
     if (token) {
-      const payload = verifyToken(token);
+      const payload = await verifyTokenEdge(token);
       if (payload) {
         return NextResponse.redirect(new URL("/account", request.url));
       }
