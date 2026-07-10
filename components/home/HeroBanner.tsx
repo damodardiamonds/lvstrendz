@@ -1,77 +1,76 @@
 
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { prisma } from "@/lib/db";
 
-async function getHeroBanner() {
-  const banner = await prisma.banner.findFirst({
-    where: { isActive: true },
-    orderBy: { position: "asc" },
-  });
-  return banner;
-}
+const banners = [
+  {
+    title: "Wedding Collection 2026",
+    subtitle: "Stunning Lehengas & Gowns for Your Special Day",
+    cta: "Shop Wedding Wardrobe",
+    href: "/category/wedding-wardrobe",
+    bgColor: "from-[#A0463E] to-[#7a342e]",
+  },
+  {
+    title: "Festive Season Sale",
+    subtitle: "Use Code FLAT20 for 20% Off on All Orders",
+    cta: "Shop Now",
+    href: "/shop",
+    bgColor: "from-[#6B2D5B] to-[#4a1f3f]",
+  },
+  {
+    title: "New Arrivals",
+    subtitle: "Fresh Styles Added Every Week — Be the First to Wear Them",
+    cta: "Explore New Arrivals",
+    href: "/category/new-arrivals",
+    bgColor: "from-[#2D5B6B] to-[#1f3f4a]",
+  },
+];
 
-async function getFeaturedProduct() {
-  const product = await prisma.product.findFirst({
-    where: { isActive: true },
-    include: {
-      images: { orderBy: { position: "asc" }, take: 1 },
-      category: true,
-    },
-    orderBy: { createdAt: "desc" },
-  });
-  return product;
-}
+export default function HeroBanner() {
+  const [current, setCurrent] = useState(0);
 
-export default async function HeroBanner() {
-  const [banner, featuredProduct] = await Promise.all([
-    getHeroBanner(),
-    getFeaturedProduct(),
-  ]);
-
-  const heroImage =
-    banner?.image || featuredProduct?.images[0]?.url || "/placeholder-hero.jpg";
-  const heroTitle = banner?.title || featuredProduct?.name || "New Collection";
-  const heroSubtitle =
-    banner?.subtitle || "Discover the latest in ethnic fashion";
-  const heroLink = banner?.link || `/product/${featuredProduct?.slug || ""}`;
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % banners.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
-    <section className="relative h-[60vh] md:h-[80vh] overflow-hidden">
-      {/* Background Image */}
-      <div className="absolute inset-0">
-        <Image
-          src={heroImage}
-          alt={heroTitle}
-          fill
-          className="object-cover"
-          priority
-          sizes="100vw"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent" />
+    <section className="relative overflow-hidden">
+      <div
+        className={`bg-gradient-to-r ${banners[current].bgColor} transition-all duration-700`}
+      >
+        <div className="max-w-7xl mx-auto px-4 py-20 md:py-32 text-center text-white">
+          <h2 className="text-3xl md:text-5xl font-bold mb-4 animate-fade-in">
+            {banners[current].title}
+          </h2>
+          <p className="text-lg md:text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+            {banners[current].subtitle}
+          </p>
+          <Link
+            href={banners[current].href}
+            className="inline-block bg-white text-gray-900 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+          >
+            {banners[current].cta}
+          </Link>
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="relative h-full container-custom flex items-center">
-        <div className="max-w-lg text-white animate-fade-in">
-          <p className="text-sm md:text-base font-medium text-brand-200 mb-2 uppercase tracking-widest">
-            Featured
-          </p>
-          <h2 className="font-heading text-3xl md:text-5xl lg:text-6xl font-bold mb-4 leading-tight">
-            {heroTitle}
-          </h2>
-          <p className="text-base md:text-lg text-gray-200 mb-8">
-            {heroSubtitle}
-          </p>
-          <div className="flex flex-wrap gap-4">
-            <Link href={heroLink} className="btn-primary">
-              Shop Now
-            </Link>
-            <Link href="/shop" className="btn-outline border-white text-white hover:bg-white hover:text-gray-900">
-              View All
-            </Link>
-          </div>
-        </div>
+      {/* Dots */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
+        {banners.map((_, idx) => (
+          <button
+            key={idx}
+            onClick={() => setCurrent(idx)}
+            className={`w-2.5 h-2.5 rounded-full transition-colors ${
+              idx === current ? "bg-white" : "bg-white/50"
+            }`}
+            aria-label={`Go to slide ${idx + 1}`}
+          />
+        ))}
       </div>
     </section>
   );
