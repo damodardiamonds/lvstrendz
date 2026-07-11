@@ -3,9 +3,7 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: [
-    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
@@ -23,10 +21,26 @@ const config: Config = {
           800: "#401C19",
           900: "#200E0C",
         },
+        primary: {
+          DEFAULT: "#8B5E3C",
+          50: "#F8F4F0",
+          100: "#F1E8DE",
+          200: "#E4D0BC",
+          300: "#D1B08F",
+          400: "#B98A63",
+          500: "#8B5E3C",
+          600: "#744B2A",
+        },
+        gold: "#C8A45D",
       },
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
         heading: ["var(--font-playfair)", "serif"],
+      },
+      boxShadow: {
+        card: "0 4px 20px rgba(0,0,0,.08)",
+        hover: "0 10px 30px rgba(0,0,0,.15)",
+        navbar: "0 2px 12px rgba(0,0,0,.05)",
       },
       animation: {
         "scroll-left": "scroll-left 30s linear infinite",
