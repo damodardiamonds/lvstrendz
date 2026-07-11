@@ -43,7 +43,8 @@ export function NewArrivals({ products }: NewArrivalsProps) {
                 </h3>
                 <div className="flex items-center gap-2 mt-1.5">
                   <span className="text-sm font-bold text-black">₹{product.price.toLocaleString()}</span>
-                  {product.originalPrice > product.price && (
+                 {product.originalPrice && product.originalPrice > product.price && (
+
                     <span className="text-xs text-gray-400 line-through">₹{product.originalPrice.toLocaleString()}</span>
                   )}
                 </div>

@@ -49,7 +49,9 @@ export function SpotlightDeals({ products }: SpotlightDealsProps) {
                   <h3 className="text-white text-sm font-medium mb-2">{mainDeal.name}</h3>
                   <div className="flex items-center justify-center gap-3">
                     <span className="text-white text-lg font-bold">₹{mainDeal.price.toLocaleString()}</span>
-                    <span className="text-white/50 text-sm line-through">₹{mainDeal.originalPrice.toLocaleString()}</span>
+                    {mainDeal.originalPrice && (
+                      <span className="text-white/50 text-sm line-through">₹{mainDeal.originalPrice.toLocaleString()}</span>
+                    )}
                   </div>
                   <Link
                     href={`/product/${mainDeal.slug}`}
@@ -63,7 +65,7 @@ export function SpotlightDeals({ products }: SpotlightDealsProps) {
           </div>
         </div>
 
-        {/* Right Column - Quick preview (reuses same data or first 2 new arrivals) */}
+        {/* Right Column - Quick preview */}
         <div className="w-full md:w-1/2 px-[15px] max-md:mt-10">
           <div className="mb-[30px] border-b border-[#999999] flex items-start">
             <h2 className="text-xl md:text-2xl font-bold text-black uppercase tracking-wide pb-3">
@@ -92,7 +94,7 @@ export function SpotlightDeals({ products }: SpotlightDealsProps) {
                   <h3 className="text-xs text-gray-800 font-medium line-clamp-2">{product.name}</h3>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-sm font-bold text-black">₹{product.price.toLocaleString()}</span>
-                    {product.originalPrice > product.price && (
+                    {product.originalPrice && product.originalPrice > product.price && (
                       <span className="text-xs text-gray-400 line-through">₹{product.originalPrice.toLocaleString()}</span>
                     )}
                   </div>

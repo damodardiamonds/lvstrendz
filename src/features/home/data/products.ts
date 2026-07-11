@@ -1,5 +1,6 @@
 
-import { Product } from "../components/ProductCard";
+import type { Product } from "../components/ProductCard";
+
 
 // All prices in INR
 // Image paths WITHOUT extension — ProductCard uses <picture> with .webp and .jpg fallback

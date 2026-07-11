@@ -1,16 +1,17 @@
 
 // src/app/(shop)/page.tsx
 import { getHomepageProducts } from '@/lib/products';
-import { HeroSlider } from '@/features/home/components/HeroSlider';
-import { CollectionsRow } from '@/features/home/components/CollectionsRow';
+import HeroSlider  from '@/features/home/components/HeroSlider';
+import CollectionsRow from '@/features/home/components/CollectionsRow';
 import { SpotlightDeals } from '@/features/home/components/SpotlightDeals';
 import { NewArrivals } from '@/features/home/components/NewArrivals';
 import { EliteCollection } from '@/features/home/components/EliteCollection';
-import { NowTrending } from '@/features/home/components/NowTrending';
+import NowTrending from '@/features/home/components/NowTrending';
 import { JustForYou } from '@/features/home/components/JustForYou';
-import { FashionForward } from '@/features/home/components/FashionForward';
-import { NewsletterBanner } from '@/features/home/components/NewsletterBanner';
-import { Footer } from '@/features/home/components/Footer';
+import FashionForward from '@/features/home/components/FashionForward';
+import NewsletterBanner from '@/features/home/components/NewsletterBanner';
+import Footer from '@/features/home/components/Footer';
+
 
 // Revalidate every 60 seconds (ISR)
 export const revalidate = 60;

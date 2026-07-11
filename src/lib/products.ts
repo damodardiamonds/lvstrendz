@@ -1,23 +1,31 @@
 
-// src/lib/products.ts
 import { prisma } from './db';
 
-export interface ProductForHome {
+// ==================== TYPES ====================
+
+export type ProductForHome = {
   id: string;
   name: string;
   slug: string;
   price: number;
-  originalPrice: number;
+  originalPrice: number | null;
   image: string;
-  category: string;
   discount: number;
   isOnSale: boolean;
-}
+};
 
-function mapProduct(product: any): ProductForHome {
-  const price = product.salePrice || product.price;
-  const originalPrice = product.price;
-  const discount = originalPrice > price
+// ==================== HELPER ====================
+function toProductForHome(product: {
+  id: string;
+  name: string;
+  slug: string;
+  price: unknown;
+  compareAtPrice: unknown;
+  images: { url: string }[];
+}): ProductForHome {
+  const price = Number(product.price);
+  const originalPrice = product.compareAtPrice ? Number(product.compareAtPrice) : null;
+  const discount = originalPrice
     ? Math.round(((originalPrice - price) / originalPrice) * 100)
     : 0;
 
@@ -27,86 +35,166 @@ function mapProduct(product: any): ProductForHome {
     slug: product.slug,
     price,
     originalPrice,
-    image: product.images?.[0] || product.thumbnail || '',
-    category: product.category?.name || '',
+    image: product.images[0]?.url ?? '/images/placeholder.jpg',
     discount,
-    isOnSale: price < originalPrice,
+    isOnSale: discount > 0,
   };
 }
 
-// Spotlight Deals - highest discount products
-export async function getSpotlightDeals(limit = 1) {
+// ==================== SPOTLIGHT DEALS ====================
+export async function getSpotlightDeals(limit = 4): Promise<ProductForHome[]> {
   const products = await prisma.product.findMany({
     where: {
-      isPublished: true,
-      salePrice: { not: null },
+      isActive: true,
+      compareAtPrice: { not: null },
     },
-    orderBy: {
-      salePrice: 'asc', // Lowest sale price = biggest deal
-    },
+    orderBy: { price: 'asc' },
     take: limit,
-    include: { category: true },
+    include: {
+      images: { orderBy: { sortOrder: 'asc' }, take: 1 },
+    },
   });
 
-  return products.map(mapProduct);
+  return products.map(toProductForHome);
 }
 
-// New Arrivals - most recently added
-export async function getNewArrivals(limit = 4) {
+// ==================== NEW ARRIVALS ====================
+export async function getNewArrivals(limit = 4): Promise<ProductForHome[]> {
   const products = await prisma.product.findMany({
-    where: { isPublished: true },
+    where: { isActive: true },
     orderBy: { createdAt: 'desc' },
     take: limit,
-    include: { category: true },
+    include: {
+      images: { orderBy: { sortOrder: 'asc' }, take: 1 },
+    },
   });
 
-  return products.map(mapProduct);
+  return products.map(toProductForHome);
 }
 
-// Elite Collection - premium/featured products
-export async function getEliteCollection(limit = 4) {
+// ==================== ELITE COLLECTION ====================
+export async function getEliteCollection(limit = 4): Promise<ProductForHome[]> {
   const products = await prisma.product.findMany({
     where: {
-      isPublished: true,
-      OR: [
-        { isFeatured: true },
-        { price: { gte: 4000 } },
-        { tags: { has: 'elite' } },
-      ],
+      isActive: true,
+      isFeatured: true,
     },
-    orderBy: { price: 'desc' },
+    orderBy: { createdAt: 'desc' },
     take: limit,
-    include: { category: true },
+    include: {
+      images: { orderBy: { sortOrder: 'asc' }, take: 1 },
+    },
   });
 
-  return products.map(mapProduct);
+  return products.map(toProductForHome);
 }
 
-// Just For You - random/mixed selection
-export async function getJustForYou(limit = 4) {
-  // Get total count for random offset
-  const count = await prisma.product.count({ where: { isPublished: true } });
+// ==================== JUST FOR YOU ====================
+export async function getJustForYou(limit = 8): Promise<ProductForHome[]> {
+  const count = await prisma.product.count({ where: { isActive: true } });
   const skip = Math.max(0, Math.floor(Math.random() * count) - limit);
 
   const products = await prisma.product.findMany({
-    where: { isPublished: true },
+    where: { isActive: true },
     skip,
     take: limit,
-    include: { category: true },
+    include: {
+      images: { orderBy: { sortOrder: 'asc' }, take: 1 },
+    },
   });
 
-  return products.map(mapProduct);
+  return products.map(toProductForHome);
 }
 
-// All homepage data in one call (reduces DB round trips)
+// ==================== HOMEPAGE AGGREGATOR ====================
 export async function getHomepageProducts() {
   const [spotlight, newArrivals, elite, justForYou] = await Promise.all([
-    getSpotlightDeals(1),
-    getNewArrivals(4),
-    getEliteCollection(4),
-    getJustForYou(4),
+    getSpotlightDeals(),
+    getNewArrivals(),
+    getEliteCollection(),
+    getJustForYou(),
   ]);
 
-  return { spotlight, newArrivals, elite, justForYou };
+  return {
+    spotlight,
+    newArrivals,
+    elite,
+    justForYou,
+  };
+}
+
+// ==================== GET PRODUCT BY SLUG ====================
+export async function getProductBySlug(slug: string) {
+  const product = await prisma.product.findUnique({
+    where: { slug },
+    include: {
+      images: { orderBy: { sortOrder: 'asc' } },
+      videos: { orderBy: { sortOrder: 'asc' } },
+      categories: { include: { category: true } },
+      variants: {
+        where: { isActive: true },
+        include: {
+          attributes: {
+            include: { attributeValue: { include: { attribute: true } } },
+          },
+          images: true,
+        },
+      },
+      reviews: {
+        where: { isApproved: true },
+        orderBy: { createdAt: 'desc' },
+        include: { user: { select: { name: true } } },
+      },
+    },
+  });
+
+  return product;
+}
+
+// ==================== GET ALL PRODUCTS (PAGINATED) ====================
+export async function getAllProducts({
+  page = 1,
+  limit = 12,
+  categorySlug,
+  sortBy = 'createdAt',
+  sortOrder = 'desc',
+}: {
+  page?: number;
+  limit?: number;
+  categorySlug?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+} = {}) {
+  const where = {
+    isActive: true,
+    ...(categorySlug && {
+      categories: {
+        some: {
+          category: { slug: categorySlug },
+        },
+      },
+    }),
+  };
+
+  const [products, total] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      orderBy: { [sortBy]: sortOrder },
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        images: { orderBy: { sortOrder: 'asc' }, take: 1 },
+        categories: { include: { category: true } },
+      },
+    }),
+    prisma.product.count({ where }),
+  ]);
+
+  return {
+    products,
+    total,
+    pages: Math.ceil(total / limit),
+    currentPage: page,
+  };
 }
 

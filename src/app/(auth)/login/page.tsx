@@ -1,11 +1,11 @@
 
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/account";
@@ -110,7 +110,7 @@ export default function LoginPage() {
     <div className="bg-white rounded-lg shadow-md p-8">
       <div className="text-center mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
-        <p className="text-gray-600 mt-2">Sign in to your LV's Trendz account</p>
+        <p className="text-gray-600 mt-2">Sign in to your LV&apos;s Trendz account</p>
       </div>
 
       {/* Toggle between Email and OTP */}
@@ -258,6 +258,22 @@ export default function LoginPage() {
         </Link>
       </p>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="bg-white rounded-lg shadow-md p-8 animate-pulse">
+        <div className="h-8 bg-gray-200 rounded w-48 mx-auto mb-4" />
+        <div className="h-4 bg-gray-200 rounded w-64 mx-auto mb-8" />
+        <div className="h-10 bg-gray-200 rounded mb-4" />
+        <div className="h-10 bg-gray-200 rounded mb-4" />
+        <div className="h-10 bg-gray-200 rounded" />
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }
 
