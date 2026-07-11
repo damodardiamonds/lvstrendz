@@ -1,3 +1,4 @@
+
 {
   "name": "lvstrendz",
   "version": "0.1.0",
@@ -26,8 +27,7 @@
     "prisma": "^6.19.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "react-hot-toast": "^2.6.0",
-    "xml2js": "^0.6.2"
+    "react-hot-toast": "^2.6.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -47,19 +47,6 @@
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
-  },
-  "description": "This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).",
-  "main": "postcss.config.js",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/damodardiamonds/lvstrendz.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/damodardiamonds/lvstrendz/issues"
-  },
-  "homepage": "https://github.com/damodardiamonds/lvstrendz#readme"
+  }
 }
+
