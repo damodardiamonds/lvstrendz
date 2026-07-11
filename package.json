@@ -1,4 +1,3 @@
-
 {
   "name": "lvstrendz",
   "version": "0.1.0",
@@ -15,16 +14,20 @@
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
+    "axios": "^1.18.1",
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.10.0",
     "cookies-next": "^6.1.1",
     "jose": "^6.2.3",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.24.0",
     "next": "16.2.10",
+    "next-cloudinary": "^6.17.5",
     "prisma": "^6.19.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "react-hot-toast": "^2.6.0"
+    "react-hot-toast": "^2.6.0",
+    "xml2js": "^0.6.2"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -44,6 +47,19 @@
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
-  }
+  },
+  "description": "This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).",
+  "main": "postcss.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/damodardiamonds/lvstrendz.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/damodardiamonds/lvstrendz/issues"
+  },
+  "homepage": "https://github.com/damodardiamonds/lvstrendz#readme"
 }
-

@@ -7,7 +7,6 @@ export { NewArrivals } from './components/NewArrivals';
 export { EliteCollection } from './components/EliteCollection';
 export { default as NowTrending } from './components/NowTrending';
 export { JustForYou } from './components/JustForYou';
-export { default as FashionForward } from './components/FashionForward';
 export { default as NewsletterBanner } from './components/NewsletterBanner';
 export { default as Footer } from './components/Footer';
 export { default as ProductCard } from './components/ProductCard';

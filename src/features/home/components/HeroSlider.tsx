@@ -3,33 +3,34 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
+import { CldImage } from 'next-cloudinary';
 import Link from 'next/link';
 
 const slides = [
   {
     id: 1,
-    image: '/images/hero/slide-1.jpg',
-    title: 'Festive Mood',
-    subtitle: 'New Collection 2026',
-    cta: 'Shop Now',
+    image: 'lvstrendz/products/slider-1',
     link: '/collections/festive',
   },
   {
     id: 2,
-    image: '/images/hero/slide-2.jpg',
-    title: 'Ethnic Elegance',
-    subtitle: 'Premium Silk Collection',
-    cta: 'Explore',
+    image: 'lvstrendz/products/slider-2',
     link: '/collections/silk',
   },
   {
     id: 3,
-    image: '/images/hero/slide-3.jpg',
-    title: 'Wedding Season',
-    subtitle: 'Bridal & Party Wear',
-    cta: 'View Collection',
+    image: 'lvstrendz/products/slider-3',
     link: '/collections/wedding',
+  },
+  {
+    id: 4,
+    image: 'lvstrendz/products/slider-4',
+    link: '/collections/new-arrivals',
+  },
+  {
+    id: 5,
+    image: 'lvstrendz/products/slider-5',
+    link: '/collections/party-wear',
   },
 ];
 
@@ -46,7 +47,6 @@ export default function HeroSlider() {
   }, [nextSlide]);
 
   return (
-    // Section 1: full width, no padding, max-width 1470px, gap 20px
     <section className="w-full max-w-[1470px] mx-auto m-0 p-0">
       <div className="relative w-full h-[500px] md:h-[600px] lg:h-[700px] overflow-hidden">
         {slides.map((slide, index) => (
@@ -56,32 +56,16 @@ export default function HeroSlider() {
               index === current ? 'opacity-100 z-10' : 'opacity-0 z-0'
             }`}
           >
-            <Image
-              src={slide.image}
-              alt={slide.title}
-              fill
-              className="object-cover object-center"
-              priority={index === 0}
-            />
-            {/* Overlay */}
-            <div className="absolute inset-0 bg-black/20" />
-            {/* Content */}
-            <div className="absolute inset-0 flex items-center justify-start px-[45px] md:px-[60px]">
-              <div className="max-w-lg">
-                <p className="text-white/80 text-sm uppercase tracking-[3px] mb-3 font-light">
-                  {slide.subtitle}
-                </p>
-                <h2 className="text-white text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-                  {slide.title}
-                </h2>
-                <Link
-                  href={slide.link}
-                  className="inline-block bg-white text-black px-8 py-3 text-sm font-semibold uppercase tracking-wider hover:bg-[#A0463E] hover:text-white transition-all duration-300"
-                >
-                  {slide.cta} →
-                </Link>
-              </div>
-            </div>
+            <Link href={slide.link}>
+              <CldImage
+                src={slide.image}
+                alt={`Slide ${slide.id}`}
+                fill
+                className="object-cover object-center"
+                priority={index === 0}
+                sizes="100vw"
+              />
+            </Link>
           </div>
         ))}
 
