@@ -43,3 +43,7 @@ next-env.d.ts
 /app/generated/prisma
 
 .vercel
+
+# Data exports
+*.csv
+*.xml
