@@ -1,8 +1,7 @@
 
 // src/features/home/components/JustForYou.tsx
-import Image from 'next/image';
-import Link from 'next/link';
 import type { ProductForHome } from '@/lib/products';
+import { ProductCarousel } from './ProductCarousel';
 
 interface JustForYouProps {
   products: ProductForHome[];
@@ -20,33 +19,7 @@ export function JustForYou({ products }: JustForYouProps) {
           </h2>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
-          {products.map((product) => (
-            <Link key={product.id} href={`/product/${product.slug}`} className="group">
-              <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
-                <Image
-                  src={product.image}
-                  alt={product.name}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  sizes="(max-width: 768px) 50vw, 25vw"
-                />
-              </div>
-              <div className="mt-3">
-                <h3 className="text-xs md:text-sm text-gray-800 font-medium line-clamp-2 leading-tight">
-                  {product.name}
-                </h3>
-                <div className="flex items-center gap-2 mt-1.5">
-                  <span className="text-sm font-bold text-black">₹{product.price.toLocaleString()}</span>
-                  {product.originalPrice && product.originalPrice > product.price && (
-
-                    <span className="text-xs text-gray-400 line-through">₹{product.originalPrice.toLocaleString()}</span>
-                  )}
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <ProductCarousel products={products} visibleCount={4} />
       </div>
     </section>
   );

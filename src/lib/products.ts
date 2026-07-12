@@ -73,7 +73,7 @@ export async function getNewArrivals(limit = 4): Promise<ProductForHome[]> {
 }
 
 // ==================== ELITE COLLECTION ====================
-export async function getEliteCollection(limit = 4): Promise<ProductForHome[]> {
+export async function getEliteCollection(limit = 8): Promise<ProductForHome[]> {
   const products = await prisma.product.findMany({
     where: {
       isActive: true,
@@ -90,7 +90,7 @@ export async function getEliteCollection(limit = 4): Promise<ProductForHome[]> {
 }
 
 // ==================== JUST FOR YOU ====================
-export async function getJustForYou(limit = 8): Promise<ProductForHome[]> {
+export async function getJustForYou(limit = 12): Promise<ProductForHome[]> {
   const count = await prisma.product.count({ where: { isActive: true } });
   const skip = Math.max(0, Math.floor(Math.random() * count) - limit);
 
@@ -108,16 +108,14 @@ export async function getJustForYou(limit = 8): Promise<ProductForHome[]> {
 
 // ==================== HOMEPAGE AGGREGATOR ====================
 export async function getHomepageProducts() {
-  const [spotlight, newArrivals, elite, justForYou] = await Promise.all([
-    getSpotlightDeals(),
-    getNewArrivals(),
-    getEliteCollection(),
-    getJustForYou(),
+  const [spotlight, elite, justForYou] = await Promise.all([
+    getSpotlightDeals(4),
+    getEliteCollection(8),
+    getJustForYou(12),
   ]);
 
   return {
     spotlight,
-    newArrivals,
     elite,
     justForYou,
   };

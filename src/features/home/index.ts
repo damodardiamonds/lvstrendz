@@ -3,7 +3,7 @@
 export { default as HeroSlider } from './components/HeroSlider';
 export { default as CollectionsRow } from './components/CollectionsRow';
 export { SpotlightDeals } from './components/SpotlightDeals';
-export { NewArrivals } from './components/NewArrivals';
+export { ProductCarousel } from './components/ProductCarousel';
 export { EliteCollection } from './components/EliteCollection';
 export { default as NowTrending } from './components/NowTrending';
 export { JustForYou } from './components/JustForYou';
