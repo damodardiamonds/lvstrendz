@@ -10,7 +10,7 @@ export default function NowTrending() {
       <div
         className="relative flex flex-col md:flex-row min-h-[670px] max-md:min-h-[500px] overflow-hidden"
         style={{
-          backgroundImage: `url('https://res.cloudinary.com/n5umtsub/image/upload/lvstrendz/products/now-trending-bg')`,
+          backgroundImage: `url('https://res.cloudinary.com/n5umtsub/image/upload/now-trending-bg.webp')`,
           backgroundPosition: 'center center',
           backgroundRepeat: 'no-repeat',
           backgroundSize: 'cover',
@@ -30,7 +30,7 @@ export default function NowTrending() {
               className="w-full h-full object-cover rounded-lg"
             >
               <source
-                src="https://res.cloudinary.com/n5umtsub/video/upload/lvstrendz/videos/now-trending-reel"
+                src="https://res.cloudinary.com/n5umtsub/video/upload/now-trending-reel"
                 type="video/mp4"
               />
             </video>

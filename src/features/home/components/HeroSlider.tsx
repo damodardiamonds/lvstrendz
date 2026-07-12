@@ -9,27 +9,27 @@ import Link from 'next/link';
 const slides = [
   {
     id: 1,
-    image: 'lvstrendz/products/slider-1',
+    image: 'slider-1',
     link: '/collections/festive',
   },
   {
     id: 2,
-    image: 'lvstrendz/products/slider-2',
+    image: 'slider-2',
     link: '/collections/silk',
   },
   {
     id: 3,
-    image: 'lvstrendz/products/slider-3',
+    image: 'slider-3',
     link: '/collections/wedding',
   },
   {
     id: 4,
-    image: 'lvstrendz/products/slider-4',
+    image: 'slider-4',
     link: '/collections/new-arrivals',
   },
   {
     id: 5,
-    image: 'lvstrendz/products/slider-5',
+    image: 'slider-5',
     link: '/collections/party-wear',
   },
 ];

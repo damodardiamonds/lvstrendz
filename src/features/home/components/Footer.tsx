@@ -13,7 +13,7 @@ export default function Footer() {
             {/* Brand Info */}
             <div>
               <CldImage
-                src="lvstrendz/logos/footer-logo"
+                src="footer-logo"
                 alt="LV's Trendz"
                 width={150}
                 height={50}
