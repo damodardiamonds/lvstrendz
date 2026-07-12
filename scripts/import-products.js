@@ -306,6 +306,27 @@ async function main() {
     console.log(`Imported variant for ${parentProduct.name}: SKU ${sku}`);
   }
 
+  console.log('Calculating and updating parent product prices from their variants...');
+  const parents = await prisma.product.findMany({
+    include: { variants: true }
+  });
+
+  for (const parent of parents) {
+    if (parent.variants.length > 0) {
+      const activeVariants = parent.variants.filter(v => v.isActive);
+      if (activeVariants.length > 0) {
+        const minPrice = Math.min(...activeVariants.map(v => parseFloat(v.price.toString())));
+        await prisma.product.update({
+          where: { id: parent.id },
+          data: {
+            price: minPrice,
+          }
+        });
+        console.log(`Updated price for parent ${parent.name} to ₹${minPrice}`);
+      }
+    }
+  }
+
   console.log('✅ Import completed successfully!');
 }
 
