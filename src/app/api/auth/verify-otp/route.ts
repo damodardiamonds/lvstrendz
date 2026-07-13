@@ -1,8 +1,7 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { generateToken } from "@/lib/auth";
-import { setSessionCookie } from "@/lib/session";
+import { setResponseCookie } from "@/lib/session";
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,11 +61,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Generate token and set cookie
+    // Generate token and set cookie on response
     const token = generateToken(user.id, user.role);
-    await setSessionCookie(token);
-
-    return NextResponse.json({
+    const response = NextResponse.json({
       message: "Login successful",
       user: {
         id: user.id,
@@ -75,6 +72,9 @@ export async function POST(request: NextRequest) {
         role: user.role,
       },
     });
+
+    setResponseCookie(response, token);
+    return response;
   } catch (error) {
     console.error("Verify OTP error:", error);
     return NextResponse.json(

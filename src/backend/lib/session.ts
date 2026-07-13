@@ -1,11 +1,22 @@
-
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 import { verifyToken } from "./auth";
 import { db } from "./db";
 
 const COOKIE_NAME = "lvs-session";
 
-// Set session cookie
+// Set session cookie on response directly (required for Route Handlers returning custom responses)
+export function setResponseCookie(response: NextResponse, token: string) {
+  response.cookies.set(COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+    path: "/",
+  });
+}
+
+// Set session cookie (falls back to cookies() store, useful for actions/middleware)
 export async function setSessionCookie(token: string) {
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, token, {

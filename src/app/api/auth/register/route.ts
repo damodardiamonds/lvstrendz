@@ -1,8 +1,7 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { hashPassword, generateToken } from "@/lib/auth";
-import { setSessionCookie } from "@/lib/session";
+import { setResponseCookie } from "@/lib/session";
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,11 +46,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Generate token and set cookie
+    // Generate token and set cookie on response
     const token = generateToken(user.id, user.role);
-    await setSessionCookie(token);
-
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         message: "Account created successfully",
         user: {
@@ -63,6 +60,9 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
+
+    setResponseCookie(response, token);
+    return response;
   } catch (error) {
     console.error("Registration error:", error);
     return NextResponse.json(
