@@ -1,8 +1,8 @@
-
 // src/app/api/admin/media-settings/route.ts
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/session';
 import { db } from '@/lib/db';
+import { revalidatePath } from 'next/cache';
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -55,6 +55,11 @@ export async function POST(request: Request) {
       update: { value: valueStr },
       create: { key, value: valueStr, type: 'json' },
     });
+
+    // Purge the static cache for affected public pages to reflect changes instantly
+    revalidatePath('/');
+    revalidatePath('/about-us');
+    revalidatePath('/faqs');
 
     return NextResponse.json({ success: true, setting });
   } catch (error: any) {
