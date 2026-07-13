@@ -12,6 +12,7 @@ import {
   Settings,
   X,
   Menu,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -21,6 +22,7 @@ const navItems = [
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { label: "Variants", href: "/admin/variants", icon: Palette },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+  { label: "Media Settings", href: "/admin/media-settings", icon: ImageIcon },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 

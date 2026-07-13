@@ -4,13 +4,29 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Package, Truck, CreditCard, Award, Heart, Sparkles } from 'lucide-react';
+import { db } from '@/lib/db';
 
 export const metadata = {
   title: 'About Us — LV\'s Trendz',
   description: 'timeless Indian ethnic wear, culture, and craftsmanship.',
 };
 
-export default function Page() {
+export default async function Page() {
+  const mediaSetting = await db.siteSetting.findUnique({
+    where: { key: 'about_us_media' },
+  });
+
+  let storyImage = "https://lvstrendz.com/wp-content/uploads/2026/05/fd41615365cea9a68738438feb0c1797.jpg";
+  let missionVideo = "https://lvstrendz.com/wp-content/uploads/2026/05/5-6332416037950069725.mp4";
+
+  if (mediaSetting) {
+    try {
+      const parsed = JSON.parse(mediaSetting.value);
+      if (parsed.storyImage) storyImage = parsed.storyImage;
+      if (parsed.missionVideo) missionVideo = parsed.missionVideo;
+    } catch {}
+  }
+
   return (
     <main className="bg-white min-h-screen">
       {/* Hero Section */}
@@ -31,7 +47,7 @@ export default function Page() {
           {/* Image */}
           <div className="relative aspect-[4/5] md:aspect-[5/4] lg:aspect-[4/5] w-full rounded-2xl overflow-hidden shadow-card group">
             <Image
-              src="https://lvstrendz.com/wp-content/uploads/2026/05/fd41615365cea9a68738438feb0c1797.jpg"
+              src={storyImage}
               alt="LV's Trendz Our Story"
               fill
               className="object-cover transition-transform duration-700 group-hover:scale-105"
@@ -128,7 +144,7 @@ export default function Page() {
           {/* Video Player */}
           <div className="relative aspect-[9/16] max-w-[380px] mx-auto w-full rounded-2xl overflow-hidden shadow-hover order-1 lg:order-2">
             <video
-              src="https://lvstrendz.com/wp-content/uploads/2026/05/5-6332416037950069725.mp4"
+              src={missionVideo}
               className="w-full h-full object-cover"
               autoPlay
               loop

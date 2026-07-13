@@ -42,14 +42,19 @@ const accordionSlides = [
   },
 ];
 
-export default function HeroSlider() {
+interface HeroSliderProps {
+  slides?: typeof accordionSlides | null;
+}
+
+export default function HeroSlider({ slides }: HeroSliderProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(2); // Default to middle panel active for balanced look
+  const activeSlides = slides && slides.length > 0 ? slides : accordionSlides;
 
   return (
     <section className="w-full max-w-[1470px] mx-auto px-4 md:px-[45px] py-6">
       {/* Desktop & Tablet: Horizontal Accordion */}
       <div className="hidden md:flex w-full h-[600px] lg:h-[700px] gap-3 overflow-hidden rounded-xl bg-gray-50">
-        {accordionSlides.map((slide, index) => {
+        {activeSlides.map((slide, index) => {
           const isActive = hoveredIndex === index;
           return (
             <div
@@ -110,7 +115,7 @@ export default function HeroSlider() {
 
       {/* Mobile: Vertical Accordion */}
       <div className="flex md:hidden flex-col w-full h-[650px] gap-2 overflow-hidden rounded-xl bg-gray-50">
-        {accordionSlides.map((slide, index) => {
+        {activeSlides.map((slide, index) => {
           const isActive = hoveredIndex === index;
           return (
             <div

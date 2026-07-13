@@ -44,13 +44,18 @@ const collections = [
   },
 ];
 
-export default function CollectionsRow() {
-  const [active, setActive] = useState('festive-fits');
+interface CollectionsRowProps {
+  items?: typeof collections | null;
+}
+
+export default function CollectionsRow({ items }: CollectionsRowProps) {
+  const activeCollections = items && items.length > 0 ? items : collections;
+  const [active, setActive] = useState(activeCollections[0]?.id || 'festive-fits');
 
   return (
     <section className="w-full max-w-[1470px] mx-auto px-4 md:px-[45px] py-10 mb-8 max-md:mb-4">
       <div className="flex justify-center gap-6 md:gap-12 flex-wrap">
-        {collections.map((col) => (
+        {activeCollections.map((col) => (
           <Link
             key={col.id}
             href={col.link}
