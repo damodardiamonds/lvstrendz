@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Heart, ShoppingBag, Check, Truck, RotateCcw, ShieldCheck, Star } from 'lucide-react';
+import { Heart, ShoppingBag, Check, Truck, RotateCcw, ShieldCheck, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
 interface AttributeValue {
@@ -105,40 +105,45 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
   const displayedImages = (() => {
     if (!selectedColor) return allImages;
 
-    // 1. Gather all image URLs that belong to variants of OTHER colors
-    const otherColorImageUrls = new Set<string>();
-    product.variants.forEach((v) => {
+    // Find all variants matching the selected color
+    const matchingVariants = product.variants.filter((v) => {
       const colorVal = v.attributes.find((a) => a.attributeValue.attribute.slug === 'color')?.attributeValue.value;
-      if (colorVal && colorVal !== selectedColor) {
-        v.images.forEach((img) => otherColorImageUrls.add(img.url));
-      }
+      return colorVal === selectedColor;
     });
 
-    // 2. Gather all image URLs that belong to variants of the SELECTED color
-    const selectedColorImageUrls = new Set<string>();
-    product.variants.forEach((v) => {
-      const colorVal = v.attributes.find((a) => a.attributeValue.attribute.slug === 'color')?.attributeValue.value;
-      if (colorVal === selectedColor) {
-        v.images.forEach((img) => selectedColorImageUrls.add(img.url));
-      }
+    // Gather all unique images from matching variants
+    const variantImages: { id: string; url: string; alt: string | null }[] = [];
+    matchingVariants.forEach((v) => {
+      v.images.forEach((img) => {
+        if (!variantImages.some((i) => i.url === img.url)) {
+          variantImages.push(img);
+        }
+      });
     });
 
-    // 3. Filter allImages:
-    // Keep an image if it belongs to selected color variants,
-    // OR if it is NOT specifically assigned to variants of other colors (like general details, size charts, or close-ups)
-    const filtered = allImages.filter((img) => {
-      if (selectedColorImageUrls.has(img.url)) return true;
-      if (otherColorImageUrls.has(img.url)) return false;
-      return true; // Keep parent images not linked to other colors
-    });
-
-    return filtered.length > 0 ? filtered : allImages;
+    // Fall back to allImages if no variant images are defined for this color
+    return variantImages.length > 0 ? variantImages : allImages;
   })();
 
   // Track gallery image selection
   const [activeImage, setActiveImage] = useState<string>(
     displayedImages[0]?.url || '/images/placeholder.jpg'
   );
+
+  // Index helper for next/prev sliding arrows
+  const currentImageIndex = displayedImages.findIndex((img) => img.url === activeImage);
+
+  const handleNextImage = () => {
+    if (displayedImages.length === 0) return;
+    const nextIndex = (currentImageIndex + 1) % displayedImages.length;
+    setActiveImage(displayedImages[nextIndex].url);
+  };
+
+  const handlePrevImage = () => {
+    if (displayedImages.length === 0) return;
+    const prevIndex = (currentImageIndex - 1 + displayedImages.length) % displayedImages.length;
+    setActiveImage(displayedImages[prevIndex].url);
+  };
 
   // Automatically update active image when color/size selection changes or active list resets
   useEffect(() => {
@@ -224,7 +229,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
         {/* Left Column: Image Gallery */}
         <div className="lg:col-span-7 flex flex-col gap-4">
-          <div className="relative aspect-[3/4] w-full bg-gray-50 overflow-hidden border border-gray-100">
+          <div className="relative aspect-[3/4] w-full bg-gray-50 overflow-hidden border border-gray-100 group">
             <Image
               src={activeImage}
               alt={product.name}
@@ -238,10 +243,32 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
                 {discountPercent}% Off
               </span>
             )}
+
+            {/* Slide Navigation Arrows */}
+            {displayedImages.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={handlePrevImage}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white text-black flex items-center justify-center shadow-md hover:shadow-lg transition-all active:scale-95 z-20 cursor-pointer"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextImage}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white text-black flex items-center justify-center shadow-md hover:shadow-lg transition-all active:scale-95 z-20 cursor-pointer"
+                  aria-label="Next image"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </>
+            )}
           </div>
 
           {/* Thumbnails */}
-          {displayedImages.length > 1 && (
+          {displayedImages.length > 0 && (
             <div className="flex gap-3 overflow-x-auto py-2 scrollbar-thin">
               {displayedImages.map((img) => (
                 <button
