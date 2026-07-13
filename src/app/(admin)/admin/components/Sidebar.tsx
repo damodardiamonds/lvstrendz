@@ -13,6 +13,7 @@ import {
   X,
   Menu,
   Image as ImageIcon,
+  MessageSquare,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -20,6 +21,7 @@ const navItems = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Products", href: "/admin/products", icon: Package },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
+  { label: "Chat Inbox", href: "/admin/chat", icon: MessageSquare },
   { label: "Variants", href: "/admin/variants", icon: Palette },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
   { label: "Media Settings", href: "/admin/media-settings", icon: ImageIcon },

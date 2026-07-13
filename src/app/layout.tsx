@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { CurrencyProvider } from "@/context/CurrencyContext";
+import ChatWidget from "@/components/ChatWidget";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,6 +24,7 @@ export default function RootLayout({
         <CurrencyProvider>
           {children}
         </CurrencyProvider>
+        <ChatWidget />
       </body>
     </html>
   );
