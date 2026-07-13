@@ -4,6 +4,8 @@ import { getCurrentUser } from "@/lib/session";
 import Sidebar from "./admin/components/Sidebar";
 import AdminHeader from "./admin/components/AdminHeader";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Admin Dashboard | LV's Trendz",
 };
