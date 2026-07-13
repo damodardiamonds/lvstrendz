@@ -34,9 +34,9 @@ export default function Footer() {
               <h4 className="text-sm font-semibold uppercase tracking-wider mb-4">Quick Links</h4>
               <ul className="space-y-2.5">
                 <li><Link href="/shop" className="text-white/60 text-sm hover:text-white transition-colors">Shop</Link></li>
-                <li><Link href="/new-arrivals" className="text-white/60 text-sm hover:text-white transition-colors">New Arrivals</Link></li>
-                <li><Link href="/collections" className="text-white/60 text-sm hover:text-white transition-colors">Collections</Link></li>
-                <li><Link href="/sale" className="text-white/60 text-sm hover:text-white transition-colors">Sale</Link></li>
+                <li><Link href="/shop?sort=newest" className="text-white/60 text-sm hover:text-white transition-colors">New Arrivals</Link></li>
+                <li><Link href="/shop" className="text-white/60 text-sm hover:text-white transition-colors">Collections</Link></li>
+                <li><Link href="/shop?sort=price-asc" className="text-white/60 text-sm hover:text-white transition-colors">Featured Deals</Link></li>
               </ul>
             </div>
 
@@ -45,9 +45,9 @@ export default function Footer() {
               <h4 className="text-sm font-semibold uppercase tracking-wider mb-4">Help</h4>
               <ul className="space-y-2.5">
                 <li><Link href="/help-center" className="text-white/60 text-sm hover:text-white transition-colors">Help Centre</Link></li>
-                <li><Link href="/blog" className="text-white/60 text-sm hover:text-white transition-colors">Blog</Link></li>
+                <li><Link href="/our-story" className="text-white/60 text-sm hover:text-white transition-colors">Our Story</Link></li>
                 <li><Link href="/privacy-policy" className="text-white/60 text-sm hover:text-white transition-colors">Privacy Policy</Link></li>
-                <li><Link href="/terms" className="text-white/60 text-sm hover:text-white transition-colors">Terms & Conditions</Link></li>
+                <li><Link href="/terms-conditions" className="text-white/60 text-sm hover:text-white transition-colors">Terms & Conditions</Link></li>
               </ul>
             </div>
 
