@@ -73,7 +73,7 @@ export default async function ImagesPage({ params }: ImagesPageProps) {
       <ImageUploader productId={id} variants={variantOptions} />
 
       {/* Image Grid */}
-      <ImageGrid images={product.images} productId={id} />
+      <ImageGrid images={product.images} productId={id} variants={variantOptions} />
 
       {/* Video Uploader */}
       <VideoUploader productId={id} videos={product.videos} />

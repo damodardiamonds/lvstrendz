@@ -17,6 +17,21 @@ async function ensureUploadDir() {
   }
 }
 
+// Helper to revalidate the public product details page
+async function revalidateProductPage(productId: string) {
+  try {
+    const product = await db.product.findUnique({
+      where: { id: productId },
+      select: { slug: true },
+    });
+    if (product?.slug) {
+      revalidatePath(`/product/${product.slug}`);
+    }
+  } catch (err) {
+    console.error("Failed to revalidate public product page:", err);
+  }
+}
+
 // Upload product image
 export async function uploadProductImage(productId: string, formData: FormData) {
   const file = formData.get("file") as File;
@@ -68,6 +83,7 @@ export async function uploadProductImage(productId: string, formData: FormData) 
   });
 
   revalidatePath(`/admin/products/${productId}/images`);
+  await revalidateProductPage(productId);
   return { success: true };
 }
 
@@ -93,6 +109,7 @@ export async function deleteProductImage(imageId: string, productId: string) {
   });
 
   revalidatePath(`/admin/products/${productId}/images`);
+  await revalidateProductPage(productId);
 }
 
 // Update image sort order
@@ -110,6 +127,7 @@ export async function updateImageOrder(
   );
 
   revalidatePath(`/admin/products/${productId}/images`);
+  await revalidateProductPage(productId);
 }
 
 // Update image alt text
@@ -120,5 +138,22 @@ export async function updateImageAlt(imageId: string, productId: string, alt: st
   });
 
   revalidatePath(`/admin/products/${productId}/images`);
+  await revalidateProductPage(productId);
+}
+
+// Update image variant link
+export async function updateImageVariant(
+  imageId: string,
+  productId: string,
+  variantId: string | null
+) {
+  await db.productImage.update({
+    where: { id: imageId },
+    data: { variantId: variantId || null },
+  });
+
+  revalidatePath(`/admin/products/${productId}/images`);
+  await revalidateProductPage(productId);
+  return { success: true };
 }
 

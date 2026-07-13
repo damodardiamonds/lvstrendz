@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { Trash2, Star, GripVertical } from "lucide-react";
-import { deleteProductImage, updateImageOrder } from "../actions";
+import { deleteProductImage, updateImageOrder, updateImageVariant } from "../actions";
 
 interface ProductImage {
   id: string;
@@ -16,13 +16,15 @@ interface ProductImage {
 interface ImageGridProps {
   images: ProductImage[];
   productId: string;
+  variants: { id: string; attributes: string }[];
 }
 
-export default function ImageGrid({ images, productId }: ImageGridProps) {
+export default function ImageGrid({ images, productId, variants }: ImageGridProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [reordering, setReordering] = useState(false);
   const [orderedImages, setOrderedImages] = useState(images);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [updatingVariantImageId, setUpdatingVariantImageId] = useState<string | null>(null);
 
   const handleDelete = async (imageId: string) => {
     if (!confirm("Delete this image? This cannot be undone.")) return;
@@ -30,6 +32,15 @@ export default function ImageGrid({ images, productId }: ImageGridProps) {
     await deleteProductImage(imageId, productId);
     setOrderedImages((prev) => prev.filter((img) => img.id !== imageId));
     setDeletingId(null);
+  };
+
+  const handleVariantChange = async (imageId: string, val: string | null) => {
+    setUpdatingVariantImageId(imageId);
+    await updateImageVariant(imageId, productId, val);
+    setOrderedImages((prev) =>
+      prev.map((img) => (img.id === imageId ? { ...img, variantId: val } : img))
+    );
+    setUpdatingVariantImageId(null);
   };
 
   const handleDragStart = (index: number) => {
@@ -129,7 +140,7 @@ export default function ImageGrid({ images, productId }: ImageGridProps) {
             </div>
 
             {/* Overlay Actions */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-end justify-center pb-2 opacity-0 group-hover:opacity-100">
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center pb-8 opacity-0 group-hover:opacity-100">
               <button
                 onClick={() => handleDelete(image.id)}
                 disabled={deletingId === image.id}
@@ -138,6 +149,25 @@ export default function ImageGrid({ images, productId }: ImageGridProps) {
                 <Trash2 size={14} />
               </button>
             </div>
+
+            {/* Link to Variant Selector */}
+            {variants.length > 0 && (
+              <div className="px-2 py-1.5 bg-gray-50 border-t border-gray-100">
+                <select
+                  value={image.variantId || ""}
+                  onChange={(e) => handleVariantChange(image.id, e.target.value || null)}
+                  disabled={updatingVariantImageId === image.id}
+                  className="w-full text-[10px] font-medium bg-white border border-gray-200 rounded px-1 py-0.5 focus:ring-1 focus:ring-[#A0463E] outline-none disabled:opacity-50"
+                >
+                  <option value="">General Image</option>
+                  {variants.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.attributes}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Alt text */}
             {image.alt && (
