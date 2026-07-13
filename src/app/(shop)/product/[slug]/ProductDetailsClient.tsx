@@ -105,24 +105,34 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
   const displayedImages = (() => {
     if (!selectedColor) return allImages;
 
-    // Find all variants matching the selected color
-    const matchingVariants = product.variants.filter((v) => {
+    // 1. Gather all image URLs that belong to variants of OTHER colors
+    const otherColorImageUrls = new Set<string>();
+    product.variants.forEach((v) => {
       const colorVal = v.attributes.find((a) => a.attributeValue.attribute.slug === 'color')?.attributeValue.value;
-      return colorVal === selectedColor;
+      if (colorVal && colorVal !== selectedColor) {
+        v.images.forEach((img) => otherColorImageUrls.add(img.url));
+      }
     });
 
-    // Gather all unique images from matching variants
-    const variantImages: { id: string; url: string; alt: string | null }[] = [];
-    matchingVariants.forEach((v) => {
-      v.images.forEach((img) => {
-        if (!variantImages.some((i) => i.url === img.url)) {
-          variantImages.push(img);
-        }
-      });
+    // 2. Gather all image URLs that belong to variants of the SELECTED color
+    const selectedColorImageUrls = new Set<string>();
+    product.variants.forEach((v) => {
+      const colorVal = v.attributes.find((a) => a.attributeValue.attribute.slug === 'color')?.attributeValue.value;
+      if (colorVal === selectedColor) {
+        v.images.forEach((img) => selectedColorImageUrls.add(img.url));
+      }
     });
 
-    // Fall back to allImages if no variant images are defined for this color
-    return variantImages.length > 0 ? variantImages : allImages;
+    // 3. Filter allImages:
+    // Keep an image if it belongs to selected color variants,
+    // OR if it is NOT specifically assigned to variants of other colors (like general details, size charts, or close-ups)
+    const filtered = allImages.filter((img) => {
+      if (selectedColorImageUrls.has(img.url)) return true;
+      if (otherColorImageUrls.has(img.url)) return false;
+      return true; // Keep parent images not linked to other colors
+    });
+
+    return filtered.length > 0 ? filtered : allImages;
   })();
 
   // Track gallery image selection
