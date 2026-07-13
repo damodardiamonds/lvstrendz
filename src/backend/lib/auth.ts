@@ -2,7 +2,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_SECRET = process.env.JWT_SECRET || "lvs-trendz-default-jwt-secret-key-123456";
 
 // Hash password
 export async function hashPassword(password: string): Promise<string> {
