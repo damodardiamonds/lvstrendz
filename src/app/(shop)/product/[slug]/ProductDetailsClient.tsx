@@ -91,18 +91,6 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
     return sizeMatches && colorMatches;
   });
 
-  // Track gallery image selection
-  const [activeImage, setActiveImage] = useState<string>(
-    product.images[0]?.url || '/images/placeholder.jpg'
-  );
-
-  // Automatically update active image when color selection changes if the variant has a unique photo
-  useEffect(() => {
-    if (selectedVariant && selectedVariant.images && selectedVariant.images.length > 0) {
-      setActiveImage(selectedVariant.images[0].url);
-    }
-  }, [selectedColor, selectedSize]);
-
   // Aggregate all unique image URLs (parent + variant images) to show in thumbnails
   const allImages = [...product.images];
   product.variants.forEach((v) => {
@@ -112,6 +100,46 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
       }
     });
   });
+
+  // Filter images to show in the gallery based on the selected color
+  const displayedImages = (() => {
+    if (!selectedColor) return allImages;
+
+    // Find all variants matching the selected color
+    const matchingVariants = product.variants.filter((v) => {
+      const colorVal = v.attributes.find((a) => a.attributeValue.attribute.slug === 'color')?.attributeValue.value;
+      return colorVal === selectedColor;
+    });
+
+    // Gather all unique images from matching variants
+    const variantImages: { id: string; url: string; alt: string | null }[] = [];
+    matchingVariants.forEach((v) => {
+      v.images.forEach((img) => {
+        if (!variantImages.some((i) => i.url === img.url)) {
+          variantImages.push(img);
+        }
+      });
+    });
+
+    // Fall back to allImages if no variant images are defined for this color
+    return variantImages.length > 0 ? variantImages : allImages;
+  })();
+
+  // Track gallery image selection
+  const [activeImage, setActiveImage] = useState<string>(
+    displayedImages[0]?.url || '/images/placeholder.jpg'
+  );
+
+  // Automatically update active image when color/size selection changes or active list resets
+  useEffect(() => {
+    // If the active image is no longer in the displayed images list, reset to the first one
+    if (displayedImages.length > 0 && !displayedImages.some((img) => img.url === activeImage)) {
+      setActiveImage(displayedImages[0].url);
+    } else if (selectedVariant && selectedVariant.images && selectedVariant.images.length > 0) {
+      // Otherwise, if the specific selected variant has images, prioritize showing its first image
+      setActiveImage(selectedVariant.images[0].url);
+    }
+  }, [selectedColor, selectedSize, displayedImages, activeImage, selectedVariant]);
 
   const activePrice = selectedVariant ? Number(selectedVariant.price) : Number(product.price);
   const activeComparePrice = product.compareAtPrice ? Number(product.compareAtPrice) : null;
@@ -203,9 +231,9 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
           </div>
 
           {/* Thumbnails */}
-          {allImages.length > 1 && (
+          {displayedImages.length > 1 && (
             <div className="flex gap-3 overflow-x-auto py-2 scrollbar-thin">
-              {allImages.map((img) => (
+              {displayedImages.map((img) => (
                 <button
                   key={img.id}
                   onClick={() => setActiveImage(img.url)}
