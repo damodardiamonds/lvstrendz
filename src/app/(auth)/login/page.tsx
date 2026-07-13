@@ -42,8 +42,7 @@ function LoginContent() {
         return;
       }
 
-      router.push(redirect);
-      router.refresh();
+      window.location.href = redirect;
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -97,8 +96,7 @@ function LoginContent() {
         return;
       }
 
-      router.push(redirect);
-      router.refresh();
+      window.location.href = redirect;
     } catch {
       setError("Verification failed. Please try again.");
     } finally {
