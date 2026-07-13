@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { verifyToken } from "./auth";
 import { db } from "./db";
@@ -28,10 +28,20 @@ export async function setSessionCookie(token: string) {
   });
 }
 
-// Get current user from session
+// Get current user from session (supports cookies, Authorization header, and X-Admin-Token header)
 export async function getCurrentUser() {
   const cookieStore = await cookies();
-  const token = cookieStore.get(COOKIE_NAME)?.value;
+  let token = cookieStore.get(COOKIE_NAME)?.value;
+
+  if (!token) {
+    const reqHeaders = await headers();
+    const authHeader = reqHeaders.get("Authorization");
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
+    } else {
+      token = reqHeaders.get("X-Admin-Token") || undefined;
+    }
+  }
 
   if (!token) return null;
 
@@ -53,6 +63,13 @@ export async function getCurrentUser() {
     },
   });
 
+  return user;
+}
+
+// Get admin user helper
+export async function getAdminUser() {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "ADMIN") return null;
   return user;
 }
 
