@@ -5,6 +5,68 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { writeFile, mkdir, unlink } from "fs/promises";
 import path from "path";
+import { v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const useCloudinary = !!(
+  process.env.CLOUDINARY_URL ||
+  (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME &&
+   process.env.CLOUDINARY_API_KEY &&
+   process.env.CLOUDINARY_API_SECRET)
+);
+
+// Helper to upload a buffer stream to Cloudinary
+async function uploadToCloudinary(file: File, folder: string): Promise<string> {
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: `lvstrendz/${folder}`,
+        resource_type: "auto",
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else if (result) {
+          resolve(result.secure_url);
+        } else {
+          reject(new Error("Upload returned no result"));
+        }
+      }
+    );
+    uploadStream.end(buffer);
+  });
+}
+
+// Helper to extract Cloudinary public ID from URL
+function getCloudinaryPublicId(url: string): string | null {
+  if (!url.includes("res.cloudinary.com")) return null;
+  try {
+    const parts = url.split("/upload/");
+    if (parts.length < 2) return null;
+    
+    let publicIdWithExt = parts[1];
+    const slashIndex = publicIdWithExt.indexOf("/");
+    if (slashIndex !== -1 && /^v\d+$/.test(publicIdWithExt.substring(0, slashIndex))) {
+      publicIdWithExt = publicIdWithExt.substring(slashIndex + 1);
+    }
+    
+    const dotIndex = publicIdWithExt.lastIndexOf(".");
+    if (dotIndex !== -1) {
+      return publicIdWithExt.substring(0, dotIndex);
+    }
+    return publicIdWithExt;
+  } catch {
+    return null;
+  }
+}
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "products");
 
@@ -53,16 +115,28 @@ export async function uploadProductImage(productId: string, formData: FormData) 
     return { error: "File size must be less than 5MB" };
   }
 
-  await ensureUploadDir();
+  let imageUrl = "";
 
-  // Generate unique filename
-  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const filename = `${productId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const filepath = path.join(UPLOAD_DIR, filename);
+  if (useCloudinary) {
+    try {
+      imageUrl = await uploadToCloudinary(file, "products");
+    } catch (err: any) {
+      console.error("Cloudinary upload failed:", err);
+      return { error: `Cloudinary upload failed: ${err.message || err}` };
+    }
+  } else {
+    await ensureUploadDir();
 
-  // Write file to disk
-  const bytes = await file.arrayBuffer();
-  await writeFile(filepath, Buffer.from(bytes));
+    // Generate unique filename
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const filename = `${productId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const filepath = path.join(UPLOAD_DIR, filename);
+
+    // Write file to disk
+    const bytes = await file.arrayBuffer();
+    await writeFile(filepath, Buffer.from(bytes));
+    imageUrl = `/uploads/products/${filename}`;
+  }
 
   // Get current max sort order
   const lastImage = await db.productImage.findFirst({
@@ -75,7 +149,7 @@ export async function uploadProductImage(productId: string, formData: FormData) 
   await db.productImage.create({
     data: {
       productId,
-      url: `/uploads/products/${filename}`,
+      url: imageUrl,
       alt: alt || null,
       sortOrder,
       variantId: variantId || null,
@@ -95,12 +169,23 @@ export async function deleteProductImage(imageId: string, productId: string) {
 
   if (!image) return;
 
-  // Delete file from disk
-  try {
-    const filepath = path.join(process.cwd(), "public", image.url);
-    await unlink(filepath);
-  } catch {
-    // File may not exist on disk
+  // Delete file from disk or Cloudinary
+  if (image.url.includes("res.cloudinary.com")) {
+    const publicId = getCloudinaryPublicId(image.url);
+    if (publicId && useCloudinary) {
+      try {
+        await cloudinary.uploader.destroy(publicId);
+      } catch (err) {
+        console.error("Failed to delete image from Cloudinary:", err);
+      }
+    }
+  } else {
+    try {
+      const filepath = path.join(process.cwd(), "public", image.url);
+      await unlink(filepath);
+    } catch {
+      // File may not exist on disk
+    }
   }
 
   // Delete from database

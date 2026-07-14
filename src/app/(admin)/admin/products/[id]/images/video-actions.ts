@@ -5,6 +5,68 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { writeFile, mkdir, unlink } from "fs/promises";
 import path from "path";
+import { v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const useCloudinary = !!(
+  process.env.CLOUDINARY_URL ||
+  (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME &&
+   process.env.CLOUDINARY_API_KEY &&
+   process.env.CLOUDINARY_API_SECRET)
+);
+
+// Helper to upload a buffer stream to Cloudinary
+async function uploadToCloudinary(file: File, folder: string): Promise<string> {
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: `lvstrendz/${folder}`,
+        resource_type: "auto",
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else if (result) {
+          resolve(result.secure_url);
+        } else {
+          reject(new Error("Upload returned no result"));
+        }
+      }
+    );
+    uploadStream.end(buffer);
+  });
+}
+
+// Helper to extract Cloudinary public ID from URL
+function getCloudinaryPublicId(url: string): string | null {
+  if (!url.includes("res.cloudinary.com")) return null;
+  try {
+    const parts = url.split("/upload/");
+    if (parts.length < 2) return null;
+    
+    let publicIdWithExt = parts[1];
+    const slashIndex = publicIdWithExt.indexOf("/");
+    if (slashIndex !== -1 && /^v\d+$/.test(publicIdWithExt.substring(0, slashIndex))) {
+      publicIdWithExt = publicIdWithExt.substring(slashIndex + 1);
+    }
+    
+    const dotIndex = publicIdWithExt.lastIndexOf(".");
+    if (dotIndex !== -1) {
+      return publicIdWithExt.substring(0, dotIndex);
+    }
+    return publicIdWithExt;
+  } catch {
+    return null;
+  }
+}
 
 const VIDEO_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "videos");
 
@@ -45,22 +107,34 @@ export async function uploadProductVideo(productId: string, formData: FormData) 
     return { error: "Video size must be less than 50MB" };
   }
 
-  await ensureVideoDir();
+  let videoUrl = "";
 
-  // Generate unique filename
-  const ext = file.name.split(".").pop()?.toLowerCase() || "mp4";
-  const filename = `${productId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const filepath = path.join(VIDEO_UPLOAD_DIR, filename);
+  if (useCloudinary) {
+    try {
+      videoUrl = await uploadToCloudinary(file, "videos");
+    } catch (err: any) {
+      console.error("Cloudinary video upload failed:", err);
+      return { error: `Cloudinary video upload failed: ${err.message || err}` };
+    }
+  } else {
+    await ensureVideoDir();
 
-  // Write file to disk
-  const bytes = await file.arrayBuffer();
-  await writeFile(filepath, Buffer.from(bytes));
+    // Generate unique filename
+    const ext = file.name.split(".").pop()?.toLowerCase() || "mp4";
+    const filename = `${productId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const filepath = path.join(VIDEO_UPLOAD_DIR, filename);
+
+    // Write file to disk
+    const bytes = await file.arrayBuffer();
+    await writeFile(filepath, Buffer.from(bytes));
+    videoUrl = `/uploads/videos/${filename}`;
+  }
 
   // Save to database
   await db.productVideo.create({
     data: {
       productId,
-      url: `/uploads/videos/${filename}`,
+      url: videoUrl,
       title: title || null,
       sortOrder: existingCount,
     },
@@ -78,12 +152,23 @@ export async function deleteProductVideo(videoId: string, productId: string) {
 
   if (!video) return;
 
-  // Delete file from disk
-  try {
-    const filepath = path.join(process.cwd(), "public", video.url);
-    await unlink(filepath);
-  } catch {
-    // File may not exist on disk
+  // Delete file from disk or Cloudinary
+  if (video.url.includes("res.cloudinary.com")) {
+    const publicId = getCloudinaryPublicId(video.url);
+    if (publicId && useCloudinary) {
+      try {
+        await cloudinary.uploader.destroy(publicId, { resource_type: "video" });
+      } catch (err) {
+        console.error("Failed to delete video from Cloudinary:", err);
+      }
+    }
+  } else {
+    try {
+      const filepath = path.join(process.cwd(), "public", video.url);
+      await unlink(filepath);
+    } catch {
+      // File may not exist on disk
+    }
   }
 
   // Delete from database
