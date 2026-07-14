@@ -1,10 +1,14 @@
 // src/app/(shop)/product/[slug]/ProductDetailsClient.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Heart, ShoppingBag, Check, Truck, RotateCcw, ShieldCheck, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
+
+// Module-level image cache
+const imageCache: Record<string, HTMLImageElement> = {};
+
 
 interface AttributeValue {
   id: string;
@@ -130,6 +134,11 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
     displayedImages[0]?.url || '/images/placeholder.jpg'
   );
 
+  const thumbnailContainerRef = useRef<HTMLDivElement>(null);
+  const [thumbPage, setThumbPage] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+
   // Index helper for next/prev sliding arrows
   const currentImageIndex = displayedImages.findIndex((img) => img.url === activeImage);
 
@@ -145,6 +154,19 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
     setActiveImage(displayedImages[prevIndex].url);
   };
 
+  // Detect mobile screen size on client
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const thumbsPerPage = isMobile ? 4 : 5;
+  const totalThumbPages = Math.max(0, Math.ceil(displayedImages.length / thumbsPerPage) - 1);
+
   // Automatically update active image when color/size selection changes or active list resets
   useEffect(() => {
     // If the active image is no longer in the displayed images list, reset to the first one
@@ -155,6 +177,101 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
       setActiveImage(selectedVariant.images[0].url);
     }
   }, [selectedColor, selectedSize, displayedImages, activeImage, selectedVariant]);
+
+  // Preload first 3 images on variation/displayedImages change
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    displayedImages.slice(0, 3).forEach((img) => {
+      if (img.url && !imageCache[img.url]) {
+        const p = new window.Image();
+        p.src = img.url;
+        imageCache[img.url] = p;
+      }
+    });
+  }, [displayedImages]);
+
+  // Lazy preload nearby images (activeIndex + 1, activeIndex + 2, activeIndex - 1)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const activeIndex = displayedImages.findIndex((img) => img.url === activeImage);
+    if (activeIndex === -1) return;
+
+    const preload = () => {
+      const toPreload = [activeIndex + 1, activeIndex + 2, activeIndex - 1];
+      toPreload.forEach((idx) => {
+        if (idx >= 0 && idx < displayedImages.length) {
+          const url = displayedImages[idx].url;
+          if (url && !imageCache[url]) {
+            const img = new window.Image();
+            img.src = url;
+            imageCache[url] = img;
+          }
+        }
+      });
+    };
+
+    if ('requestIdleCallback' in window) {
+      const handle = (window as any).requestIdleCallback(preload);
+      return () => (window as any).cancelIdleCallback(handle);
+    } else {
+      const timer = setTimeout(preload, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [activeImage, displayedImages]);
+
+  // Handle touch gestures for mobile swipe support
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.changedTouches[0].screenX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null) return;
+    const diff = touchStartX - e.changedTouches[0].screenX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) {
+        handleNextImage();
+      } else {
+        handlePrevImage();
+      }
+    }
+    setTouchStartX(null);
+  };
+
+  // Keyboard navigation arrow keys handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        handlePrevImage();
+      } else if (e.key === 'ArrowRight') {
+        handleNextImage();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [displayedImages, currentImageIndex]);
+
+  // Keep thumbnail scroll page aligned with the currently active image index
+  useEffect(() => {
+    if (displayedImages.length === 0) return;
+    const newPage = Math.floor(currentImageIndex / thumbsPerPage);
+    if (newPage !== thumbPage && newPage >= 0 && newPage <= totalThumbPages) {
+      setThumbPage(newPage);
+    }
+  }, [currentImageIndex, thumbsPerPage, totalThumbPages, thumbPage, displayedImages.length]);
+
+  // Smooth scroll thumbnail strip when the target scroll page changes
+  useEffect(() => {
+    const container = thumbnailContainerRef.current;
+    if (!container || !container.children.length) return;
+
+    const firstChild = container.children[0] as HTMLElement;
+    if (!firstChild) return;
+    const thumbWidth = firstChild.offsetWidth;
+    const gap = isMobile ? 6 : 8;
+    const scrollPos = thumbPage * thumbsPerPage * (thumbWidth + gap);
+
+    container.scrollTo({ left: scrollPos, behavior: 'smooth' });
+  }, [thumbPage, thumbsPerPage, isMobile]);
 
   const activePrice = selectedVariant ? Number(selectedVariant.price) : Number(product.price);
   const activeComparePrice = product.compareAtPrice ? Number(product.compareAtPrice) : null;
@@ -229,13 +346,17 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
         {/* Left Column: Image Gallery */}
         <div className="lg:col-span-7 flex flex-col gap-4">
-          <div className="relative aspect-[3/4] w-full bg-gray-50 overflow-hidden border border-gray-100 group">
+          <div
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            className="relative aspect-[3/4] md:aspect-[4/5] w-full bg-[#f8f8f8] overflow-hidden border border-gray-100 group"
+          >
             <Image
               src={activeImage}
               alt={product.name}
               fill
               priority
-              className="object-cover"
+              className="object-cover object-center cursor-default transition-opacity duration-150"
               sizes="(max-width: 1024px) 100vw, 60vw"
             />
             {discountPercent > 0 && (
@@ -250,43 +371,73 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
                 <button
                   type="button"
                   onClick={handlePrevImage}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white text-black flex items-center justify-center shadow-md hover:shadow-lg transition-all active:scale-95 z-20 cursor-pointer"
+                  className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 z-[100] w-9 h-9 md:w-11 md:h-11 bg-white/90 text-[#333] hover:bg-[#333] hover:text-white flex items-center justify-center rounded-full border-none shadow-[0_2px_8px_rgba(0,0,0,0.15)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all duration-200 active:scale-[0.92] cursor-pointer"
                   aria-label="Previous image"
                 >
-                  <ChevronLeft size={20} />
+                  <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
                 </button>
                 <button
                   type="button"
                   onClick={handleNextImage}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white text-black flex items-center justify-center shadow-md hover:shadow-lg transition-all active:scale-95 z-20 cursor-pointer"
+                  className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 z-[100] w-9 h-9 md:w-11 md:h-11 bg-white/90 text-[#333] hover:bg-[#333] hover:text-white flex items-center justify-center rounded-full border-none shadow-[0_2px_8px_rgba(0,0,0,0.15)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all duration-200 active:scale-[0.92] cursor-pointer"
                   aria-label="Next image"
                 >
-                  <ChevronRight size={20} />
+                  <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
                 </button>
               </>
             )}
           </div>
 
           {/* Thumbnails */}
-          {displayedImages.length > 0 && (
-            <div className="flex gap-3 overflow-x-auto py-2 scrollbar-thin">
-              {displayedImages.map((img) => (
-                <button
-                  key={img.id}
-                  onClick={() => setActiveImage(img.url)}
-                  className={`relative flex-shrink-0 w-20 h-24 bg-gray-50 overflow-hidden border transition-all ${
-                    activeImage === img.url ? 'border-black ring-1 ring-black' : 'border-gray-200'
-                  }`}
-                >
-                  <Image
-                    src={img.url}
-                    alt={img.alt || product.name}
-                    fill
-                    className="object-cover"
-                    sizes="80px"
-                  />
-                </button>
-              ))}
+          {displayedImages.length > 1 && (
+            <div className="relative mt-3 px-9 md:px-10 lg:px-11">
+              {/* Thumbnail Nav Prev */}
+              <button
+                type="button"
+                onClick={() => setThumbPage((p) => Math.max(0, p - 1))}
+                disabled={thumbPage <= 0}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 md:w-8 md:h-8 lg:w-[34px] lg:h-[34px] border-none bg-transparent text-[#111] hover:shadow-md hover:bg-white/10 flex items-center justify-center cursor-pointer transition-all duration-200 active:scale-90 disabled:opacity-35 disabled:cursor-not-allowed disabled:hover:shadow-none"
+                aria-label="Previous thumbnails"
+              >
+                <ChevronLeft size={isMobile ? 16 : 20} className="stroke-[2.5]" />
+              </button>
+
+              {/* Thumbnail Slider */}
+              <div
+                ref={thumbnailContainerRef}
+                className="flex flex-row flex-nowrap gap-[6px] md:gap-2 overflow-hidden scroll-smooth py-1.5"
+              >
+                {displayedImages.map((img) => (
+                  <button
+                    key={img.id}
+                    onClick={() => setActiveImage(img.url)}
+                    className={`relative flex-shrink-0 w-[calc((100%-18px)/4)] md:w-[calc((100%-32px)/5)] aspect-[4/5] bg-gray-50 overflow-hidden border-2 rounded-md transition-all duration-200 cursor-pointer ${
+                      activeImage === img.url
+                        ? 'border-[#333] shadow-[0_0_0_1px_#333]'
+                        : 'border-transparent hover:border-[#999]'
+                    }`}
+                  >
+                    <Image
+                      src={img.url}
+                      alt={img.alt || product.name}
+                      fill
+                      className="object-cover object-center cursor-default transition-opacity duration-150"
+                      sizes="80px"
+                    />
+                  </button>
+                ))}
+              </div>
+
+              {/* Thumbnail Nav Next */}
+              <button
+                type="button"
+                onClick={() => setThumbPage((p) => Math.min(totalThumbPages, p + 1))}
+                disabled={thumbPage >= totalThumbPages}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 md:w-8 md:h-8 lg:w-[34px] lg:h-[34px] border-none bg-transparent text-[#111] hover:shadow-md hover:bg-white/10 flex items-center justify-center cursor-pointer transition-all duration-200 active:scale-90 disabled:opacity-35 disabled:cursor-not-allowed disabled:hover:shadow-none"
+                aria-label="Next thumbnails"
+              >
+                <ChevronRight size={isMobile ? 16 : 20} className="stroke-[2.5]" />
+              </button>
             </div>
           )}
         </div>
