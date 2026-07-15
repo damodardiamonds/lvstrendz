@@ -1,14 +1,14 @@
 
-// src/features/home/components/NowTrending.tsx
+// src/frontend/features/home/components/NowTrending.tsx
 'use client';
 
 import Link from 'next/link';
 
 export default function NowTrending() {
   return (
-    <section className="w-full max-w-[1470px] mx-auto px-[45px] mb-[80px] max-md:px-0 max-md:mb-[50px]">
+    <section className="w-full max-w-[1470px] mx-auto px-4 md:px-[45px] mb-[80px] max-md:mb-[50px]">
       <div
-        className="relative flex flex-col md:flex-row min-h-[670px] max-md:min-h-[500px] overflow-hidden"
+        className="relative flex items-center min-h-[500px] md:min-h-[550px] lg:min-h-[650px] overflow-hidden rounded-2xl shadow-sm bg-[#DFB5A5]"
         style={{
           backgroundImage: `url('https://res.cloudinary.com/n5umtsub/image/upload/now-trending-bg.webp')`,
           backgroundPosition: 'center center',
@@ -16,46 +16,31 @@ export default function NowTrending() {
           backgroundSize: 'cover',
         }}
       >
-        {/* Pink overlay */}
-        <div className="absolute inset-0 bg-[#EC9DC0]/90 z-0" />
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-0 w-full min-h-full">
+          {/* Spacer for left model */}
+          <div className="hidden md:block md:col-span-4 lg:col-span-5" />
 
-        {/* Left Column - Video (35% width) */}
-        <div className="relative z-10 w-full md:w-[35%] py-[70px] px-[15px] flex justify-center max-md:py-[40px]">
-          <div className="w-full h-full min-h-[400px] md:min-h-full overflow-hidden rounded-lg">
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="w-full h-full object-cover rounded-lg"
-            >
-              <source
-                src="https://res.cloudinary.com/n5umtsub/video/upload/now-trending-reel"
-                type="video/mp4"
-              />
-            </video>
-          </div>
-        </div>
-
-        {/* Right Column - Content (65% width) */}
-        <div className="relative z-10 w-full md:w-[65%] px-[15px] flex justify-center items-center">
-          <div className="w-full md:w-[50%] mx-[30px] flex flex-col gap-y-[20px] max-md:mx-4 max-md:gap-y-[10px] max-md:pb-10">
-            <p className="text-white/80 text-sm uppercase tracking-[3px] font-light">
+          {/* Content in the middle gap */}
+          <div className="col-span-1 md:col-span-4 lg:col-span-4 flex flex-col justify-center items-start text-left p-6 md:p-2 z-10 max-md:bg-[#DFB5A5]/90 max-md:rounded-2xl max-md:shadow-sm max-md:mx-4 max-md:my-10">
+            <p className="text-gray-900 text-xs md:text-sm font-black uppercase tracking-[0.2em] mb-1">
               Now Trending
             </p>
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight">
-              Sadiya&apos;s Up Your Festival Look
+            <h2 className="text-6xl md:text-7xl lg:text-8xl font-normal text-[#E24E82] font-cursive leading-none mb-3">
+              Ethnic
             </h2>
-            <p className="text-white/90 text-base md:text-lg leading-relaxed">
-              In our Women&apos;s Inspired Fit collection &mdash; blending tradition with modern style for the festive season.
+            <p className="text-gray-800 text-sm md:text-base lg:text-lg font-semibold leading-relaxed mb-6">
+              Saddle up your festival look in our Western inspired fits
             </p>
             <Link
-              href="/collections/festival"
-              className="inline-block self-start bg-white text-black px-8 py-3 text-sm font-semibold uppercase tracking-wider hover:bg-black hover:text-white transition-all duration-300 mt-2"
+              href="/collections/festive-fits"
+              className="border-2 border-black text-black px-6 py-2.5 text-xs font-bold uppercase tracking-wider hover:bg-black hover:text-white transition-all duration-300 rounded"
             >
               Shop Now &rarr;
             </Link>
           </div>
+
+          {/* Spacer for right model */}
+          <div className="hidden md:block md:col-span-4 lg:col-span-3" />
         </div>
       </div>
     </section>

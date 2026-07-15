@@ -7,7 +7,7 @@ import { SpotlightDeals } from '@/features/home/components/SpotlightDeals';
 import { EliteCollection } from '@/features/home/components/EliteCollection';
 import NowTrending from '@/features/home/components/NowTrending';
 import { JustForYou } from '@/features/home/components/JustForYou';
-import NewsletterBanner from '@/features/home/components/NewsletterBanner';
+import CountdownBanner from '@/features/home/components/CountdownBanner';
 import { db } from '@/lib/db';
 
 // Revalidate every 60 seconds (ISR)
@@ -15,7 +15,7 @@ export const revalidate = 60;
 
 export default async function HomePage() {
   const [
-    { spotlight, elite, justForYou },
+    { spotlight, newArrivals, elite, justForYou },
     slidesSetting,
     collectionsSetting
   ] = await Promise.all([
@@ -47,11 +47,11 @@ export default async function HomePage() {
     <main className="min-h-screen bg-white">
       <HeroSlider slides={customSlides} />
       <CollectionsRow items={customCollections} />
-      <SpotlightDeals products={spotlight} />
+      <SpotlightDeals spotlight={spotlight} newArrivals={newArrivals} />
       <EliteCollection products={elite} />
       <NowTrending />
       <JustForYou products={justForYou} />
-      <NewsletterBanner />
+      <CountdownBanner />
     </main>
   );
 }

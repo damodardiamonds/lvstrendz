@@ -108,14 +108,16 @@ export async function getJustForYou(limit = 12): Promise<ProductForHome[]> {
 
 // ==================== HOMEPAGE AGGREGATOR ====================
 export async function getHomepageProducts() {
-  const [spotlight, elite, justForYou] = await Promise.all([
+  const [spotlight, newArrivals, elite, justForYou] = await Promise.all([
     getSpotlightDeals(4),
+    getNewArrivals(4),
     getEliteCollection(8),
     getJustForYou(12),
   ]);
 
   return {
     spotlight,
+    newArrivals,
     elite,
     justForYou,
   };
