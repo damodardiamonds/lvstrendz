@@ -26,12 +26,20 @@ async function uploadToCloudinary(file: File, folder: string): Promise<string> {
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
 
+  // Generate a unique public ID based on original filename to prevent duplicate/overwrite issues in Cloudinary
+  const fileBaseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+  const sanitizedBaseName = fileBaseName
+    .replace(/[^a-zA-Z0-9-_]/g, "_") // Remove special characters
+    .substring(0, 80); // Limit length
+  const uniquePublicId = `${sanitizedBaseName}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder: `lvstrendz/${folder}`,
         resource_type: "image",
         format: "webp", // Force WebP conversion on upload
+        public_id: uniquePublicId,
       },
       (error, result) => {
         if (error) {
