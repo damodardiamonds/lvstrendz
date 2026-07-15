@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   Menu,
@@ -71,6 +72,11 @@ export default function Header() {
   const [mobileOpenLink, setMobileOpenLink] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollY = useRef(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -116,11 +122,10 @@ export default function Header() {
       <div className="bg-[#A0463E] text-white">
         <div className="mx-auto flex h-10 max-w-[1440px] items-center justify-center px-4">
           <p className="text-[12px] font-medium tracking-wide sm:text-[13px]">
-            Flat 20% OFF on All Ethnic Wear! Use Code:{" "}
-            <span className="inline-block rounded border border-white/40 px-2 py-0.5 font-bold">
+            Flat 20% OFF! Use:{" "}
+            <span className="inline-block rounded border border-white/40 px-2 py-0.5 font-bold mx-1">
               FLAT20
             </span>{" "}
-            at Checkout{" "}
             <Link
               href="/shop"
               className="ml-2 underline underline-offset-2 hover:text-white/80"
@@ -294,137 +299,141 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile Drawer (Always rendered with slide/fade transitions) */}
-      <div
-        className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 ${
-          isMobileMenuOpen ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
-        onClick={() => setIsMobileMenuOpen(false)}
-      />
-      <div
-        className={`fixed inset-y-0 left-0 z-50 w-[300px] flex flex-col bg-[#f5f5f5] shadow-xl transition-transform duration-300 ${
-          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        {/* Drawer Header */}
-        <div className="flex h-14 border-b border-gray-100 shrink-0">
-          <div className="flex-1 flex items-center justify-between bg-[#f5f5f5] px-5 py-3">
-            {/* Login Link */}
-            <Link
-              href="/login"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center gap-2 text-[14px] font-medium text-gray-800 hover:text-[#A0463E]"
-            >
-              <User size={18} strokeWidth={1.5} className="text-gray-700" />
-              <span>Login</span>
-            </Link>
-
-            {/* Wishlist Link */}
-            <Link
-              href="/wishlist"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center gap-2 text-[14px] font-medium text-gray-800 hover:text-[#A0463E]"
-            >
-              <Heart size={18} strokeWidth={1.5} className="text-black fill-black" />
-              <span>Wishlist</span>
-            </Link>
-          </div>
-
-          {/* Pink Close Button */}
-          <button
+      {/* Mobile Drawer Portal (renders directly in document.body to prevent parent container transform constraints) */}
+      {mounted && typeof document !== "undefined" && createPortal(
+        <>
+          <div
+            className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 ${
+              isMobileMenuOpen ? "opacity-100" : "pointer-events-none opacity-0"
+            }`}
             onClick={() => setIsMobileMenuOpen(false)}
-            className="w-14 h-14 bg-[#e21b70] flex items-center justify-center text-white hover:bg-[#c81462] transition-colors shrink-0"
-            aria-label="Close menu"
+          />
+          <div
+            className={`fixed inset-y-0 left-0 z-50 w-[300px] flex flex-col bg-[#f5f5f5] shadow-xl transition-transform duration-300 ${
+              isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
           >
-            <X size={24} strokeWidth={2} />
-          </button>
-        </div>
+            {/* Drawer Header */}
+            <div className="flex h-14 border-b border-gray-100 shrink-0">
+              <div className="flex-1 flex items-center justify-between bg-[#f5f5f5] px-5 py-3">
+                {/* Login Link */}
+                <Link
+                  href="/login"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-2 text-[14px] font-medium text-gray-800 hover:text-[#A0463E]"
+                >
+                  <User size={18} strokeWidth={1.5} className="text-gray-700" />
+                  <span>Login</span>
+                </Link>
 
-        {/* Scrollable Navigation List */}
-        <div className="flex-1 overflow-y-auto flex flex-col">
-          <nav className="bg-white">
-            <ul className="divide-y divide-gray-100">
-              {navLinks.map((link) => {
-                const isOpen = mobileOpenLink === link.label;
-                return (
-                  <li key={link.label} className="relative">
-                    {link.hasDropdown ? (
-                      <div>
-                        {/* Parent row: Split into Text Link and Chevron Button */}
-                        <div className="flex h-14 items-center">
-                          {/* Main Link (left) */}
+                {/* Wishlist Link */}
+                <Link
+                  href="/wishlist"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-2 text-[14px] font-medium text-gray-800 hover:text-[#A0463E]"
+                >
+                  <Heart size={18} strokeWidth={1.5} className="text-black fill-black" />
+                  <span>Wishlist</span>
+                </Link>
+              </div>
+
+              {/* Pink Close Button */}
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="w-14 h-14 bg-[#e21b70] flex items-center justify-center text-white hover:bg-[#c81462] transition-colors shrink-0"
+                aria-label="Close menu"
+              >
+                <X size={24} strokeWidth={2} />
+              </button>
+            </div>
+
+            {/* Scrollable Navigation List */}
+            <div className="flex-1 overflow-y-auto flex flex-col">
+              <nav className="bg-white">
+                <ul className="divide-y divide-gray-100">
+                  {navLinks.map((link) => {
+                    const isOpen = mobileOpenLink === link.label;
+                    return (
+                      <li key={link.label} className="relative">
+                        {link.hasDropdown ? (
+                          <div>
+                            {/* Parent row: Split into Text Link and Chevron Button */}
+                            <div className="flex h-14 items-center">
+                              {/* Main Link (left) */}
+                              <Link
+                                href={link.href}
+                                onClick={() => {
+                                  setIsMobileMenuOpen(false);
+                                  setMobileOpenLink(null);
+                                }}
+                                className="flex-1 flex items-center h-full px-5 text-[14px] font-bold tracking-[0.05em] text-black hover:text-[#A0463E]"
+                              >
+                                {link.label}
+                              </Link>
+
+                              {/* Divider Line */}
+                              <div className="h-full w-[1px] bg-gray-100 shrink-0" />
+
+                              {/* Chevron Button (right) */}
+                              <button
+                                onClick={() => setMobileOpenLink(isOpen ? null : link.label)}
+                                className="w-14 h-full flex items-center justify-center text-gray-400 hover:text-black focus:outline-none shrink-0"
+                                aria-label={`Toggle ${link.label} submenu`}
+                              >
+                                <ChevronDown
+                                  size={16}
+                                  className={`transform transition-transform duration-300 ${
+                                    isOpen ? "rotate-180 text-[#A0463E]" : ""
+                                  }`}
+                                />
+                              </button>
+                            </div>
+
+                            {/* Submenu Dropdown */}
+                            {isOpen && (
+                              <ul className="bg-[#fcfcfc] divide-y divide-gray-50 border-t border-gray-100/50">
+                                {link.dropdownItems.map((item) => (
+                                  <li key={item.href}>
+                                    <Link
+                                      href={item.href}
+                                      onClick={() => {
+                                        setIsMobileMenuOpen(false);
+                                        setMobileOpenLink(null);
+                                      }}
+                                      className="block py-3.5 pl-10 pr-5 text-[12px] font-semibold tracking-wider text-gray-600 hover:bg-gray-50 hover:text-[#A0463E] transition-colors"
+                                    >
+                                      {item.label}
+                                    </Link>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        ) : (
+                          /* Single Link (no dropdown, e.g., HOME) */
                           <Link
                             href={link.href}
                             onClick={() => {
                               setIsMobileMenuOpen(false);
                               setMobileOpenLink(null);
                             }}
-                            className="flex-1 flex items-center h-full px-5 text-[14px] font-bold tracking-[0.05em] text-black hover:text-[#A0463E]"
+                            className="flex items-center h-14 px-5 text-[14px] font-bold tracking-[0.05em] text-black hover:text-[#A0463E]"
                           >
                             {link.label}
                           </Link>
-
-                          {/* Divider Line */}
-                          <div className="h-full w-[1px] bg-gray-100 shrink-0" />
-
-                          {/* Chevron Button (right) */}
-                          <button
-                            onClick={() => setMobileOpenLink(isOpen ? null : link.label)}
-                            className="w-14 h-full flex items-center justify-center text-gray-400 hover:text-black focus:outline-none shrink-0"
-                            aria-label={`Toggle ${link.label} submenu`}
-                          >
-                            <ChevronDown
-                              size={16}
-                              className={`transform transition-transform duration-300 ${
-                                isOpen ? "rotate-180 text-[#A0463E]" : ""
-                              }`}
-                            />
-                          </button>
-                        </div>
-
-                        {/* Submenu Dropdown */}
-                        {isOpen && (
-                          <ul className="bg-[#fcfcfc] divide-y divide-gray-50 border-t border-gray-100/50">
-                            {link.dropdownItems.map((item) => (
-                              <li key={item.href}>
-                                <Link
-                                  href={item.href}
-                                  onClick={() => {
-                                    setIsMobileMenuOpen(false);
-                                    setMobileOpenLink(null);
-                                  }}
-                                  className="block py-3.5 pl-10 pr-5 text-[12px] font-semibold tracking-wider text-gray-600 hover:bg-gray-50 hover:text-[#A0463E] transition-colors"
-                                >
-                                  {item.label}
-                                </Link>
-                              </li>
-                            ))}
-                          </ul>
                         )}
-                      </div>
-                    ) : (
-                      /* Single Link (no dropdown, e.g., HOME) */
-                      <Link
-                        href={link.href}
-                        onClick={() => {
-                          setIsMobileMenuOpen(false);
-                          setMobileOpenLink(null);
-                        }}
-                        className="flex items-center h-14 px-5 text-[14px] font-bold tracking-[0.05em] text-black hover:text-[#A0463E]"
-                      >
-                        {link.label}
-                      </Link>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </nav>
 
-          {/* Light Gray Area below menu items */}
-          <div className="flex-1 bg-[#f5f5f5]" />
-        </div>
-      </div>
+              {/* Light Gray Area below menu items */}
+              <div className="flex-1 bg-[#f5f5f5]" />
+            </div>
+          </div>
+        </>
+      , document.body)}
     </header>
   );
 }

@@ -2,9 +2,10 @@
 // src/features/home/components/CollectionsRow.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const collections = [
   {
@@ -51,10 +52,46 @@ interface CollectionsRowProps {
 export default function CollectionsRow({ items }: CollectionsRowProps) {
   const activeCollections = items && items.length > 0 ? items : collections;
   const [active, setActive] = useState(activeCollections[0]?.id || 'festive-fits');
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScroll = () => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      const { scrollLeft, scrollWidth, clientWidth } = container;
+      setCanScrollLeft(scrollLeft > 5);
+      setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 5);
+    }
+  };
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', checkScroll, { passive: true });
+      checkScroll();
+      window.addEventListener('resize', checkScroll, { passive: true });
+    }
+    return () => {
+      if (container) {
+        container.removeEventListener('scroll', checkScroll);
+      }
+      window.removeEventListener('resize', checkScroll);
+    };
+  }, [activeCollections]);
+
+  const handleScroll = (direction: 'left' | 'right') => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      const scrollAmount = direction === 'left' ? -(container.clientWidth / 2) : (container.clientWidth / 2);
+      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   return (
     <section className="w-full max-w-[1470px] mx-auto px-4 md:px-[45px] py-8 mb-8 max-md:mb-4">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 md:gap-6">
+      {/* Desktop view: static grid */}
+      <div className="hidden md:grid grid-cols-5 gap-4 md:gap-6">
         {activeCollections.map((col) => (
           <Link
             key={col.id}
@@ -74,7 +111,7 @@ export default function CollectionsRow({ items }: CollectionsRowProps) {
                 alt={col.name}
                 fill
                 className="object-cover transition-transform duration-500 group-hover:scale-105"
-                sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                sizes="20vw"
               />
             </div>
             <span
@@ -90,8 +127,79 @@ export default function CollectionsRow({ items }: CollectionsRowProps) {
           </Link>
         ))}
       </div>
+
+      {/* Mobile view: horizontal scrollable slider */}
+      <div className="md:hidden relative">
+        {/* Left Arrow */}
+        <button
+          onClick={() => handleScroll('left')}
+          className={`absolute left-2 top-[35%] -translate-y-1/2 z-10 w-8 h-8 rounded-full border border-gray-200 bg-white/95 shadow-sm flex items-center justify-center text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-opacity duration-300 ${
+            canScrollLeft ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
+          aria-label="Scroll left"
+        >
+          <ChevronLeft size={16} strokeWidth={2.5} />
+        </button>
+
+        {/* Right Arrow */}
+        <button
+          onClick={() => handleScroll('right')}
+          className={`absolute right-2 top-[35%] -translate-y-1/2 z-10 w-8 h-8 rounded-full border border-gray-200 bg-white/95 shadow-sm flex items-center justify-center text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-opacity duration-300 ${
+            canScrollRight ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
+          aria-label="Scroll right"
+        >
+          <ChevronRight size={16} strokeWidth={2.5} />
+        </button>
+
+        {/* Scroll Container */}
+        <div
+          ref={scrollContainerRef}
+          className="flex overflow-x-auto gap-4 snap-x snap-mandatory scrollbar-hide pb-2"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+        >
+          {activeCollections.map((col) => (
+            <Link
+              key={col.id}
+              href={col.link}
+              onClick={() => setActive(col.id)}
+              className={`w-[calc(50%-8px)] shrink-0 snap-start flex flex-col items-center group transition-all duration-300 ${
+                active === col.id ? 'opacity-100 scale-[1.01]' : 'opacity-90 hover:opacity-100'
+              }`}
+            >
+              <div
+                className={`w-full aspect-[3/4] rounded-2xl overflow-hidden border-2 transition-all duration-300 relative shadow-sm ${
+                  active === col.id ? 'border-[#A0463E]' : 'border-gray-200'
+                }`}
+              >
+                <Image
+                  src={col.image}
+                  alt={col.name}
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  sizes="50vw"
+                />
+              </div>
+              <span
+                className={`mt-3 text-[11px] font-bold uppercase tracking-widest transition-colors duration-300 ${
+                  active === col.id ? 'text-[#A0463E]' : 'text-gray-800'
+                }`}
+              >
+                {col.name}
+              </span>
+              <span className="text-[9px] text-gray-400 mt-0.5">
+                {col.items} items
+              </span>
+            </Link>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }
+
 
 
