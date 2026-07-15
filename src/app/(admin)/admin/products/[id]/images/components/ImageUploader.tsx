@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Upload, X, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
 import { uploadProductImages } from "../actions";
 
@@ -32,6 +33,7 @@ export default function ImageUploader({ productId, variants, isCloudinaryConfigu
   const [bulkVariantId, setBulkVariantId] = useState("");
   const [globalError, setGlobalError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   // Keep a ref to the queue for unmount cleanup
   const queueRef = useRef<UploadItem[]>([]);
@@ -55,8 +57,8 @@ export default function ImageUploader({ productId, variants, isCloudinaryConfigu
         errors.push(`"${file.name}" is not an allowed image format (only JPG, PNG, WebP, AVIF)`);
         return;
       }
-      if (file.size > 5 * 1024 * 1024) {
-        errors.push(`"${file.name}" exceeds the 5MB size limit`);
+      if (file.size > 4 * 1024 * 1024) {
+        errors.push(`"${file.name}" exceeds the 4MB size limit`);
         return;
       }
       newItems.push({
@@ -144,46 +146,50 @@ export default function ImageUploader({ productId, variants, isCloudinaryConfigu
       prev.map((q) => (q.status !== "success" ? { ...q, status: "uploading", error: undefined } : q))
     );
 
-    const formData = new FormData();
-    formData.set("storage", storage);
-    
-    pendingItems.forEach((item) => {
+    // Upload files sequentially to avoid Vercel / server request payload limits (e.g. 4.5MB request body limit)
+    let uploadFailed = false;
+    for (let i = 0; i < pendingItems.length; i++) {
+      const item = pendingItems[i];
+      const formData = new FormData();
+      formData.set("storage", storage);
       formData.append("files", item.file);
       formData.append("alts", item.alt || "");
       formData.append("variantIds", item.variantId || "");
-    });
+      
+      // Only call revalidatePath/revalidateProductPage on the last file to optimize performance
+      const isLast = i === pendingItems.length - 1;
+      formData.set("revalidate", isLast ? "true" : "false");
 
-    try {
-      const result = await uploadProductImages(productId, formData);
-      if (result.error) {
-        setGlobalError(result.error);
+      try {
+        const result = await uploadProductImages(productId, formData);
+        if (result.error) {
+          uploadFailed = true;
+          setUploadQueue((prev) =>
+            prev.map((q) => (q.id === item.id ? { ...q, status: "error", error: result.error } : q))
+          );
+        } else if (result.results && result.results[0]) {
+          const res = result.results[0];
+          if (res.error) {
+            uploadFailed = true;
+            setUploadQueue((prev) =>
+              prev.map((q) => (q.id === item.id ? { ...q, status: "error", error: res.error } : q))
+            );
+          } else {
+            setUploadQueue((prev) =>
+              prev.map((q) => (q.id === item.id ? { ...q, status: "success" } : q))
+            );
+          }
+        }
+      } catch (err: any) {
+        uploadFailed = true;
         setUploadQueue((prev) =>
-          prev.map((q) => (q.status === "uploading" ? { ...q, status: "error", error: result.error } : q))
-        );
-      } else if (result.results) {
-        const results = result.results;
-        setUploadQueue((prev) =>
-          prev.map((q) => {
-            const index = pendingItems.findIndex((item) => item.id === q.id);
-            if (index !== -1 && results[index]) {
-              const res = results[index];
-              if (res.error) {
-                return { ...q, status: "error", error: res.error };
-              } else {
-                return { ...q, status: "success" };
-              }
-            }
-            return q;
-          })
+          prev.map((q) => (q.id === item.id ? { ...q, status: "error", error: err.message || "Upload failed" } : q))
         );
       }
-    } catch (err: any) {
-      setGlobalError(err.message || "Upload failed");
-      setUploadQueue((prev) =>
-        prev.map((q) => (q.status === "uploading" ? { ...q, status: "error", error: err.message || "Upload failed" } : q))
-      );
     }
 
+    // Force route cache refresh to show successfully uploaded images
+    router.refresh();
     setUploading(false);
   };
 
@@ -244,7 +250,7 @@ export default function ImageUploader({ productId, variants, isCloudinaryConfigu
           Drag & drop images here, or click to browse
         </p>
         <p className="text-xs text-gray-500 mt-1">
-          JPG, PNG, WebP, AVIF • Max 5MB per image • You can select multiple files
+          JPG, PNG, WebP, AVIF • Max 4MB per image • You can select multiple files
         </p>
         <input
           ref={fileInputRef}

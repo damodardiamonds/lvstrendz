@@ -206,8 +206,11 @@ export async function uploadProductImages(productId: string, formData: FormData)
     }
   }
 
-  revalidatePath(`/admin/products/${productId}/images`);
-  await revalidateProductPage(productId);
+  const shouldRevalidate = formData.get("revalidate") !== "false";
+  if (shouldRevalidate) {
+    revalidatePath(`/admin/products/${productId}/images`);
+    await revalidateProductPage(productId);
+  }
   return { results };
 }
 

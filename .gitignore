@@ -52,3 +52,6 @@ next-env.d.ts
 functions
 style.txt
 theme function
+
+# Local uploads
+/public/uploads/
