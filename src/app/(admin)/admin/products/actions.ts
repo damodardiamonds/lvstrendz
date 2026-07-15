@@ -28,6 +28,7 @@ export async function createProduct(formData: FormData) {
     : null;
   const metaTitle = formData.get("metaTitle") as string;
   const metaDescription = formData.get("metaDescription") as string;
+  const categoryIds = formData.getAll("categoryIds") as string[];
 
   await db.product.create({
     data: {
@@ -46,10 +47,16 @@ export async function createProduct(formData: FormData) {
       weight,
       metaTitle: metaTitle || null,
       metaDescription: metaDescription || null,
+      categories: {
+        create: categoryIds.map((categoryId) => ({
+          category: { connect: { id: categoryId } },
+        })),
+      },
     },
   });
 
   revalidatePath("/admin/products");
+  revalidatePath("/shop");
   redirect("/admin/products");
 }
 
@@ -76,6 +83,7 @@ export async function updateProduct(id: string, formData: FormData) {
     : null;
   const metaTitle = formData.get("metaTitle") as string;
   const metaDescription = formData.get("metaDescription") as string;
+  const categoryIds = formData.getAll("categoryIds") as string[];
 
   await db.product.update({
     where: { id },
@@ -95,10 +103,17 @@ export async function updateProduct(id: string, formData: FormData) {
       weight,
       metaTitle: metaTitle || null,
       metaDescription: metaDescription || null,
+      categories: {
+        deleteMany: {},
+        create: categoryIds.map((categoryId) => ({
+          category: { connect: { id: categoryId } },
+        })),
+      },
     },
   });
 
   revalidatePath("/admin/products");
+  revalidatePath("/shop");
   redirect("/admin/products");
 }
 

@@ -22,20 +22,45 @@ interface ProductData {
   metaDescription: string | null;
 }
 
+interface CategoryOption {
+  id: string;
+  name: string;
+}
+
 interface ProductFormProps {
   product?: ProductData;
+  selectedCategoryIds?: string[];
+  categories?: CategoryOption[];
   action: (formData: FormData) => Promise<void>;
   submitLabel: string;
 }
 
 export default function ProductForm({
   product,
+  selectedCategoryIds = [],
+  categories = [],
   action,
   submitLabel,
 }: ProductFormProps) {
   const [name, setName] = useState(product?.name || "");
   const [slug, setSlug] = useState(product?.slug || "");
   const [autoSlug, setAutoSlug] = useState(!product);
+  const [selectedIds, setSelectedIds] = useState<string[]>(selectedCategoryIds);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleToggleCategory = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleRemoveCategory = (id: string) => {
+    setSelectedIds((prev) => prev.filter((x) => x !== id));
+  };
+
+  const filteredCategories = categories.filter((c) =>
+    c.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   // Auto-generate slug from name
   useEffect(() => {
@@ -268,6 +293,83 @@ export default function ProductForm({
             />
           </div>
         </div>
+      </div>
+
+      {/* Categories */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-800 mb-1">
+          Product Categories
+        </h2>
+        <p className="text-xs text-gray-500 mb-4">
+          Select one or more categories for this product
+        </p>
+
+        {/* Selected Badges */}
+        {selectedIds.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
+            {selectedIds.map((id) => {
+              const cat = categories.find((c) => c.id === id);
+              if (!cat) return null;
+              return (
+                <span
+                  key={id}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#A0463E] text-white text-xs font-semibold rounded-full shadow-sm"
+                >
+                  {cat.name}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveCategory(id)}
+                    className="hover:text-gray-200 ml-1 font-bold text-sm leading-none focus:outline-none"
+                  >
+                    ×
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Search & Checklist */}
+        <div className="space-y-3">
+          <input
+            type="text"
+            placeholder="Search categories..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#A0463E] focus:border-transparent outline-none transition"
+          />
+
+          <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100 p-1 bg-white">
+            {filteredCategories.length === 0 ? (
+              <p className="text-xs text-gray-500 text-center py-4">
+                No categories found.
+              </p>
+            ) : (
+              filteredCategories.map((cat) => {
+                const isChecked = selectedIds.includes(cat.id);
+                return (
+                  <label
+                    key={cat.id}
+                    className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-md cursor-pointer transition select-none"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => handleToggleCategory(cat.id)}
+                      className="w-4 h-4 rounded border-gray-300 text-[#A0463E] focus:ring-[#A0463E] cursor-pointer"
+                    />
+                    <span className="text-sm text-gray-700">{cat.name}</span>
+                  </label>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Hidden Inputs for Standard Form Action */}
+        {selectedIds.map((id) => (
+          <input key={id} type="hidden" name="categoryIds" value={id} />
+        ))}
       </div>
 
       {/* Visibility */}

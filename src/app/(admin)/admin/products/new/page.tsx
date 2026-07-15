@@ -3,12 +3,18 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import ProductForm from "../components/ProductForm";
 import { createProduct } from "../actions";
+import { db } from "@/lib/db";
 
 export const metadata = {
   title: "Add Product | Admin - LV's Trendz",
 };
 
-export default function NewProductPage() {
+export default async function NewProductPage() {
+  const categories = await db.category.findMany({
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
+
   return (
     <div>
       {/* Header */}
@@ -28,7 +34,11 @@ export default function NewProductPage() {
       </div>
 
       {/* Form */}
-      <ProductForm action={createProduct} submitLabel="Create Product" />
+      <ProductForm
+        action={createProduct}
+        categories={categories}
+        submitLabel="Create Product"
+      />
     </div>
   );
 }

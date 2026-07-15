@@ -14,12 +14,14 @@ import {
   Menu,
   Image as ImageIcon,
   MessageSquare,
+  FolderOpen,
 } from "lucide-react";
 import { useState } from "react";
 
 const navItems = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Products", href: "/admin/products", icon: Package },
+  { label: "Categories", href: "/admin/categories", icon: FolderOpen },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { label: "Chat Inbox", href: "/admin/chat", icon: MessageSquare },
   { label: "Variants", href: "/admin/variants", icon: Palette },

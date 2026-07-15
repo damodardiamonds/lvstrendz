@@ -17,9 +17,20 @@ interface EditProductPageProps {
 export default async function EditProductPage({ params }: EditProductPageProps) {
   const { id } = await params;
 
-  const product = await db.product.findUnique({
-    where: { id },
-  });
+  const [product, categories] = await Promise.all([
+    db.product.findUnique({
+      where: { id },
+      include: {
+        categories: {
+          select: { categoryId: true },
+        },
+      },
+    }),
+    db.category.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+  ]);
 
   if (!product) {
     notFound();
@@ -33,6 +44,8 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
     costPrice: product.costPrice ? Number(product.costPrice) : null,
     weight: product.weight ? Number(product.weight) : null,
   };
+
+  const selectedCategoryIds = product.categories.map((c) => c.categoryId);
 
   // Bind the product ID to the update action
   const updateWithId = updateProduct.bind(null, id);
@@ -88,6 +101,8 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
       {/* Product Form */}
       <ProductForm
         product={productData}
+        selectedCategoryIds={selectedCategoryIds}
+        categories={categories}
         action={updateWithId}
         submitLabel="Update Product"
       />
