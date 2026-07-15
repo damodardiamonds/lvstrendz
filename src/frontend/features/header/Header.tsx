@@ -457,7 +457,9 @@ export default function Header() {
           </div>
         </>
       , document.body)}
-      <CartDrawer isOpen={isCartDrawerOpen} onClose={() => setIsCartDrawerOpen(false)} />
+      {mounted && typeof document !== "undefined" && createPortal(
+        <CartDrawer isOpen={isCartDrawerOpen} onClose={() => setIsCartDrawerOpen(false)} />
+      , document.body)}
     </header>
   );
 }
