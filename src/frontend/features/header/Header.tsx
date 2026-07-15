@@ -94,6 +94,18 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobileMenuOpen]);
+
   return (
     <header
       className={`sticky top-0 z-30 bg-white shadow-sm transition-transform duration-300 ${
@@ -267,20 +279,14 @@ export default function Header() {
             />
           </Link>
 
-          <div className="flex items-center gap-4">
-            <button
-              aria-label="Search"
-              className="text-gray-700 hover:text-[#A0463E]"
-            >
-              <Search size={20} strokeWidth={1.5} />
-            </button>
+          <div className="flex items-center">
             <Link
               href="/cart"
               aria-label="Cart"
               className="relative text-gray-700 hover:text-[#A0463E]"
             >
-              <ShoppingBag size={20} strokeWidth={1.5} />
-              <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#A0463E] text-[10px] font-bold text-white">
+              <ShoppingBag size={24} strokeWidth={1.5} />
+              <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#e21b70] text-[10px] font-bold text-white">
                 0
               </span>
             </Link>
@@ -288,107 +294,137 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile Drawer */}
-      {isMobileMenuOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-black/50"
+      {/* Mobile Drawer (Always rendered with slide/fade transitions) */}
+      <div
+        className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 ${
+          isMobileMenuOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        onClick={() => setIsMobileMenuOpen(false)}
+      />
+      <div
+        className={`fixed inset-y-0 left-0 z-50 w-[300px] flex flex-col bg-[#f5f5f5] shadow-xl transition-transform duration-300 ${
+          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* Drawer Header */}
+        <div className="flex h-14 border-b border-gray-100 shrink-0">
+          <div className="flex-1 flex items-center justify-between bg-[#f5f5f5] px-5 py-3">
+            {/* Login Link */}
+            <Link
+              href="/login"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-2 text-[14px] font-medium text-gray-800 hover:text-[#A0463E]"
+            >
+              <User size={18} strokeWidth={1.5} className="text-gray-700" />
+              <span>Login</span>
+            </Link>
+
+            {/* Wishlist Link */}
+            <Link
+              href="/wishlist"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-2 text-[14px] font-medium text-gray-800 hover:text-[#A0463E]"
+            >
+              <Heart size={18} strokeWidth={1.5} className="text-black fill-black" />
+              <span>Wishlist</span>
+            </Link>
+          </div>
+
+          {/* Pink Close Button */}
+          <button
             onClick={() => setIsMobileMenuOpen(false)}
-          />
-          <div className="fixed inset-y-0 left-0 z-50 w-[300px] overflow-y-auto bg-white shadow-xl">
-            <div className="flex h-16 items-center justify-between border-b border-gray-100 px-5">
-              <img
-                src="/images/lvs-logo.svg"
-                alt="LV's Trendz"
-                className="h-9 w-auto"
-              />
-              <button
-                onClick={() => setIsMobileMenuOpen(false)}
-                aria-label="Close menu"
-                className="text-gray-600 hover:text-gray-900"
-              >
-                <X size={22} />
-              </button>
-            </div>
-            <nav className="px-5 py-6">
-              <ul className="space-y-1">
-                {navLinks.map((link) => {
-                  const isOpen = mobileOpenLink === link.label;
-                  return (
-                    <li key={link.label}>
-                      {link.hasDropdown ? (
-                        <div>
+            className="w-14 h-14 bg-[#e21b70] flex items-center justify-center text-white hover:bg-[#c81462] transition-colors shrink-0"
+            aria-label="Close menu"
+          >
+            <X size={24} strokeWidth={2} />
+          </button>
+        </div>
+
+        {/* Scrollable Navigation List */}
+        <div className="flex-1 overflow-y-auto flex flex-col">
+          <nav className="bg-white">
+            <ul className="divide-y divide-gray-100">
+              {navLinks.map((link) => {
+                const isOpen = mobileOpenLink === link.label;
+                return (
+                  <li key={link.label} className="relative">
+                    {link.hasDropdown ? (
+                      <div>
+                        {/* Parent row: Split into Text Link and Chevron Button */}
+                        <div className="flex h-14 items-center">
+                          {/* Main Link (left) */}
+                          <Link
+                            href={link.href}
+                            onClick={() => {
+                              setIsMobileMenuOpen(false);
+                              setMobileOpenLink(null);
+                            }}
+                            className="flex-1 flex items-center h-full px-5 text-[14px] font-bold tracking-[0.05em] text-black hover:text-[#A0463E]"
+                          >
+                            {link.label}
+                          </Link>
+
+                          {/* Divider Line */}
+                          <div className="h-full w-[1px] bg-gray-100 shrink-0" />
+
+                          {/* Chevron Button (right) */}
                           <button
                             onClick={() => setMobileOpenLink(isOpen ? null : link.label)}
-                            className="flex w-full items-center justify-between rounded-md px-3 py-3 text-[14px] font-medium tracking-[0.05em] text-gray-800 hover:bg-gray-50 hover:text-[#A0463E] focus:outline-none"
+                            className="w-14 h-full flex items-center justify-center text-gray-400 hover:text-black focus:outline-none shrink-0"
+                            aria-label={`Toggle ${link.label} submenu`}
                           >
-                            <span>{link.label}</span>
                             <ChevronDown
                               size={16}
                               className={`transform transition-transform duration-300 ${
-                                isOpen ? "rotate-180 text-[#A0463E]" : "text-gray-400"
+                                isOpen ? "rotate-180 text-[#A0463E]" : ""
                               }`}
                             />
                           </button>
-                          {isOpen && (
-                            <ul className="pl-5 pr-2 py-1.5 space-y-1.5 bg-gray-50/50 rounded-lg animate-fade-in">
-                              {link.dropdownItems.map((item) => (
-                                <li key={item.href}>
-                                  <Link
-                                    href={item.href}
-                                    onClick={() => {
-                                      setIsMobileMenuOpen(false);
-                                      setMobileOpenLink(null);
-                                    }}
-                                    className="block py-1.5 text-xs font-semibold uppercase text-gray-600 hover:text-[#A0463E]"
-                                  >
-                                    {item.label}
-                                  </Link>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
                         </div>
-                      ) : (
-                        <Link
-                          href={link.href}
-                          onClick={() => setIsMobileMenuOpen(false)}
-                          className="flex items-center justify-between rounded-md px-3 py-3 text-[14px] font-medium tracking-[0.05em] text-gray-800 hover:bg-gray-50 hover:text-[#A0463E]"
-                        >
-                          {link.label}
-                        </Link>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </nav>
 
-            <div className="mx-5 border-t border-gray-100" />
+                        {/* Submenu Dropdown */}
+                        {isOpen && (
+                          <ul className="bg-[#fcfcfc] divide-y divide-gray-50 border-t border-gray-100/50">
+                            {link.dropdownItems.map((item) => (
+                              <li key={item.href}>
+                                <Link
+                                  href={item.href}
+                                  onClick={() => {
+                                    setIsMobileMenuOpen(false);
+                                    setMobileOpenLink(null);
+                                  }}
+                                  className="block py-3.5 pl-10 pr-5 text-[12px] font-semibold tracking-wider text-gray-600 hover:bg-gray-50 hover:text-[#A0463E] transition-colors"
+                                >
+                                  {item.label}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ) : (
+                      /* Single Link (no dropdown, e.g., HOME) */
+                      <Link
+                        href={link.href}
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          setMobileOpenLink(null);
+                        }}
+                        className="flex items-center h-14 px-5 text-[14px] font-bold tracking-[0.05em] text-black hover:text-[#A0463E]"
+                      >
+                        {link.label}
+                      </Link>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
 
-            <div className="px-5 py-4">
-              <Link
-                href="/login"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block rounded-md px-3 py-3 text-[14px] font-medium text-gray-700 hover:bg-gray-50 hover:text-[#A0463E]"
-              >
-                Sign In / Register
-              </Link>
-            </div>
-
-            <div className="absolute bottom-0 left-0 right-0 border-t border-gray-100 px-5 py-4 bg-white">
-              <div className="flex items-center gap-2 text-[13px] text-gray-500">
-                <Phone size={14} />
-                <span>+91-8780389067</span>
-              </div>
-              <div className="mt-2 flex items-center gap-2 text-[13px] text-gray-500">
-                <Mail size={14} />
-                <span>lvstrendz.info@gmail.com</span>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+          {/* Light Gray Area below menu items */}
+          <div className="flex-1 bg-[#f5f5f5]" />
+        </div>
+      </div>
     </header>
   );
 }
