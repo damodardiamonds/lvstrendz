@@ -260,3 +260,46 @@ export async function updateImageVariant(
   return { success: true };
 }
 
+// Bulk delete product images
+export async function deleteProductImages(imageIds: string[], productId: string) {
+  if (imageIds.length === 0) return { success: true };
+
+  const images = await db.productImage.findMany({
+    where: {
+      id: { in: imageIds },
+    },
+  });
+
+  for (const image of images) {
+    // Delete file from disk or Cloudinary
+    if (image.url.includes("res.cloudinary.com")) {
+      const publicId = getCloudinaryPublicId(image.url);
+      if (publicId && useCloudinary) {
+        try {
+          await cloudinary.uploader.destroy(publicId);
+        } catch (err) {
+          console.error(`Failed to delete image ${image.id} from Cloudinary:`, err);
+        }
+      }
+    } else {
+      try {
+        const filepath = path.join(process.cwd(), "public", image.url);
+        await unlink(filepath);
+      } catch {
+        // File may not exist on disk
+      }
+    }
+  }
+
+  // Delete from database
+  await db.productImage.deleteMany({
+    where: {
+      id: { in: imageIds },
+    },
+  });
+
+  revalidatePath(`/admin/products/${productId}/images`);
+  await revalidateProductPage(productId);
+  return { success: true };
+}
+
