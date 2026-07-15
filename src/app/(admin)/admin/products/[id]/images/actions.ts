@@ -96,87 +96,111 @@ async function revalidateProductPage(productId: string) {
   }
 }
 
-// Upload product image
-export async function uploadProductImage(productId: string, formData: FormData) {
-  const file = formData.get("file") as File;
-  const variantId = formData.get("variantId") as string | null;
-  const alt = formData.get("alt") as string;
+// Upload multiple product images in a single server request (prevents browser/Next.js loop duplicate bugs)
+export async function uploadProductImages(productId: string, formData: FormData) {
+  const files = formData.getAll("files") as File[];
+  const alts = formData.getAll("alts") as string[];
+  const variantIds = formData.getAll("variantIds") as string[];
   const storageOption = formData.get("storage") as string || "local";
 
-  if (!file || file.size === 0) {
-    return { error: "No file selected" };
+  if (!files || files.length === 0) {
+    return { error: "No files selected" };
   }
 
-  // Validate file type
+  // Validate file types
   const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/avif"];
-  if (!allowedTypes.includes(file.type)) {
-    return { error: "Only JPG, PNG, WebP, and AVIF images are allowed" };
-  }
+  const results: { success?: boolean; error?: string; filename?: string }[] = [];
 
-  // Validate file size (max 5MB)
-  if (file.size > 5 * 1024 * 1024) {
-    return { error: "File size must be less than 5MB" };
-  }
-
-  let imageUrl = "";
-  const shouldUploadToCloudinary = storageOption === "cloudinary" && useCloudinary;
-
-  if (shouldUploadToCloudinary) {
-    try {
-      imageUrl = await uploadToCloudinary(file, "products");
-    } catch (err: any) {
-      console.error("Cloudinary upload failed:", err);
-      return { error: `Cloudinary upload failed: ${err.message || err}` };
-    }
-  } else {
-    if (storageOption === "cloudinary" && !useCloudinary) {
-      return { error: "Cloudinary is not configured. Please upload locally." };
-    }
-
-    await ensureUploadDir();
-
-    // Convert local upload to WebP
-    const bytes = await file.arrayBuffer();
-    let webpBuffer: Buffer;
-    try {
-      webpBuffer = await sharp(Buffer.from(bytes))
-        .webp({ quality: 80 })
-        .toBuffer();
-    } catch (err: any) {
-      console.error("Local WebP conversion failed:", err);
-      return { error: `Failed to convert image to WebP: ${err.message || err}` };
-    }
-
-    // Generate unique filename with .webp extension
-    const filename = `${productId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
-    const filepath = path.join(UPLOAD_DIR, filename);
-
-    // Write WebP buffer to disk
-    await writeFile(filepath, webpBuffer);
-    imageUrl = `/uploads/products/${filename}`;
-  }
-
-  // Get current max sort order
-  const lastImage = await db.productImage.findFirst({
+  // Get current max sort order to append correctly
+  let lastImage = await db.productImage.findFirst({
     where: { productId },
     orderBy: { sortOrder: "desc" },
   });
-  const sortOrder = (lastImage?.sortOrder ?? -1) + 1;
+  let currentSortOrder = (lastImage?.sortOrder ?? -1) + 1;
 
-  // Save to database
-  await db.productImage.create({
-    data: {
-      productId,
-      url: imageUrl,
-      alt: alt || null,
-      sortOrder,
-      variantId: variantId || null,
-    },
-  });
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const alt = alts[i] || "";
+    const variantId = variantIds[i] || null;
+
+    if (!file || file.size === 0) {
+      results.push({ error: "Empty file selected" });
+      continue;
+    }
+
+    if (!allowedTypes.includes(file.type)) {
+      results.push({ error: `File "${file.name}" is not an allowed format (only JPG, PNG, WebP, AVIF).`, filename: file.name });
+      continue;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      results.push({ error: `File "${file.name}" exceeds the 5MB size limit.`, filename: file.name });
+      continue;
+    }
+
+    let imageUrl = "";
+    const shouldUploadToCloudinary = storageOption === "cloudinary" && useCloudinary;
+
+    if (shouldUploadToCloudinary) {
+      try {
+        imageUrl = await uploadToCloudinary(file, "products");
+      } catch (err: any) {
+        console.error(`Cloudinary upload failed for "${file.name}":`, err);
+        results.push({ error: `Cloudinary upload failed for "${file.name}": ${err.message || err}`, filename: file.name });
+        continue;
+      }
+    } else {
+      if (storageOption === "cloudinary" && !useCloudinary) {
+        results.push({ error: "Cloudinary is not configured. Please upload locally.", filename: file.name });
+        continue;
+      }
+
+      await ensureUploadDir();
+
+      // Convert local upload to WebP
+      const bytes = await file.arrayBuffer();
+      let webpBuffer: Buffer;
+      try {
+        webpBuffer = await sharp(Buffer.from(bytes))
+          .webp({ quality: 80 })
+          .toBuffer();
+      } catch (err: any) {
+        console.error(`Local WebP conversion failed for "${file.name}":`, err);
+        results.push({ error: `Failed to convert "${file.name}" to WebP.`, filename: file.name });
+        continue;
+      }
+
+      // Generate unique filename with .webp extension (appended with file index for uniqueness)
+      const filename = `${productId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${i}.webp`;
+      const filepath = path.join(UPLOAD_DIR, filename);
+
+      // Write WebP buffer to disk
+      await writeFile(filepath, webpBuffer);
+      imageUrl = `/uploads/products/${filename}`;
+    }
+
+    // Save to database
+    try {
+      await db.productImage.create({
+        data: {
+          productId,
+          url: imageUrl,
+          alt: alt || null,
+          sortOrder: currentSortOrder++,
+          variantId: variantId || null,
+        },
+      });
+      results.push({ success: true, filename: file.name });
+    } catch (err: any) {
+      console.error(`Database save failed for "${file.name}":`, err);
+      results.push({ error: `Failed to save image "${file.name}" to database.`, filename: file.name });
+    }
+  }
 
   revalidatePath(`/admin/products/${productId}/images`);
   await revalidateProductPage(productId);
-  return { success: true };
+  return { results };
 }
 
 // Delete product image

@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Upload, X, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
-import { uploadProductImage } from "../actions";
+import { uploadProductImages } from "../actions";
 
 interface ImageUploaderProps {
   productId: string;
@@ -139,34 +139,49 @@ export default function ImageUploader({ productId, variants, isCloudinaryConfigu
     setUploading(true);
     setGlobalError("");
 
-    for (const item of pendingItems) {
-      // Set status to uploading
-      setUploadQueue((prev) =>
-        prev.map((q) => (q.id === item.id ? { ...q, status: "uploading", error: undefined } : q))
-      );
+    // Set all pending items status to uploading
+    setUploadQueue((prev) =>
+      prev.map((q) => (q.status !== "success" ? { ...q, status: "uploading", error: undefined } : q))
+    );
 
-      const formData = new FormData();
-      formData.set("file", item.file);
-      formData.set("alt", item.alt);
-      formData.set("storage", storage);
-      if (item.variantId) formData.set("variantId", item.variantId);
+    const formData = new FormData();
+    formData.set("storage", storage);
+    
+    pendingItems.forEach((item) => {
+      formData.append("files", item.file);
+      formData.append("alts", item.alt || "");
+      formData.append("variantIds", item.variantId || "");
+    });
 
-      try {
-        const result = await uploadProductImage(productId, formData);
-        if (result.error) {
-          setUploadQueue((prev) =>
-            prev.map((q) => (q.id === item.id ? { ...q, status: "error", error: result.error } : q))
-          );
-        } else {
-          setUploadQueue((prev) =>
-            prev.map((q) => (q.id === item.id ? { ...q, status: "success" } : q))
-          );
-        }
-      } catch (err: any) {
+    try {
+      const result = await uploadProductImages(productId, formData);
+      if (result.error) {
+        setGlobalError(result.error);
         setUploadQueue((prev) =>
-          prev.map((q) => (q.id === item.id ? { ...q, status: "error", error: err.message || "Upload failed" } : q))
+          prev.map((q) => (q.status === "uploading" ? { ...q, status: "error", error: result.error } : q))
+        );
+      } else if (result.results) {
+        const results = result.results;
+        setUploadQueue((prev) =>
+          prev.map((q) => {
+            const index = pendingItems.findIndex((item) => item.id === q.id);
+            if (index !== -1 && results[index]) {
+              const res = results[index];
+              if (res.error) {
+                return { ...q, status: "error", error: res.error };
+              } else {
+                return { ...q, status: "success" };
+              }
+            }
+            return q;
+          })
         );
       }
+    } catch (err: any) {
+      setGlobalError(err.message || "Upload failed");
+      setUploadQueue((prev) =>
+        prev.map((q) => (q.status === "uploading" ? { ...q, status: "error", error: err.message || "Upload failed" } : q))
+      );
     }
 
     setUploading(false);
