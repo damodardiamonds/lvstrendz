@@ -41,6 +41,14 @@ export default async function ImagesPage({ params }: ImagesPageProps) {
     notFound();
   }
 
+  // Check if Cloudinary is configured in .env variables
+  const isCloudinaryConfigured = !!(
+    process.env.CLOUDINARY_URL ||
+    (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME &&
+     process.env.CLOUDINARY_API_KEY &&
+     process.env.CLOUDINARY_API_SECRET)
+  );
+
   // Format variants for the uploader dropdown
   const variantOptions = product.variants.map((v) => ({
     id: v.id,
@@ -70,7 +78,11 @@ export default async function ImagesPage({ params }: ImagesPageProps) {
       </div>
 
       {/* Image Uploader */}
-      <ImageUploader productId={id} variants={variantOptions} />
+      <ImageUploader 
+        productId={id} 
+        variants={variantOptions} 
+        isCloudinaryConfigured={isCloudinaryConfigured} 
+      />
 
       {/* Image Grid */}
       <ImageGrid images={product.images} productId={id} variants={variantOptions} />

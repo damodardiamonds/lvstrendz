@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { writeFile, mkdir, unlink } from "fs/promises";
 import path from "path";
 import { v2 as cloudinary } from "cloudinary";
+import sharp from "sharp";
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -29,7 +30,8 @@ async function uploadToCloudinary(file: File, folder: string): Promise<string> {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder: `lvstrendz/${folder}`,
-        resource_type: "auto",
+        resource_type: "image",
+        format: "webp", // Force WebP conversion on upload
       },
       (error, result) => {
         if (error) {
@@ -99,6 +101,7 @@ export async function uploadProductImage(productId: string, formData: FormData) 
   const file = formData.get("file") as File;
   const variantId = formData.get("variantId") as string | null;
   const alt = formData.get("alt") as string;
+  const storageOption = formData.get("storage") as string || "local";
 
   if (!file || file.size === 0) {
     return { error: "No file selected" };
@@ -116,8 +119,9 @@ export async function uploadProductImage(productId: string, formData: FormData) 
   }
 
   let imageUrl = "";
+  const shouldUploadToCloudinary = storageOption === "cloudinary" && useCloudinary;
 
-  if (useCloudinary) {
+  if (shouldUploadToCloudinary) {
     try {
       imageUrl = await uploadToCloudinary(file, "products");
     } catch (err: any) {
@@ -125,16 +129,30 @@ export async function uploadProductImage(productId: string, formData: FormData) 
       return { error: `Cloudinary upload failed: ${err.message || err}` };
     }
   } else {
+    if (storageOption === "cloudinary" && !useCloudinary) {
+      return { error: "Cloudinary is not configured. Please upload locally." };
+    }
+
     await ensureUploadDir();
 
-    // Generate unique filename
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const filename = `${productId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    // Convert local upload to WebP
+    const bytes = await file.arrayBuffer();
+    let webpBuffer: Buffer;
+    try {
+      webpBuffer = await sharp(Buffer.from(bytes))
+        .webp({ quality: 80 })
+        .toBuffer();
+    } catch (err: any) {
+      console.error("Local WebP conversion failed:", err);
+      return { error: `Failed to convert image to WebP: ${err.message || err}` };
+    }
+
+    // Generate unique filename with .webp extension
+    const filename = `${productId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
     const filepath = path.join(UPLOAD_DIR, filename);
 
-    // Write file to disk
-    const bytes = await file.arrayBuffer();
-    await writeFile(filepath, Buffer.from(bytes));
+    // Write WebP buffer to disk
+    await writeFile(filepath, webpBuffer);
     imageUrl = `/uploads/products/${filename}`;
   }
 

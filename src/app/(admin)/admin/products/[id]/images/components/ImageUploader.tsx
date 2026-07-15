@@ -8,6 +8,7 @@ import { uploadProductImage } from "../actions";
 interface ImageUploaderProps {
   productId: string;
   variants: { id: string; attributes: string }[];
+  isCloudinaryConfigured: boolean;
 }
 
 interface UploadItem {
@@ -20,10 +21,13 @@ interface UploadItem {
   error?: string;
 }
 
-export default function ImageUploader({ productId, variants }: ImageUploaderProps) {
+export default function ImageUploader({ productId, variants, isCloudinaryConfigured }: ImageUploaderProps) {
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadQueue, setUploadQueue] = useState<UploadItem[]>([]);
+  const [storage, setStorage] = useState<"cloudinary" | "local">(
+    isCloudinaryConfigured ? "cloudinary" : "local"
+  );
   const [bulkAlt, setBulkAlt] = useState("");
   const [bulkVariantId, setBulkVariantId] = useState("");
   const [globalError, setGlobalError] = useState("");
@@ -144,6 +148,7 @@ export default function ImageUploader({ productId, variants }: ImageUploaderProp
       const formData = new FormData();
       formData.set("file", item.file);
       formData.set("alt", item.alt);
+      formData.set("storage", storage);
       if (item.variantId) formData.set("variantId", item.variantId);
 
       try {
@@ -169,7 +174,33 @@ export default function ImageUploader({ productId, variants }: ImageUploaderProp
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Upload Images</h3>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-4 border-b border-gray-100">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-800">Upload Images</h3>
+          <p className="text-xs text-gray-500 mt-0.5">Choose where to store your product media files</p>
+        </div>
+
+        {/* Storage Option Selector */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-xs font-semibold text-gray-600">Storage Destination:</span>
+          <select
+            value={storage}
+            disabled={uploading}
+            onChange={(e) => setStorage(e.target.value as "cloudinary" | "local")}
+            className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-medium outline-none focus:ring-1 focus:ring-[#A0463E] focus:border-[#A0463E] bg-white disabled:bg-gray-100 cursor-pointer"
+          >
+            {isCloudinaryConfigured && (
+              <option value="cloudinary">Cloudinary (Recommended - WebP)</option>
+            )}
+            <option value="local">Local Server (WebP Auto-Convert)</option>
+          </select>
+          {!isCloudinaryConfigured && (
+            <span className="text-[10px] text-gray-400 italic bg-gray-50 border border-gray-200/60 px-2 py-1 rounded-md">
+              Cloudinary not configured in .env
+            </span>
+          )}
+        </div>
+      </div>
 
       {globalError && (
         <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4 flex items-start gap-2">
