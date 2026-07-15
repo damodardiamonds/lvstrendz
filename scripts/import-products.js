@@ -189,7 +189,17 @@ async function main() {
     const imagesStr = getColVal(row, 'Images');
     const imageUrls = imagesStr ? imagesStr.split(',').map(url => url.trim()).filter(Boolean) : [];
 
-    await prisma.productImage.deleteMany({ where: { productId: product.id, variantId: null } });
+    await prisma.productImage.deleteMany({
+      where: {
+        productId: product.id,
+        variantId: null,
+        NOT: {
+          url: {
+            startsWith: 'https://res.cloudinary.com'
+          }
+        }
+      }
+    });
     
     let sortOrder = 0;
     for (const url of imageUrls) {
@@ -289,7 +299,16 @@ async function main() {
     const imagesStr = getColVal(row, 'Images');
     const imageUrls = imagesStr ? imagesStr.split(',').map(url => url.trim()).filter(Boolean) : [];
 
-    await prisma.productImage.deleteMany({ where: { variantId: variant.id } });
+    await prisma.productImage.deleteMany({
+      where: {
+        variantId: variant.id,
+        NOT: {
+          url: {
+            startsWith: 'https://res.cloudinary.com'
+          }
+        }
+      }
+    });
 
     let sortOrder = 0;
     for (const url of imageUrls) {
