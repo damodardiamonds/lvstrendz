@@ -15,6 +15,7 @@ import {
   X,
   ChevronDown,
 } from "lucide-react";
+import CartDrawer from "@/features/cart/CartDrawer";
 
 const navLinks = [
   { label: "HOME", href: "/", hasDropdown: false, dropdownItems: [] },
@@ -73,9 +74,31 @@ export default function Header() {
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollY = useRef(0);
   const [mounted, setMounted] = useState(false);
+  const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+
+  const updateCartCount = () => {
+    try {
+      const cart = JSON.parse(localStorage.getItem("lvstrendz_cart") || "[]");
+      const count = cart.reduce((total: number, item: any) => total + (item.quantity || 0), 0);
+      setCartCount(count);
+    } catch (e) {
+      setCartCount(0);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
+    updateCartCount();
+    window.addEventListener("cartUpdated", updateCartCount);
+    window.addEventListener("storage", updateCartCount);
+    const handleOpenDrawer = () => setIsCartDrawerOpen(true);
+    window.addEventListener("openCartDrawer", handleOpenDrawer);
+    return () => {
+      window.removeEventListener("cartUpdated", updateCartCount);
+      window.removeEventListener("storage", updateCartCount);
+      window.removeEventListener("openCartDrawer", handleOpenDrawer);
+    };
   }, []);
 
   useEffect(() => {
@@ -206,16 +229,16 @@ export default function Header() {
             >
               <Heart size={22} strokeWidth={1.5} />
             </Link>
-            <Link
-              href="/cart"
+            <button
+              onClick={() => setIsCartDrawerOpen(true)}
               aria-label="Cart"
               className="relative text-gray-700 transition-colors hover:text-[#A0463E]"
             >
               <ShoppingBag size={22} strokeWidth={1.5} />
               <span className="absolute -right-2 -top-2 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-[#A0463E] text-[10px] font-bold text-white">
-                0
+                {cartCount}
               </span>
-            </Link>
+            </button>
           </div>
         </div>
       </div>
@@ -285,16 +308,16 @@ export default function Header() {
           </Link>
 
           <div className="flex items-center">
-            <Link
-              href="/cart"
+            <button
+              onClick={() => setIsCartDrawerOpen(true)}
               aria-label="Cart"
               className="relative text-gray-700 hover:text-[#A0463E]"
             >
               <ShoppingBag size={24} strokeWidth={1.5} />
               <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#e21b70] text-[10px] font-bold text-white">
-                0
+                {cartCount}
               </span>
-            </Link>
+            </button>
           </div>
         </div>
       </div>
@@ -434,6 +457,7 @@ export default function Header() {
           </div>
         </>
       , document.body)}
+      <CartDrawer isOpen={isCartDrawerOpen} onClose={() => setIsCartDrawerOpen(false)} />
     </header>
   );
 }
