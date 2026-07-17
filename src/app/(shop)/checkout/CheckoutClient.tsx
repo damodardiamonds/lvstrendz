@@ -825,8 +825,7 @@ export default function CheckoutClient({
                           ) : null}
                           {item.customMeasurements && (
                             <span className="block text-[9px] text-gray-500 font-semibold normal-case mt-0.5 border-l border-gray-300 pl-1.5">
-                              Bust: {item.customMeasurements.bust}&quot; | Waist: {item.customMeasurements.waist}&quot; | Hips: {item.customMeasurements.hips}&quot;
-                              {item.customMeasurements.length && ` | Length: ${item.customMeasurements.length}"`}
+                              Bust: {item.customMeasurements.bust}&quot; | Waist: {item.customMeasurements.waist}&quot; | Hip: {item.customMeasurements.hip}&quot; | Shoulder: {item.customMeasurements.shoulder}&quot;
                             </span>
                           )}
                           <span className="text-gray-400 font-bold text-[10px] block mt-0.5">

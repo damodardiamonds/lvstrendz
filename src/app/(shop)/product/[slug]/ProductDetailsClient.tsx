@@ -85,10 +85,9 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
   const [quantity, setQuantity] = useState(1);
   const [customBust, setCustomBust] = useState('');
   const [customWaist, setCustomWaist] = useState('');
-  const [customHips, setCustomHips] = useState('');
-  const [customLength, setCustomLength] = useState('');
+  const [customHip, setCustomHip] = useState('');
+  const [customShoulder, setCustomShoulder] = useState('');
   const [customNotes, setCustomNotes] = useState('');
-  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
 
   // Find the variant that matches selected size and color
   const selectedVariant = product.variants.find((v) => {
@@ -292,8 +291,8 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
 
     // Validation for custom tailoring
     if (selectedSize === 'CS' || selectedSize === 'Custom Size') {
-      if (!customBust.trim() || !customWaist.trim() || !customHips.trim()) {
-        toast.error("Please fill in required measurements (Bust, Waist, Hips) for Custom Size tailoring.", {
+      if (!customBust.trim() || !customWaist.trim() || !customHip.trim() || !customShoulder.trim()) {
+        toast.error("Please fill in required measurements (Bust, Waist, Hip, Shoulder) for Custom Size tailoring.", {
           style: {
             background: '#3D1515',
             color: '#fff',
@@ -325,8 +324,8 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
       customMeasurements: (selectedSize === 'CS' || selectedSize === 'Custom Size') ? {
         bust: customBust.trim(),
         waist: customWaist.trim(),
-        hips: customHips.trim(),
-        length: customLength.trim(),
+        hip: customHip.trim(),
+        shoulder: customShoulder.trim(),
         notes: customNotes.trim()
       } : null
     };
@@ -360,8 +359,8 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
     // Reset tailoring inputs
     setCustomBust('');
     setCustomWaist('');
-    setCustomHips('');
-    setCustomLength('');
+    setCustomHip('');
+    setCustomShoulder('');
     setCustomNotes('');
   };
 
@@ -509,6 +508,18 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
             </span>
           </div>
 
+          {/* Size Guide Link */}
+          <div className="mb-4">
+            <a
+              href="https://lvstrendz.com/wp-content/uploads/2026/06/Size-Guide-LVS.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-800 hover:text-[#A0463E] transition-colors"
+            >
+              📏 Size Guide
+            </a>
+          </div>
+
           {/* Short description */}
           {product.shortDescription && (
             <div 
@@ -552,34 +563,35 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
 
             {/* Size Swatch */}
             {sizes.length > 0 && (
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-xs uppercase tracking-wider font-semibold text-black">
-                    Size: <span className="text-gray-500 font-medium">{selectedSize === 'CS' ? 'Custom Size' : selectedSize}</span>
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setIsSizeGuideOpen(true)}
-                    className="text-xs font-bold text-[#A0463E] hover:underline flex items-center gap-1 cursor-pointer bg-transparent border-none p-0"
-                  >
-                    📐 Size Guide
-                  </button>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2 border-t border-gray-100 pt-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-xs uppercase tracking-wider font-bold text-black min-w-[50px]">Size</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {sizes.map((size) => (
+                      <button
+                        key={size.slug}
+                        onClick={() => setSelectedSize(size.value)}
+                        className={`w-10 h-10 text-[11px] font-semibold border flex items-center justify-center transition-all rounded-full ${
+                          selectedSize === size.value
+                            ? 'bg-[#3D1515] border-[#3D1515] text-white'
+                            : 'bg-white border-gray-300 text-gray-800 hover:border-black'
+                        }`}
+                      >
+                        {size.value === 'CS' || size.slug === 'cs' ? 'CS' : size.value}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2.5">
-                  {sizes.map((size) => (
-                    <button
-                      key={size.slug}
-                      onClick={() => setSelectedSize(size.value)}
-                      className={`min-w-[44px] h-10 px-3 text-[11px] font-semibold border flex items-center justify-center transition-all ${
-                        selectedSize === size.value
-                          ? 'bg-[#3D1515] border-[#3D1515] text-white scale-102'
-                          : 'bg-white border-gray-300 text-gray-800 hover:border-black'
-                      }`}
-                    >
-                      {size.value === 'CS' || size.slug === 'cs' ? 'Custom Size' : size.value}
-                    </button>
-                  ))}
-                </div>
+                
+                {/* Custom Size Toggle Link */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedSize('CS')}
+                  className="flex items-center gap-1.5 text-xs font-extrabold text-[#111] hover:text-[#A0463E] border-none bg-transparent cursor-pointer whitespace-nowrap self-start md:self-auto"
+                >
+                  <span>Custom Size</span>
+                  <img src="/images/sewing-machine.webp" alt="Sewing Machine" className="w-5 h-5 object-contain" />
+                </button>
               </div>
             )}
 
@@ -600,141 +612,64 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase tracking-wider text-gray-600 mb-1">
-                      Bust Size (in) <span className="text-red-500">*</span>
+                      Bust (inch) <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       value={customBust}
                       onChange={(e) => setCustomBust(e.target.value)}
-                      placeholder="e.g. 36"
+                      placeholder="Bust (inch)"
                       className="w-full px-3 py-2 border border-gray-205 rounded text-xs bg-white focus:outline-none focus:border-[#A0463E]"
                     />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase tracking-wider text-gray-600 mb-1">
-                      Waist Size (in) <span className="text-red-500">*</span>
+                      Waist (inch) <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       value={customWaist}
                       onChange={(e) => setCustomWaist(e.target.value)}
-                      placeholder="e.g. 30"
+                      placeholder="Waist (inch)"
                       className="w-full px-3 py-2 border border-gray-205 rounded text-xs bg-white focus:outline-none focus:border-[#A0463E]"
                     />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase tracking-wider text-gray-600 mb-1">
-                      Hips Size (in) <span className="text-red-500">*</span>
+                      Hip (inch) <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
-                      value={customHips}
-                      onChange={(e) => setCustomHips(e.target.value)}
-                      placeholder="e.g. 38"
+                      value={customHip}
+                      onChange={(e) => setCustomHip(e.target.value)}
+                      placeholder="Hip (inch)"
                       className="w-full px-3 py-2 border border-gray-205 rounded text-xs bg-white focus:outline-none focus:border-[#A0463E]"
                     />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase tracking-wider text-gray-600 mb-1">
-                      Length / Height (in)
+                      Shoulder (inch) <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
-                      value={customLength}
-                      onChange={(e) => setCustomLength(e.target.value)}
-                      placeholder="e.g. 42 (optional)"
+                      value={customShoulder}
+                      onChange={(e) => setCustomShoulder(e.target.value)}
+                      placeholder="Shoulder (inch)"
                       className="w-full px-3 py-2 border border-gray-205 rounded text-xs bg-white focus:outline-none focus:border-[#A0463E]"
                     />
                   </div>
                 </div>
                 <div>
                   <label className="block text-[10px] font-extrabold uppercase tracking-wider text-gray-600 mb-1">
-                    Special Tailoring Notes
+                    Special Note (optional)
                   </label>
                   <textarea
                     value={customNotes}
                     onChange={(e) => setCustomNotes(e.target.value)}
-                    placeholder="Provide any additional specifications or tailoring requests here..."
+                    placeholder="Special Note (optional)"
                     rows={2}
                     className="w-full px-3 py-2 border border-gray-205 rounded text-xs bg-white focus:outline-none focus:border-[#A0463E] resize-none"
                   />
-                </div>
-              </div>
-            )}
-
-            {/* Size Guide Modal */}
-            {isSizeGuideOpen && (
-              <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/60 p-4">
-                <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6 relative">
-                  <button
-                    onClick={() => setIsSizeGuideOpen(false)}
-                    className="absolute right-4 top-4 text-gray-400 hover:text-black font-bold text-xl p-1 bg-transparent border-none cursor-pointer"
-                  >
-                    ✕
-                  </button>
-                  <h2 className="text-base font-bold text-black uppercase tracking-wide border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
-                    📏 Sizing Guide (Inches)
-                  </h2>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-gray-200 text-gray-500 bg-gray-50 uppercase font-semibold">
-                          <th className="py-2.5 px-3">Size</th>
-                          <th className="py-2.5 px-3">Bust (in)</th>
-                          <th className="py-2.5 px-3">Waist (in)</th>
-                          <th className="py-2.5 px-3">Hips (in)</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
-                        <tr>
-                          <td className="py-2.5 px-3 font-bold text-black">XS</td>
-                          <td className="py-2.5 px-3">34</td>
-                          <td className="py-2.5 px-3">28</td>
-                          <td className="py-2.5 px-3">36</td>
-                        </tr>
-                        <tr>
-                          <td className="py-2.5 px-3 font-bold text-black">S</td>
-                          <td className="py-2.5 px-3">36</td>
-                          <td className="py-2.5 px-3">30</td>
-                          <td className="py-2.5 px-3">38</td>
-                        </tr>
-                        <tr>
-                          <td className="py-2.5 px-3 font-bold text-black">M</td>
-                          <td className="py-2.5 px-3">38</td>
-                          <td className="py-2.5 px-3">32</td>
-                          <td className="py-2.5 px-3">40</td>
-                        </tr>
-                        <tr>
-                          <td className="py-2.5 px-3 font-bold text-black">L</td>
-                          <td className="py-2.5 px-3">40</td>
-                          <td className="py-2.5 px-3">34</td>
-                          <td className="py-2.5 px-3">42</td>
-                        </tr>
-                        <tr>
-                          <td className="py-2.5 px-3 font-bold text-black">XL</td>
-                          <td className="py-2.5 px-3">42</td>
-                          <td className="py-2.5 px-3">36</td>
-                          <td className="py-2.5 px-3">44</td>
-                        </tr>
-                        <tr>
-                          <td className="py-2.5 px-3 font-bold text-black">XXL</td>
-                          <td className="py-2.5 px-3">44</td>
-                          <td className="py-2.5 px-3">38</td>
-                          <td className="py-2.5 px-3">46</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="mt-5 pt-4 border-t border-gray-150 text-[11px] text-gray-500 leading-relaxed space-y-2">
-                    <p>
-                      💡 <strong>How to measure:</strong>
-                    </p>
-                    <ul className="list-disc list-inside pl-1 space-y-1">
-                      <li><strong>Bust:</strong> Wrap tape under armpits around fullest part of chest.</li>
-                      <li><strong>Waist:</strong> Measure around your natural waistline (narrowest part).</li>
-                      <li><strong>Hips:</strong> Measure around the widest part of your hips.</li>
-                    </ul>
-                  </div>
                 </div>
               </div>
             )}
