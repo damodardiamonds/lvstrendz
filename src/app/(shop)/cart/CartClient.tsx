@@ -218,21 +218,35 @@ export default function CartClient() {
                         </button>
                       </div>
 
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-bold uppercase tracking-wider text-gray-500">
-                        {item.size && (
+                      <div className="space-y-1 text-[11px] font-semibold text-gray-500">
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 uppercase font-bold tracking-wider">
+                          {item.size && (
+                            <span>
+                              Size: <strong className="text-black">{item.size === 'CS' ? 'Custom Size' : item.size}</strong>
+                            </span>
+                          )}
+                          {item.color && (
+                            <span>
+                              Color: <strong className="text-black">{item.color}</strong>
+                            </span>
+                          )}
                           <span>
-                            Size: <strong className="text-black">{item.size}</strong>
+                            Unit Price:{" "}
+                            <strong className="text-black">{format(Number(item.price))}</strong>
                           </span>
+                        </div>
+                        {item.customMeasurements && (
+                          <div className="border-l-2 border-[#A0463E]/30 pl-2 py-0.5 space-y-0.5 text-[10px] normal-case">
+                            <span className="block uppercase text-[9px] tracking-wider text-gray-400 font-extrabold">Measurements (Inches):</span>
+                            <div className="text-black">Bust: <span className="font-bold">{item.customMeasurements.bust}&quot;</span> | Waist: <span className="font-bold">{item.customMeasurements.waist}&quot;</span> | Hips: <span className="font-bold">{item.customMeasurements.hips}&quot;</span></div>
+                            {item.customMeasurements.length && (
+                              <div className="text-black">Length: <span className="font-bold">{item.customMeasurements.length}&quot;</span></div>
+                            )}
+                            {item.customMeasurements.notes && (
+                              <div className="italic text-gray-500 line-clamp-2 max-w-[320px] mt-0.5">Note: &ldquo;{item.customMeasurements.notes}&rdquo;</div>
+                            )}
+                          </div>
                         )}
-                        {item.color && (
-                          <span>
-                            Color: <strong className="text-black">{item.color}</strong>
-                          </span>
-                        )}
-                        <span>
-                          Unit Price:{" "}
-                          <strong className="text-black">{format(Number(item.price))}</strong>
-                        </span>
                       </div>
 
                       {/* Quantity adjusting buttons */}
@@ -310,16 +324,30 @@ export default function CartClient() {
                     </button>
                   </div>
 
-                  <div className="mt-1 flex flex-wrap gap-x-3 text-[10px] font-bold uppercase tracking-wider text-gray-500">
-                    {item.size && (
-                      <span>
-                        Size: <strong className="text-black">{item.size}</strong>
-                      </span>
-                    )}
-                    {item.color && (
-                      <span>
-                        Color: <strong className="text-black">{item.color}</strong>
-                      </span>
+                  <div className="space-y-1 text-[10px] font-semibold text-gray-500">
+                    <div className="flex flex-wrap gap-x-3 uppercase font-bold tracking-wider">
+                      {item.size && (
+                        <span>
+                          Size: <strong className="text-black">{item.size === 'CS' ? 'Custom Size' : item.size}</strong>
+                        </span>
+                      )}
+                      {item.color && (
+                        <span>
+                          Color: <strong className="text-black">{item.color}</strong>
+                        </span>
+                      )}
+                    </div>
+                    {item.customMeasurements && (
+                      <div className="border-l-2 border-[#A0463E]/30 pl-2 py-0.5 space-y-0.5 text-[10px] normal-case">
+                        <span className="block uppercase text-[9px] tracking-wider text-gray-400 font-extrabold">Measurements (Inches):</span>
+                        <div className="text-black">Bust: <span className="font-bold">{item.customMeasurements.bust}&quot;</span> | Waist: <span className="font-bold">{item.customMeasurements.waist}&quot;</span> | Hips: <span className="font-bold">{item.customMeasurements.hips}&quot;</span></div>
+                        {item.customMeasurements.length && (
+                          <div className="text-black">Length: <span className="font-bold">{item.customMeasurements.length}&quot;</span></div>
+                        )}
+                        {item.customMeasurements.notes && (
+                          <div className="italic text-gray-500 line-clamp-2 max-w-[200px] mt-0.5">Note: &ldquo;{item.customMeasurements.notes}&rdquo;</div>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>

@@ -472,6 +472,12 @@ export default function ChatWidget() {
           transform: translateY(-3px);
           background: #173835 !important;
         }
+        @media (max-width: 768px) {
+          #lvs-chat-btn {
+            bottom: 70px !important;
+            z-index: 999999 !important;
+          }
+        }
       `}</style>
     </>
   );
