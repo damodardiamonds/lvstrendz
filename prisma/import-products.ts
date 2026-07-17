@@ -103,6 +103,16 @@ const colorCodes: Record<string, string> = {
 async function main() {
   console.log("🚀 Starting product import...\n");
 
+  console.log("🧹 Clearing existing product-related data...");
+  await prisma.orderItem.deleteMany();
+  await prisma.order.deleteMany();
+  await prisma.wishlistItem.deleteMany();
+  await prisma.cartItem.deleteMany();
+  await prisma.product.deleteMany();
+  await prisma.category.deleteMany();
+  await prisma.attributeValue.deleteMany();
+  console.log("🧹 Cleared successfully!\n");
+
   // Read CSV
   const csvPath = path.join(__dirname, "products.csv");
   const content = fs.readFileSync(csvPath, "utf-8");
@@ -288,6 +298,14 @@ async function main() {
         varColor = variation["Attribute 2 value(s)"].trim();
       }
 
+      // Determine size for this variation
+      let varSize: string | null = null;
+      if (variation["Attribute 1 name"] === "Size" && variation["Attribute 1 value(s)"]) {
+        varSize = variation["Attribute 1 value(s)"].trim();
+      } else if (variation["Attribute 2 name"] === "Size" && variation["Attribute 2 value(s)"]) {
+        varSize = variation["Attribute 2 value(s)"].trim();
+      }
+
       // Create variant
       const variant = await prisma.variant.create({
         data: {
@@ -305,6 +323,16 @@ async function main() {
           data: {
             variantId: variant.id,
             attributeValueId: colorValueMap[varColor],
+          },
+        });
+      }
+
+      // Link size attribute
+      if (varSize && sizeValueMap[varSize]) {
+        await prisma.variantAttribute.create({
+          data: {
+            variantId: variant.id,
+            attributeValueId: sizeValueMap[varSize],
           },
         });
       }

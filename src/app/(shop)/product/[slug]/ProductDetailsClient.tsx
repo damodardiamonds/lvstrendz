@@ -80,6 +80,20 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
     });
   });
 
+  // Fallback to standard sizes if no size attribute values are explicitly defined for clothing items
+  const isSaree = product.name.toLowerCase().includes('saree');
+  if (sizes.length === 0 && !isSaree) {
+    sizes.push(
+      { value: 'CS', slug: 'cs' },
+      { value: 'XS', slug: 'x-small' },
+      { value: 'S', slug: 'small' },
+      { value: 'M', slug: 'medium' },
+      { value: 'L', slug: 'large' },
+      { value: 'XL', slug: 'extra-large' },
+      { value: 'XXL', slug: 'xx-large' }
+    );
+  }
+
   const [selectedSize, setSelectedSize] = useState<string>(sizes[0]?.value || '');
   const [selectedColor, setSelectedColor] = useState<string>(colors[0]?.value || '');
   const [quantity, setQuantity] = useState(1);
@@ -94,7 +108,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
     const sizeVal = v.attributes.find((a) => a.attributeValue.attribute.slug === 'size')?.attributeValue.value;
     const colorVal = v.attributes.find((a) => a.attributeValue.attribute.slug === 'color')?.attributeValue.value;
 
-    const sizeMatches = sizes.length === 0 || sizeVal === selectedSize;
+    const sizeMatches = sizes.length === 0 || sizeVal === selectedSize || !sizeVal;
     const colorMatches = colors.length === 0 || colorVal === selectedColor;
 
     return sizeMatches && colorMatches;
