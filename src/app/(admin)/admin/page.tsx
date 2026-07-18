@@ -17,10 +17,17 @@ async function getDashboardStats() {
   let totalRevenue = 0;
 
   try {
-    totalOrders = await db.order.count();
+    totalOrders = await db.order.count({
+      where: {
+        paymentStatus: "PAID",
+      },
+    });
     const revenue = await db.order.aggregate({
       _sum: { total: true },
-      where: { status: { not: "CANCELLED" } },
+      where: {
+        paymentStatus: "PAID",
+        status: { not: "CANCELLED" },
+      },
     });
     totalRevenue = Number(revenue._sum.total) || 0;
   } catch {

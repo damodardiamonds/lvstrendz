@@ -247,11 +247,6 @@ export default function CheckoutClient({
         const initData = await initRes.json();
 
         if (initRes.ok && initData.redirectUrl) {
-          // Clear local storage cart data
-          localStorage.removeItem("lvstrendz_cart");
-          localStorage.removeItem("lvstrendz_coupon");
-          window.dispatchEvent(new Event("cartUpdated"));
-
           toast.success("Order registered! Redirecting to secure payment page...", {
             duration: 3000,
             style: { background: "#1a4223", color: "#fff" },

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { processOrderStockAndCoupon } from "@/lib/orders";
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,6 +85,8 @@ export async function POST(request: NextRequest) {
     // 3. Generate Order Number
     const orderNumber = `LVS-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+    const isPrepaidPayGlocal = paymentMethod === "PayGlocal";
+
     // 4. Create Order & Items
     const order = await db.order.create({
       data: {
@@ -91,7 +94,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         addressId: address.id,
         status: "PENDING",
-        paymentStatus: paymentMethod === "PayGlocal" ? "UNPAID" : "PAID",
+        paymentStatus: isPrepaidPayGlocal ? "UNPAID" : "PAID",
         paymentMethod,
         paymentId: paymentId || `PAY-${Date.now()}`,
         subtotal: Number(subtotal),
@@ -124,69 +127,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 5. Stock Management
-    for (const item of items) {
-      if (item.variantId) {
-        const variant = await db.variant.findUnique({
-          where: { id: item.variantId },
-          include: { product: true },
-        });
-        if (variant && variant.product.manageStock) {
-          await db.variant.update({
-            where: { id: item.variantId },
-            data: {
-              stock: {
-                decrement: Number(item.quantity),
-              },
-            },
-          });
-          // Also update parent product stock aggregator
-          await db.product.update({
-            where: { id: item.productId },
-            data: {
-              stock: {
-                decrement: Number(item.quantity),
-              },
-            },
-          });
-        }
-      } else {
-        const product = await db.product.findUnique({
-          where: { id: item.productId },
-        });
-        if (product && product.manageStock) {
-          await db.product.update({
-            where: { id: item.productId },
-            data: {
-              stock: {
-                decrement: Number(item.quantity),
-              },
-            },
-          });
-        }
-      }
-    }
-
-    // 6. Coupon tracking increment
-    if (couponCode) {
-      const coupon = await db.coupon.findFirst({
-        where: {
-          code: {
-            equals: couponCode.trim(),
-            mode: "insensitive",
-          },
-        },
-      });
-      if (coupon) {
-        await db.coupon.update({
-          where: { id: coupon.id },
-          data: {
-            usedCount: {
-              increment: 1,
-            },
-          },
-        });
-      }
+    // 5. Stock and Coupon Processing (only if paid immediately)
+    if (order.paymentStatus === "PAID") {
+      await processOrderStockAndCoupon(order.id);
     }
 
     return NextResponse.json({

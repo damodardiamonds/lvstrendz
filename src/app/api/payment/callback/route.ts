@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import fs from "fs";
 import path from "path";
+import { processOrderStockAndCoupon } from "@/lib/orders";
 
 // Process the callback request (PayGlocal may call this via POST or GET redirect)
 export async function POST(request: NextRequest) {
@@ -119,27 +120,40 @@ async function handleCallback(request: NextRequest) {
 
     console.log("Verified transaction status:", transactionStatus);
 
-    if (transactionStatus === "APPROVED" || transactionStatus === "SUCCESS" || status === "APPROVED") {
-      // 5. Update Database Order
-      await db.order.update({
-        where: { orderNumber: merchantTxnId },
-        data: {
-          paymentStatus: "PAID",
-          status: "CONFIRMED",
-          paymentMethod: "PayGlocal",
-          paymentId: paymentId || `PAY-${Date.now()}`,
-        },
+    const upperStatus = typeof transactionStatus === "string" ? transactionStatus.toUpperCase() : "";
+
+    if (upperStatus === "APPROVED" || upperStatus === "SUCCESS") {
+      // Fetch order to see if it's already marked as PAID to prevent double processing
+      const order = await db.order.findUnique({
+        where: { orderNumber: merchantTxnId }
       });
+
+      if (order && order.paymentStatus !== "PAID") {
+        // 5. Update Database Order
+        await db.order.update({
+          where: { orderNumber: merchantTxnId },
+          data: {
+            paymentStatus: "PAID",
+            status: "CONFIRMED",
+            paymentMethod: "PayGlocal",
+            paymentId: paymentId || `PAY-${Date.now()}`,
+          },
+        });
+
+        // Decrement stock and update coupon counts
+        await processOrderStockAndCoupon(order.id);
+      }
 
       return NextResponse.redirect(`${baseUrl}/checkout/order-received?orderNumber=${merchantTxnId}`);
     } else {
       console.warn(`Transaction was not approved: ${transactionStatus}`);
       
-      // Update Database Order to FAILED
+      // Update Database Order to FAILED and status to CANCELLED
       await db.order.update({
         where: { orderNumber: merchantTxnId },
         data: {
           paymentStatus: "FAILED",
+          status: "CANCELLED",
           paymentMethod: "PayGlocal",
           paymentId: paymentId || `PAY-FAILED-${Date.now()}`,
         },

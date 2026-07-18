@@ -2,12 +2,14 @@ import React from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import RetryPayment from "./RetryPayment";
 
-import { CheckCircle, Calendar, CreditCard, Mail, Phone, MapPin, ShoppingBag } from "lucide-react";
+import { CheckCircle, AlertCircle, Calendar, CreditCard, Mail, Phone, MapPin, ShoppingBag } from "lucide-react";
 
 interface PageProps {
   searchParams: Promise<{
     orderNumber?: string;
+    pending_verification?: string;
   }>;
 }
 
@@ -15,7 +17,7 @@ export const revalidate = 0; // Don't cache receipt page
 
 export default async function OrderReceivedPage({ searchParams }: PageProps) {
   const resolvedParams = await searchParams;
-  const { orderNumber } = resolvedParams;
+  const { orderNumber, pending_verification } = resolvedParams;
 
   if (!orderNumber) {
     redirect("/shop");
@@ -47,22 +49,61 @@ export default async function OrderReceivedPage({ searchParams }: PageProps) {
     }).format(value);
   };
 
+  const isPaid = order.paymentStatus === "PAID";
+  const isSandbox = pending_verification === "true";
+  const showSuccess = isPaid || isSandbox;
+
   return (
     <main className="bg-white min-h-screen py-16 px-4">
+      {/* Clear cart on success */}
+      {showSuccess && (
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                localStorage.removeItem("lvstrendz_cart");
+                localStorage.removeItem("lvstrendz_coupon");
+                window.dispatchEvent(new Event("cartUpdated"));
+              } catch(e) {
+                console.error("Failed to clear cart:", e);
+              }
+            `
+          }}
+        />
+      )}
+
       <div className="max-w-3xl mx-auto space-y-10">
         
-        {/* Success Message Banner */}
-        <div className="text-center space-y-3.5 animate-fade-in">
-          <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto shadow-2xs">
-            <CheckCircle size={36} strokeWidth={2.5} />
+        {/* Banner */}
+        {showSuccess ? (
+          <div className="text-center space-y-3.5 animate-fade-in">
+            <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto shadow-2xs">
+              <CheckCircle size={36} strokeWidth={2.5} />
+            </div>
+            <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-wide">
+              {isSandbox ? "Order Registered" : "Thank you!"}
+            </h1>
+            <p className="text-gray-500 font-semibold text-sm max-w-md mx-auto">
+              {isSandbox ? (
+                <>Your order is pending manual verification. We will send updates to <span className="text-black font-extrabold">{order.user.email}</span>.</>
+              ) : (
+                <>Your order has been successfully received. We've sent a confirmation email to <span className="text-black font-extrabold">{order.user.email}</span>.</>
+              )}
+            </p>
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-wide">
-            Thank you!
-          </h1>
-          <p className="text-gray-500 font-semibold text-sm max-w-md mx-auto">
-            Your order has been successfully received. We've sent a confirmation email to <span className="text-black font-extrabold">{order.user.email}</span>.
-          </p>
-        </div>
+        ) : (
+          <div className="text-center space-y-3.5 animate-fade-in">
+            <div className="w-16 h-16 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto shadow-2xs">
+              <AlertCircle size={36} strokeWidth={2.5} />
+            </div>
+            <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-wide">
+              Payment Required
+            </h1>
+            <p className="text-gray-500 font-semibold text-sm max-w-md mx-auto">
+              Your order has been registered, but payment was not completed or failed. Please click the button below to pay now and complete your order.
+            </p>
+          </div>
+        )}
 
         {/* Quick Order Info Grid */}
         <div className="bg-gray-50 border border-gray-150 rounded-2xl p-5 md:p-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center shadow-3xs">
@@ -96,10 +137,10 @@ export default async function OrderReceivedPage({ searchParams }: PageProps) {
           </div>
           <div className="space-y-1 border-l border-gray-200">
             <span className="block text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">
-              Payment Method
+              Payment Status
             </span>
-            <span className="block text-xs font-black text-black">
-              {order.paymentMethod || "Prepaid"}
+            <span className="block text-xs font-black text-black uppercase">
+              {order.paymentStatus}
             </span>
           </div>
         </div>
@@ -170,7 +211,7 @@ export default async function OrderReceivedPage({ searchParams }: PageProps) {
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm font-black text-black border-t border-gray-100 pt-4.5">
-                <span>Total Amount Paid</span>
+                <span>{showSuccess ? "Total Amount Paid" : "Total Amount Due"}</span>
                 <span className="text-lg text-[#A0463E] font-black">{format(Number(order.total))}</span>
               </div>
             </div>
@@ -182,7 +223,7 @@ export default async function OrderReceivedPage({ searchParams }: PageProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           
           {/* Customer contact card */}
-          <div className="border border-gray-100 rounded-2xl p-6 bg-white shadow-2xs space-y-4">
+          <div className="border border-gray-150 rounded-2xl p-6 bg-white shadow-2xs space-y-4">
             <h3 className="text-xs font-extrabold uppercase tracking-widest text-black border-b border-gray-100 pb-2.5 flex items-center gap-2">
               <Mail size={14} className="text-[#A0463E]" />
               <span>Contact Details</span>
@@ -201,7 +242,7 @@ export default async function OrderReceivedPage({ searchParams }: PageProps) {
 
           {/* Shipping address card */}
           {address && (
-            <div className="border border-gray-100 rounded-2xl p-6 bg-white shadow-2xs space-y-4">
+            <div className="border border-gray-150 rounded-2xl p-6 bg-white shadow-2xs space-y-4">
               <h3 className="text-xs font-extrabold uppercase tracking-widest text-black border-b border-gray-100 pb-2.5 flex items-center gap-2">
                 <MapPin size={14} className="text-[#A0463E]" />
                 <span>Delivery Address</span>
@@ -221,10 +262,11 @@ export default async function OrderReceivedPage({ searchParams }: PageProps) {
         </div>
 
         {/* Action Buttons */}
-        <div className="text-center pt-4">
+        <div className="text-center pt-4 max-w-sm mx-auto space-y-3">
+          {!showSuccess && <RetryPayment orderId={order.id} />}
           <Link
             href="/shop"
-            className="inline-block bg-[#A0463E] hover:bg-black text-white text-xs font-bold uppercase tracking-widest py-4 px-8 rounded-lg transition-all duration-300 shadow-sm"
+            className="w-full text-center block border border-[#A0463E] hover:bg-[#A0463E]/5 text-[#A0463E] text-xs font-bold uppercase tracking-widest py-4 px-8 rounded-lg transition-all duration-300 shadow-sm"
           >
             Continue Shopping
           </Link>
