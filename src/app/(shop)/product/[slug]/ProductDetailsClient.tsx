@@ -1,7 +1,7 @@
 // src/app/(shop)/product/[slug]/ProductDetailsClient.tsx
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { Heart, ShoppingBag, Check, Truck, RotateCcw, ShieldCheck, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
@@ -160,18 +160,19 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
 
   // Index helper for next/prev sliding arrows
   const currentImageIndex = displayedImages.findIndex((img) => img.url === activeImage);
+  const lastIndexRef = useRef(currentImageIndex);
 
-  const handleNextImage = () => {
+  const handleNextImage = useCallback(() => {
     if (displayedImages.length === 0) return;
     const nextIndex = (currentImageIndex + 1) % displayedImages.length;
     setActiveImage(displayedImages[nextIndex].url);
-  };
+  }, [displayedImages, currentImageIndex]);
 
-  const handlePrevImage = () => {
+  const handlePrevImage = useCallback(() => {
     if (displayedImages.length === 0) return;
     const prevIndex = (currentImageIndex - 1 + displayedImages.length) % displayedImages.length;
     setActiveImage(displayedImages[prevIndex].url);
-  };
+  }, [displayedImages, currentImageIndex]);
 
   // Detect mobile screen size on client
   useEffect(() => {
@@ -186,16 +187,23 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
   const thumbsPerPage = isMobile ? 4 : 5;
   const totalThumbPages = Math.max(0, Math.ceil(displayedImages.length / thumbsPerPage) - 1);
 
-  // Automatically update active image when color/size selection changes or active list resets
+  // Automatically update active image when color/size selection changes
   useEffect(() => {
-    // If the active image is no longer in the displayed images list, reset to the first one
-    if (displayedImages.length > 0 && !displayedImages.some((img) => img.url === activeImage)) {
-      setActiveImage(displayedImages[0].url);
-    } else if (selectedVariant && selectedVariant.images && selectedVariant.images.length > 0) {
-      // Otherwise, if the specific selected variant has images, prioritize showing its first image
+    if (selectedVariant && selectedVariant.images && selectedVariant.images.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveImage(selectedVariant.images[0].url);
+    } else if (displayedImages.length > 0) {
+      setActiveImage(displayedImages[0].url);
     }
-  }, [selectedColor, selectedSize, displayedImages, activeImage, selectedVariant]);
+  }, [selectedColor, selectedSize, displayedImages, selectedVariant]);
+
+  // If the active image is no longer in the displayed images list, reset to the first one
+  useEffect(() => {
+    if (displayedImages.length > 0 && !displayedImages.some((img) => img.url === activeImage)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActiveImage(displayedImages[0].url);
+    }
+  }, [displayedImages, activeImage]);
 
   // Preload first 3 images on variation/displayedImages change
   useEffect(() => {
@@ -267,14 +275,18 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [displayedImages, currentImageIndex]);
+  }, [handleNextImage, handlePrevImage]);
 
-  // Keep thumbnail scroll page aligned with the currently active image index
+  // Keep thumbnail scroll page aligned with the currently active image index only when it actually changes
   useEffect(() => {
     if (displayedImages.length === 0) return;
-    const newPage = Math.floor(currentImageIndex / thumbsPerPage);
-    if (newPage !== thumbPage && newPage >= 0 && newPage <= totalThumbPages) {
-      setThumbPage(newPage);
+    if (lastIndexRef.current !== currentImageIndex) {
+      lastIndexRef.current = currentImageIndex;
+      const newPage = Math.floor(currentImageIndex / thumbsPerPage);
+      if (newPage !== thumbPage && newPage >= 0 && newPage <= totalThumbPages) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setThumbPage(newPage);
+      }
     }
   }, [currentImageIndex, thumbsPerPage, totalThumbPages, thumbPage, displayedImages.length]);
 
