@@ -232,8 +232,25 @@ export default function CartClient() {
                           <strong className="text-black">{format(Number(item.price))}</strong>
                         </div>
                         
-                        {/* Toggle Details Link */}
-                        {(item.size || item.color || item.customMeasurements) && (() => {
+                        {/* Always visible Size & Color */}
+                        {(item.size || item.color) && (
+                          <div className="uppercase font-bold tracking-wider mt-1 text-[11px] text-gray-500">
+                            {item.size && (
+                              <span>
+                                Size: <span className="text-black font-extrabold">{item.size === 'Custom Size' || item.size === 'CS' ? 'CS' : item.size}</span>
+                              </span>
+                            )}
+                            {item.size && item.color && <span className="mx-2 text-gray-300">|</span>}
+                            {item.color && (
+                              <span>
+                                Color: <span className="text-black font-extrabold">{item.color}</span>
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Toggle Details Link for Custom Measurements */}
+                        {item.customMeasurements && (() => {
                           const itemKeyString = `${item.productId}-${item.variantId || ""}-${index}`;
                           const isExpanded = !!openDetails[itemKeyString];
                           return (
@@ -248,51 +265,35 @@ export default function CartClient() {
                               
                               {isExpanded && (
                                 <div className="mt-2 border border-gray-150 rounded-md p-3 bg-gray-50/50 max-h-40 overflow-y-auto space-y-2 text-xs font-semibold text-gray-500 normal-case scrollbar-thin max-w-sm">
-                                  {item.size && (
+                                  {item.customMeasurements.bust && (
                                     <div>
-                                      <div className="text-gray-400 text-[10px] uppercase font-bold">Product details Size:</div>
-                                      <div className="text-black font-extrabold mt-0.5">{item.size === 'CS' ? 'CS' : item.size}</div>
+                                      <div className="text-gray-400 text-[10px] uppercase font-bold">Bust:</div>
+                                      <div className="text-black font-extrabold mt-0.5">{item.customMeasurements.bust}</div>
                                     </div>
                                   )}
-                                  {item.color && (
+                                  {item.customMeasurements.waist && (
                                     <div>
-                                      <div className="text-gray-400 text-[10px] uppercase font-bold">Color:</div>
-                                      <div className="text-black font-extrabold mt-0.5">{item.color}</div>
+                                      <div className="text-gray-400 text-[10px] uppercase font-bold">Waist:</div>
+                                      <div className="text-black font-extrabold mt-0.5">{item.customMeasurements.waist}</div>
                                     </div>
                                   )}
-                                  {item.customMeasurements && (
-                                    <>
-                                      {item.customMeasurements.bust && (
-                                        <div>
-                                          <div className="text-gray-400 text-[10px] uppercase font-bold">Bust:</div>
-                                          <div className="text-black font-extrabold mt-0.5">{item.customMeasurements.bust}</div>
-                                        </div>
-                                      )}
-                                      {item.customMeasurements.waist && (
-                                        <div>
-                                          <div className="text-gray-400 text-[10px] uppercase font-bold">Waist:</div>
-                                          <div className="text-black font-extrabold mt-0.5">{item.customMeasurements.waist}</div>
-                                        </div>
-                                      )}
-                                      {item.customMeasurements.hip && (
-                                        <div>
-                                          <div className="text-gray-450 text-[10px] uppercase font-bold">Hip:</div>
-                                          <div className="text-black font-extrabold mt-0.5">{item.customMeasurements.hip}</div>
-                                        </div>
-                                      )}
-                                      {item.customMeasurements.shoulder && (
-                                        <div>
-                                          <div className="text-gray-400 text-[10px] uppercase font-bold">Shoulder:</div>
-                                          <div className="text-black font-extrabold mt-0.5">{item.customMeasurements.shoulder}</div>
-                                        </div>
-                                      )}
-                                      {item.customMeasurements.notes && (
-                                        <div>
-                                          <div className="text-gray-400 text-[10px] uppercase font-bold">Notes:</div>
-                                          <div className="text-black font-medium mt-0.5 italic normal-case">&ldquo;{item.customMeasurements.notes}&rdquo;</div>
-                                        </div>
-                                      )}
-                                    </>
+                                  {item.customMeasurements.hip && (
+                                    <div>
+                                      <div className="text-gray-450 text-[10px] uppercase font-bold">Hip:</div>
+                                      <div className="text-black font-extrabold mt-0.5">{item.customMeasurements.hip}</div>
+                                    </div>
+                                  )}
+                                  {item.customMeasurements.shoulder && (
+                                    <div>
+                                      <div className="text-gray-400 text-[10px] uppercase font-bold">Shoulder:</div>
+                                      <div className="text-black font-extrabold mt-0.5">{item.customMeasurements.shoulder}</div>
+                                    </div>
+                                  )}
+                                  {item.customMeasurements.notes && (
+                                    <div>
+                                      <div className="text-gray-400 text-[10px] uppercase font-bold">Notes:</div>
+                                      <div className="text-black font-medium mt-0.5 italic normal-case">&ldquo;{item.customMeasurements.notes}&rdquo;</div>
+                                    </div>
                                   )}
                                 </div>
                               )}
@@ -376,8 +377,25 @@ export default function CartClient() {
                     </button>
                   </div>
 
-                  {/* Toggle Details Link */}
-                  {(item.size || item.color || item.customMeasurements) && (() => {
+                  {/* Always visible Size & Color */}
+                  {(item.size || item.color) && (
+                    <div className="uppercase font-bold tracking-wider mt-1 text-[11px] text-gray-500">
+                      {item.size && (
+                        <span>
+                          Size: <span className="text-black font-extrabold">{item.size === 'Custom Size' || item.size === 'CS' ? 'CS' : item.size}</span>
+                        </span>
+                      )}
+                      {item.size && item.color && <span className="mx-2 text-gray-300">|</span>}
+                      {item.color && (
+                        <span>
+                          Color: <span className="text-black font-extrabold">{item.color}</span>
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Toggle Details Link for Custom Measurements */}
+                  {item.customMeasurements && (() => {
                     const itemKeyString = `${item.productId}-${item.variantId || ""}-${index}`;
                     const isExpanded = !!openDetails[itemKeyString];
                     return (
@@ -392,51 +410,35 @@ export default function CartClient() {
                         
                         {isExpanded && (
                           <div className="mt-2 border border-gray-150 rounded-md p-3 bg-gray-50/50 max-h-40 overflow-y-auto space-y-2 text-[11px] font-semibold text-gray-500 normal-case scrollbar-thin max-w-xs">
-                            {item.size && (
+                            {item.customMeasurements.bust && (
                               <div>
-                                <div className="text-gray-400 text-[10px] uppercase font-bold">Product details Size:</div>
-                                <div className="text-black font-extrabold mt-0.5">{item.size === 'CS' ? 'CS' : item.size}</div>
+                                <div className="text-gray-400 text-[10px] uppercase font-bold">Bust:</div>
+                                <div className="text-black font-extrabold mt-0.5">{item.customMeasurements.bust}</div>
                               </div>
                             )}
-                            {item.color && (
+                            {item.customMeasurements.waist && (
                               <div>
-                                <div className="text-gray-400 text-[10px] uppercase font-bold">Color:</div>
-                                <div className="text-black font-extrabold mt-0.5">{item.color}</div>
+                                <div className="text-gray-400 text-[10px] uppercase font-bold">Waist:</div>
+                                <div className="text-black font-extrabold mt-0.5">{item.customMeasurements.waist}</div>
                               </div>
                             )}
-                            {item.customMeasurements && (
-                              <>
-                                {item.customMeasurements.bust && (
-                                  <div>
-                                    <div className="text-gray-400 text-[10px] uppercase font-bold">Bust:</div>
-                                    <div className="text-black font-extrabold mt-0.5">{item.customMeasurements.bust}</div>
-                                  </div>
-                                )}
-                                {item.customMeasurements.waist && (
-                                  <div>
-                                    <div className="text-gray-400 text-[10px] uppercase font-bold">Waist:</div>
-                                    <div className="text-black font-extrabold mt-0.5">{item.customMeasurements.waist}</div>
-                                  </div>
-                                )}
-                                {item.customMeasurements.hip && (
-                                  <div>
-                                    <div className="text-gray-400 text-[10px] uppercase font-bold">Hip:</div>
-                                    <div className="text-black font-extrabold mt-0.5">{item.customMeasurements.hip}</div>
-                                  </div>
-                                )}
-                                {item.customMeasurements.shoulder && (
-                                  <div>
-                                    <div className="text-gray-400 text-[10px] uppercase font-bold">Shoulder:</div>
-                                    <div className="text-black font-extrabold mt-0.5">{item.customMeasurements.shoulder}</div>
-                                  </div>
-                                )}
-                                {item.customMeasurements.notes && (
-                                  <div>
-                                    <div className="text-gray-400 text-[10px] uppercase font-bold">Notes:</div>
-                                    <div className="text-black font-medium mt-0.5 italic normal-case">&ldquo;{item.customMeasurements.notes}&rdquo;</div>
-                                  </div>
-                                )}
-                              </>
+                            {item.customMeasurements.hip && (
+                              <div>
+                                <div className="text-gray-400 text-[10px] uppercase font-bold">Hip:</div>
+                                <div className="text-black font-extrabold mt-0.5">{item.customMeasurements.hip}</div>
+                              </div>
+                            )}
+                            {item.customMeasurements.shoulder && (
+                              <div>
+                                <div className="text-gray-400 text-[10px] uppercase font-bold">Shoulder:</div>
+                                <div className="text-black font-extrabold mt-0.5">{item.customMeasurements.shoulder}</div>
+                              </div>
+                            )}
+                            {item.customMeasurements.notes && (
+                              <div>
+                                <div className="text-gray-400 text-[10px] uppercase font-bold">Notes:</div>
+                                <div className="text-black font-medium mt-0.5 italic normal-case">&ldquo;{item.customMeasurements.notes}&rdquo;</div>
+                              </div>
                             )}
                           </div>
                         )}
