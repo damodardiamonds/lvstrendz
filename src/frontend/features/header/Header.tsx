@@ -6,7 +6,6 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   Menu,
-  Search,
   Heart,
   ShoppingBag,
   User,
@@ -16,6 +15,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import CartDrawer from "@/features/cart/CartDrawer";
+import HeaderSearch from "./components/HeaderSearch";
 
 const navLinks = [
   { label: "HOME", href: "/", hasDropdown: false, dropdownItems: [] },
@@ -190,19 +190,7 @@ export default function Header() {
       <div className="hidden lg:block">
         <div className="relative mx-auto flex h-28 max-w-[1440px] items-center justify-between px-6">
           {/* Search Bar */}
-          <div className="relative w-[260px]">
-            <input
-              type="text"
-              placeholder="Enter key to search"
-              className="w-full rounded-md border border-gray-300 py-2.5 pl-4 pr-10 text-[13px] text-gray-700 placeholder-gray-400 outline-none transition-colors focus:border-[#A0463E]"
-            />
-            <button
-              aria-label="Search"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#A0463E]"
-            >
-              <Search size={18} strokeWidth={1.5} />
-            </button>
-          </div>
+          <HeaderSearch />
 
           {/* Logo (Centered & Large) */}
           <Link href="/" className="absolute left-1/2 -translate-x-1/2">
