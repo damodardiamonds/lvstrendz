@@ -93,18 +93,7 @@ export default function CheckoutClient({
   const [shippingMethod, setShippingMethod] = useState<"standard" | "express">("standard");
 
   // Payment choice
-  const [paymentMethod, setPaymentMethod] = useState<"card" | "upi">("card");
-
-  // Card payment details
-  const [cardDetails, setCardDetails] = useState({
-    number: "",
-    expiry: "",
-    cvv: "",
-    name: "",
-  });
-
-  // UPI payment details
-  const [upiId, setUpiId] = useState("");
+  const [paymentMethod] = useState<"PayGlocal">("PayGlocal");
 
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -163,26 +152,7 @@ export default function CheckoutClient({
     }
   };
 
-  const handleCardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    let formattedValue = value;
-
-    if (name === "number") {
-      formattedValue = value.replace(/\s?/g, "").replace(/(\d{4})/g, "$1 ").trim().slice(0, 19);
-    } else if (name === "expiry") {
-      formattedValue = value.replace(/\//g, "").replace(/(\d{2})/g, "$1/").trim().slice(0, 5);
-      if (formattedValue.endsWith("/")) {
-        formattedValue = formattedValue.slice(0, -1);
-      }
-    } else if (name === "cvv") {
-      formattedValue = value.replace(/\D/g, "").slice(0, 3);
-    }
-
-    setCardDetails((prev) => ({ ...prev, [name]: formattedValue }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
-    }
-  };
+  // PayGlocal integration logic
 
   // Top rated product carousel navigation
   const nextTopRated = () => {
@@ -212,25 +182,7 @@ export default function CheckoutClient({
       newErrors.pincode = "Enter a valid 6-digit Pincode.";
     }
 
-    // Payment validation
-    if (paymentMethod === "card") {
-      if (!cardDetails.number || cardDetails.number.replace(/\s/g, "").length < 16) {
-        newErrors.cardNumber = "Enter a valid 16-digit card number.";
-      }
-      if (!cardDetails.expiry || !/^\d{2}\/\d{2}$/.test(cardDetails.expiry)) {
-        newErrors.cardExpiry = "Expiry date format MM/YY is required.";
-      }
-      if (!cardDetails.cvv || cardDetails.cvv.length < 3) {
-        newErrors.cardCvv = "CVV must be 3 digits.";
-      }
-      if (!cardDetails.name.trim()) {
-        newErrors.cardName = "Cardholder name is required.";
-      }
-    } else {
-      if (!upiId.trim() || !upiId.includes("@")) {
-        newErrors.upiId = "Enter a valid UPI ID (e.g. name@upi).";
-      }
-    }
+    // PayGlocal handles checkout inputs and validation on its secure portal
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -268,10 +220,8 @@ export default function CheckoutClient({
         discount,
         shipping: shippingCost,
         total: grandTotal,
-        paymentMethod: paymentMethod === "card" ? "Credit/Debit Card" : "UPI Pay",
-        paymentId: paymentMethod === "card"
-          ? `MOCK-CARD-${Date.now()}`
-          : `MOCK-UPI-${Date.now()}`,
+        paymentMethod: "PayGlocal",
+        paymentId: "PENDING",
       };
 
       const res = await fetch("/api/orders", {
@@ -285,18 +235,49 @@ export default function CheckoutClient({
       const data = await res.json();
 
       if (res.ok && data.success) {
-        // Clear local storage cart data
-        localStorage.removeItem("lvstrendz_cart");
-        localStorage.removeItem("lvstrendz_coupon");
-        window.dispatchEvent(new Event("cartUpdated"));
-
-        toast.success("Order placed successfully! Redirecting...", {
-          duration: 3000,
-          style: { background: "#1a4223", color: "#fff" },
+        // Initiate Secure PayGlocal Redirect
+        const initRes = await fetch("/api/payment/initiate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ orderId: data.orderId }),
         });
 
-        // Redirect to success route
-        router.push(`/checkout/order-received?orderNumber=${data.orderNumber}`);
+        const initData = await initRes.json();
+
+        if (initRes.ok && initData.redirectUrl) {
+          // Clear local storage cart data
+          localStorage.removeItem("lvstrendz_cart");
+          localStorage.removeItem("lvstrendz_coupon");
+          window.dispatchEvent(new Event("cartUpdated"));
+
+          toast.success("Order registered! Redirecting to secure payment page...", {
+            duration: 3000,
+            style: { background: "#1a4223", color: "#fff" },
+          });
+
+          // Redirect browser to PayGlocal Payment Portal
+          window.location.href = initData.redirectUrl;
+        } else {
+          // Fallback if PEM files are not yet uploaded (Development/Sandbox setup mode helper)
+          if (initData.setupRequired) {
+            toast.success("Order registered (Demo Sandbox Mode). Redirecting...", {
+              duration: 3000,
+              style: { background: "#5c3317", color: "#fff" },
+            });
+
+            localStorage.removeItem("lvstrendz_cart");
+            localStorage.removeItem("lvstrendz_coupon");
+            window.dispatchEvent(new Event("cartUpdated"));
+
+            // Redirect user to the order-received confirmation page
+            router.push(`/checkout/order-received?orderNumber=${data.orderNumber}&pending_verification=true`);
+            return;
+          }
+
+          throw new Error(initData.error || "Unable to initiate payment with PayGlocal");
+        }
       } else {
         throw new Error(data.error || "Failed to submit order");
       }
@@ -875,145 +856,44 @@ export default function CheckoutClient({
                   </div>
                 </div>
 
-                {/* Block 5: Mock Payment Gateways */}
+                {/* Block 5: PayGlocal Payment Portal */}
                 <div className="bg-white border border-gray-150 rounded-2xl p-6 shadow-sm space-y-6">
                   <div className="flex items-center gap-2.5 border-b border-gray-100 pb-3 mb-1">
                     <div className="w-8 h-8 rounded-full bg-[#A0463E]/10 flex items-center justify-center text-[#A0463E]">
                       <Lock size={16} />
                     </div>
                     <h2 className="text-base font-extrabold text-black uppercase tracking-wider">
-                      Secure Payment
+                      Secure Checkout
                     </h2>
                   </div>
 
-                  {/* Payment selector */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod("card")}
-                      className={`flex flex-col items-center justify-center py-3.5 border rounded-xl transition-all ${
-                        paymentMethod === "card"
-                          ? "border-black bg-black text-white font-extrabold"
-                          : "border-gray-200 bg-white text-gray-600 hover:border-gray-400 font-bold"
-                      }`}
-                    >
-                      <CreditCard size={18} className="mb-1.5" />
-                      <span className="text-xs">Credit/Debit Card</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod("upi")}
-                      className={`flex flex-col items-center justify-center py-3.5 border rounded-xl transition-all ${
-                        paymentMethod === "upi"
-                          ? "border-black bg-black text-white font-extrabold"
-                          : "border-gray-200 bg-white text-gray-600 hover:border-gray-400 font-bold"
-                      }`}
-                    >
-                      <span className="text-sm font-black tracking-widest mb-1.5 italic">UPI</span>
-                      <span className="text-xs">UPI Wallet</span>
-                    </button>
+                  {/* Gateway details */}
+                  <div className="space-y-4">
+                    <div className="border border-gray-100 rounded-xl p-4 bg-gray-50/50 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Payment Processor</span>
+                        <span className="text-xs font-black text-[#A0463E] uppercase tracking-wider">PayGlocal Gateway</span>
+                      </div>
+                      <p className="text-[11px] font-semibold text-gray-500 leading-relaxed">
+                        Secure redirect checkout. Supports Credit/Debit Cards (Visa, MasterCard, Amex), UPI/Wallets, Netbanking, and International Payments.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-2.5 text-[11px] font-bold text-gray-500 pl-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#A0463E]">✓</span>
+                        <span>100% Secure 256-bit SSL Encrypted Portal</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#A0463E]">✓</span>
+                        <span>PCI-DSS Compliant Gateway Integration</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#A0463E]">✓</span>
+                        <span>Zero card/credentials saved on storefront</span>
+                      </div>
+                    </div>
                   </div>
-
-                  {/* Card forms */}
-                  {paymentMethod === "card" ? (
-                    <div className="space-y-4">
-                      <div>
-                        <label htmlFor="cardName" className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
-                          Cardholder Name
-                        </label>
-                        <input
-                          type="text"
-                          id="cardName"
-                          name="name"
-                          value={cardDetails.name}
-                          onChange={handleCardChange}
-                          placeholder="Name as on card"
-                          className={`w-full px-3.5 py-2.5 rounded-lg border text-xs font-semibold focus:ring-1 focus:ring-black focus:border-transparent outline-none transition ${
-                            errors.cardName ? "border-red-500" : "border-gray-200"
-                          }`}
-                        />
-                      </div>
-
-                      <div>
-                        <label htmlFor="cardNumber" className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
-                          Card Number
-                        </label>
-                        <input
-                          type="text"
-                          id="cardNumber"
-                          name="number"
-                          value={cardDetails.number}
-                          onChange={handleCardChange}
-                          placeholder="0000 0000 0000 0000"
-                          className={`w-full px-3.5 py-2.5 rounded-lg border text-xs font-semibold focus:ring-1 focus:ring-black focus:border-transparent outline-none transition ${
-                            errors.cardNumber ? "border-red-500" : "border-gray-200"
-                          }`}
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3.5">
-                        <div>
-                          <label htmlFor="cardExpiry" className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
-                            Expiry Date
-                          </label>
-                          <input
-                            type="text"
-                            id="cardExpiry"
-                            name="expiry"
-                            value={cardDetails.expiry}
-                            onChange={handleCardChange}
-                            placeholder="MM/YY"
-                            className={`w-full px-3.5 py-2.5 rounded-lg border text-xs font-semibold focus:ring-1 focus:ring-black focus:border-transparent outline-none transition ${
-                              errors.cardExpiry ? "border-red-500" : "border-gray-200"
-                            }`}
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="cardCvv" className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
-                            CVV
-                          </label>
-                          <input
-                            type="password"
-                            id="cardCvv"
-                            name="cvv"
-                            value={cardDetails.cvv}
-                            onChange={handleCardChange}
-                            placeholder="•••"
-                            className={`w-full px-3.5 py-2.5 rounded-lg border text-xs font-semibold focus:ring-1 focus:ring-black focus:border-transparent outline-none transition ${
-                              errors.cardCvv ? "border-red-500" : "border-gray-200"
-                            }`}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div>
-                        <label htmlFor="upiId" className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
-                          UPI VPA Address
-                        </label>
-                        <input
-                          type="text"
-                          id="upiId"
-                          value={upiId}
-                          onChange={(e) => {
-                            setUpiId(e.target.value);
-                            if (errors.upiId) setErrors((prev) => ({ ...prev, upiId: "" }));
-                          }}
-                          placeholder="e.g. user@paytm / user@okaxis"
-                          className={`w-full px-3.5 py-2.5 rounded-lg border text-xs font-semibold focus:ring-1 focus:ring-black focus:border-transparent outline-none transition ${
-                            errors.upiId ? "border-red-500" : "border-gray-200"
-                          }`}
-                        />
-                        {errors.upiId && (
-                          <p className="text-red-500 text-[10px] font-bold mt-1">{errors.upiId}</p>
-                        )}
-                      </div>
-                      <div className="bg-gray-50 border border-gray-100 rounded-lg p-3 text-[10px] text-gray-500 font-medium">
-                        Enter your Virtual Payment Address (VPA). Clicking "Place Order" will trigger a request on your UPI mobile app.
-                      </div>
-                    </div>
-                  )}
 
                   {/* Submission triggers */}
                   <button
@@ -1024,16 +904,16 @@ export default function CheckoutClient({
                     {isSubmitting ? (
                       <>
                         <Loader2 size={16} className="animate-spin mr-2" />
-                        Processing Secure Order...
+                        Redirecting to secure gateway...
                       </>
                     ) : (
-                      `Place Order (${format(grandTotal)})`
+                      `Pay & Place Order (${format(grandTotal)})`
                     )}
                   </button>
 
                   <div className="flex items-center justify-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                     <Lock size={12} />
-                    <span>SSL Encrypted Secure Connection</span>
+                    <span>Redirecting to payglocal.in for payment completion</span>
                   </div>
                 </div>
 

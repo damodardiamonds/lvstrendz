@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         addressId: address.id,
         status: "PENDING",
-        paymentStatus: "PAID", // Assuming mock secure prepaid checkout was processed
+        paymentStatus: paymentMethod === "PayGlocal" ? "UNPAID" : "PAID",
         paymentMethod,
         paymentId: paymentId || `PAY-${Date.now()}`,
         subtotal: Number(subtotal),
