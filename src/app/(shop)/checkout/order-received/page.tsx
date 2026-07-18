@@ -134,6 +134,14 @@ export default async function OrderReceivedPage({ searchParams }: PageProps) {
                           {attrs.color ? `Color: ${attrs.color}` : ""}
                         </span>
                       ) : null}
+                      {attrs && attrs.customMeasurements && (
+                        <span className="block text-[9px] text-gray-500 font-semibold normal-case mt-0.5 border-l border-gray-350 pl-2">
+                          Bust: {attrs.customMeasurements.bust}&quot; | Waist: {attrs.customMeasurements.waist}&quot; | Hip: {attrs.customMeasurements.hip}&quot; | Shoulder: {attrs.customMeasurements.shoulder}&quot;
+                          {attrs.customMeasurements.notes && (
+                            <span className="block italic text-gray-400 text-[8.5px] mt-0.5">Note: &ldquo;{attrs.customMeasurements.notes}&rdquo;</span>
+                          )}
+                        </span>
+                      )}
                     </div>
                     <div className="text-black font-extrabold shrink-0">
                       {format(Number(item.price) * item.quantity)}

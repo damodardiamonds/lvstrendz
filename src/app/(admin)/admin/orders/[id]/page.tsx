@@ -88,13 +88,31 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                     {item.sku && (
                       <p className="text-xs text-gray-500">SKU: {item.sku}</p>
                     )}
-                    {item.attributes && (
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {Object.entries(item.attributes as Record<string, string>)
-                          .map(([key, val]) => `${key}: ${val}`)
-                          .join(" • ")}
-                      </p>
-                    )}
+                    {item.attributes && (() => {
+                      const attrs = item.attributes as any;
+                      const size = attrs.size;
+                      const color = attrs.color;
+                      const measurements = attrs.customMeasurements;
+                      
+                      const labelParts = [];
+                      if (size) labelParts.push(`Size: ${size}`);
+                      if (color) labelParts.push(`Color: ${color}`);
+                      
+                      return (
+                        <div className="text-xs text-gray-500 mt-0.5 space-y-0.5">
+                          {labelParts.length > 0 && <p>{labelParts.join(" • ")}</p>}
+                          {measurements && (
+                            <div className="text-[11px] text-gray-600 bg-gray-50 p-1.5 rounded border border-gray-150 border-dashed mt-1 max-w-md">
+                              <span className="font-semibold text-gray-750 block text-[9px] uppercase tracking-wider mb-0.5">Custom Measurements:</span>
+                              Bust: {measurements.bust}&quot; | Waist: {measurements.waist}&quot; | Hip: {measurements.hip}&quot; | Shoulder: {measurements.shoulder}&quot;
+                              {measurements.notes && (
+                                <span className="block italic text-gray-400 mt-0.5">Note: &ldquo;{measurements.notes}&rdquo;</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-600">
