@@ -212,25 +212,28 @@ export default function ChatWidget() {
       )}
 
       {/* Chat Popup */}
-      <div style={{
-        position: 'fixed',
-        left: 25,
-        bottom: 100,
-        width: 390,
-        maxWidth: 'calc(100vw - 30px)',
-        background: '#fff',
-        borderRadius: 20,
-        overflow: 'hidden',
-        zIndex: 99999,
-        boxShadow: '0 20px 50px rgba(0,0,0,0.14)',
-        transition: 'all .3s cubic-bezier(0.25,1,0.5,1)',
-        opacity: isOpen ? 1 : 0,
-        visibility: isOpen ? 'visible' : 'hidden',
-        transform: isOpen ? 'translateY(0)' : 'translateY(20px)',
-        display: 'flex',
-        flexDirection: 'column',
-        maxHeight: 'calc(100dvh - 120px)',
-      }}>
+      <div
+        id="lvs-chat-popup"
+        style={{
+          position: 'fixed',
+          left: 25,
+          bottom: 100,
+          width: 390,
+          maxWidth: 'calc(100vw - 30px)',
+          background: '#fff',
+          borderRadius: 20,
+          overflow: 'hidden',
+          zIndex: 99999,
+          boxShadow: '0 20px 50px rgba(0,0,0,0.14)',
+          transition: 'all .3s cubic-bezier(0.25,1,0.5,1)',
+          opacity: isOpen ? 1 : 0,
+          visibility: isOpen ? 'visible' : 'hidden',
+          transform: isOpen ? 'translateY(0)' : 'translateY(20px)',
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: 'calc(100dvh - 120px)',
+        }}
+      >
         {/* Header */}
         <div style={{
           background: '#111', color: '#fff',
@@ -474,8 +477,14 @@ export default function ChatWidget() {
         }
         @media (max-width: 768px) {
           #lvs-chat-btn {
-            bottom: 70px !important;
+            bottom: 15px !important;
+            left: 15px !important;
             z-index: 999999 !important;
+          }
+          #lvs-chat-popup {
+            bottom: 80px !important;
+            left: 15px !important;
+            max-height: calc(100dvh - 95px) !important;
           }
         }
       `}</style>
