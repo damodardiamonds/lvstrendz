@@ -106,7 +106,7 @@ export default async function OrderReceivedPage({ searchParams }: PageProps) {
 
         {/* Order Details & Summary Card */}
         <div className="bg-white border border-gray-100 rounded-2xl shadow-xs overflow-hidden">
-          <div className="bg-gray-50/50 px-6 py-4.5 border-b border-gray-100 flex items-center justify-between">
+          <div className="bg-gray-50/50 px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <h2 className="text-xs font-extrabold uppercase tracking-widest text-black flex items-center gap-2">
               <ShoppingBag size={14} className="text-[#A0463E]" />
               <span>Order Details</span>

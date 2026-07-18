@@ -176,9 +176,9 @@ export default function CartClient() {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-gray-100 text-xs font-extrabold uppercase tracking-widest text-gray-500 bg-gray-50/70">
-              <th className="py-4.5 px-6 w-24">Product</th>
-              <th className="py-4.5 px-6">Details</th>
-              <th className="py-4.5 px-6 text-right w-32">Total</th>
+              <th className="py-4 px-6 w-24">Product</th>
+              <th className="py-4 px-6">Details</th>
+              <th className="py-4 px-6 text-right w-32">Total</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-150">
@@ -460,7 +460,7 @@ export default function CartClient() {
           <div className="pt-4">
             <Link
               href="/checkout"
-              className="flex items-center justify-center gap-2 w-full bg-[#A0463E] hover:bg-black text-white text-xs font-extrabold uppercase tracking-widest py-4.5 rounded-lg transition-all duration-300 shadow-md"
+              className="flex items-center justify-center gap-2 w-full bg-[#A0463E] hover:bg-black text-white text-xs font-extrabold uppercase tracking-widest py-4 rounded-lg transition-all duration-300 shadow-md"
             >
               <span>Proceed to Checkout</span>
               <ArrowRight size={14} strokeWidth={2.5} />
