@@ -46,7 +46,11 @@ export async function getSpotlightDeals(limit = 4): Promise<ProductForHome[]> {
   const products = await prisma.product.findMany({
     where: {
       isActive: true,
-      compareAtPrice: { not: null },
+      categories: {
+        some: {
+          category: { slug: 'sale-products' },
+        },
+      },
     },
     orderBy: { price: 'asc' },
     take: limit,
@@ -77,7 +81,11 @@ export async function getEliteCollection(limit = 8): Promise<ProductForHome[]> {
   const products = await prisma.product.findMany({
     where: {
       isActive: true,
-      isFeatured: true,
+      categories: {
+        some: {
+          category: { slug: 'the-elite-collection' },
+        },
+      },
     },
     orderBy: { createdAt: 'desc' },
     take: limit,
@@ -91,12 +99,15 @@ export async function getEliteCollection(limit = 8): Promise<ProductForHome[]> {
 
 // ==================== JUST FOR YOU ====================
 export async function getJustForYou(limit = 12): Promise<ProductForHome[]> {
-  const count = await prisma.product.count({ where: { isActive: true } });
-  const skip = Math.max(0, Math.floor(Math.random() * count) - limit);
-
   const products = await prisma.product.findMany({
-    where: { isActive: true },
-    skip,
+    where: {
+      isActive: true,
+      categories: {
+        some: {
+          category: { slug: 'just-for-you' },
+        },
+      },
+    },
     take: limit,
     include: {
       images: { orderBy: { sortOrder: 'asc' }, take: 1 },

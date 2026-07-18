@@ -10,7 +10,7 @@ interface JustForYouProps {
 export function JustForYou({ products }: JustForYouProps) {
   if (products.length === 0) return null;
 
-  return <ProductSlider products={products.slice(0, 4)} title="Just For You" />;
+  return <ProductSlider products={products} title="Just For You" />;
 }
 
 

@@ -10,7 +10,7 @@ interface EliteCollectionProps {
 export function EliteCollection({ products }: EliteCollectionProps) {
   if (products.length === 0) return null;
 
-  return <ProductSlider products={products.slice(0, 4)} title="The Elite Collection" />;
+  return <ProductSlider products={products} title="The Elite Collection" />;
 }
 
 
