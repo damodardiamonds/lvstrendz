@@ -147,13 +147,10 @@ export default function CheckoutClient({
   }
 
   // Shipping logic
-  const isFreeShippingEligible = subtotal > 5000;
   const shippingCost =
     shippingMethod === "express"
       ? 250
-      : isFreeShippingEligible
-      ? 0
-      : 150;
+      : 0;
 
   const grandTotal = Math.max(0, subtotal - discount + shippingCost);
 

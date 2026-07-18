@@ -14,7 +14,7 @@ const generalFaqs = [
   },
   {
     question: 'Do you offer worldwide shipping?',
-    answer: 'Yes, we offer worldwide shipping with secure and reliable delivery services. Standard rates apply depending on destination country.'
+    answer: 'Yes, we offer free standard shipping on all orders worldwide with secure and reliable delivery services.'
   },
   {
     question: 'How long does delivery take?',

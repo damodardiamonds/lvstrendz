@@ -100,8 +100,8 @@ export default function Page() {
             5. Shipping and Delivery
           </h2>
           <ul className="space-y-3 pl-4 list-disc">
-            <li>We ship orders from our hub in Surat to destinations across India (and internationally, if applicable).</li>
-            <li>Shipping timelines and costs will be calculated and displayed at checkout. While we make every effort to deliver goods within the estimated timelines, LV’s Trendz is not responsible for delays caused by third-party courier services or customs processing.</li>
+            <li>We ship orders from our hub in Surat to destinations worldwide.</li>
+            <li>We offer free standard shipping on all orders worldwide. Shipping timelines will be calculated and displayed at checkout. While we make every effort to deliver goods within the estimated timelines, LV’s Trendz is not responsible for delays caused by third-party courier services or customs processing.</li>
           </ul>
         </div>
 

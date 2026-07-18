@@ -734,11 +734,11 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
           <div className="space-y-4 border-t border-gray-100 pt-6 mb-6">
             <div className="flex items-center gap-3 text-xs text-gray-700">
               <Truck size={18} className="text-[#A0463E]" />
-              <span>Free Delivery on all orders across India</span>
+              <span>Free Delivery on all orders worldwide</span>
             </div>
             <div className="flex items-center gap-3 text-xs text-gray-700">
               <RotateCcw size={18} className="text-[#A0463E]" />
-              <span>Easy 7 Days Returns and Exchanges</span>
+              <span>Exchanges only for size issues or defective items</span>
             </div>
             <div className="flex items-center gap-3 text-xs text-gray-700">
               <ShieldCheck size={18} className="text-[#A0463E]" />

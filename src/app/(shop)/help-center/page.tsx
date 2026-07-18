@@ -58,7 +58,7 @@ export default function Page() {
               <div className="space-y-3">
                 <h3 className="font-extrabold text-gray-800">Do you ship internationally?</h3>
                 <p>
-                  Currently, we primarily fulfill domestic orders within India. For special international shipping requests, please get in touch with our customer care team before placing an order.
+                  Yes, we offer free standard shipping on all orders worldwide.
                 </p>
                 <h3 className="font-extrabold text-gray-800 pt-2">How long will it take to receive my order?</h3>
                 <ul className="space-y-2 pl-4 list-disc">
