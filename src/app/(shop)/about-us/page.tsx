@@ -163,10 +163,7 @@ export default async function Page() {
       <section className="bg-[#262626] text-white py-20 px-4 md:px-[45px]">
         <div className="max-w-[1470px] mx-auto">
           <div className="text-center mb-16">
-            <span className="text-xs uppercase tracking-[0.25em] text-[#EC9DC0] font-bold">
-              Why Choose Us
-            </span>
-            <h2 className="text-3xl md:text-4xl font-extrabold uppercase tracking-wide mt-2 relative pb-3 inline-block">
+            <h2 className="text-3xl md:text-4xl font-extrabold uppercase tracking-wide relative pb-3 inline-block">
               Our Values
               <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-1 bg-[#EC9DC0]" />
             </h2>
@@ -245,10 +242,7 @@ export default async function Page() {
       {/* Our Team Section */}
       <section className="max-w-[1470px] mx-auto px-4 md:px-[45px] py-20 md:py-28">
         <div className="text-center mb-16">
-          <span className="text-xs uppercase tracking-[0.25em] text-[#A0463E] font-bold">
-            The Experts
-          </span>
-          <h2 className="text-3xl md:text-4xl font-extrabold uppercase tracking-wide mt-2 relative pb-3 inline-block">
+          <h2 className="text-3xl md:text-4xl font-extrabold uppercase tracking-wide relative pb-3 inline-block">
             Our Team
             <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-1 bg-[#A0463E]" />
           </h2>
