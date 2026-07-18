@@ -1,7 +1,7 @@
 // src/app/(shop)/product/[slug]/ProductDetailsClient.tsx
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { Heart, ShoppingBag, Check, Truck, RotateCcw, ShieldCheck, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
@@ -115,17 +115,20 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
   });
 
   // Aggregate all unique image URLs (parent + variant images) to show in thumbnails
-  const allImages = [...product.images];
-  product.variants.forEach((v) => {
-    v.images.forEach((img) => {
-      if (!allImages.some((i) => i.url === img.url)) {
-        allImages.push(img);
-      }
+  const allImages = useMemo(() => {
+    const images = [...product.images];
+    product.variants.forEach((v) => {
+      v.images.forEach((img) => {
+        if (!images.some((i) => i.url === img.url)) {
+          images.push(img);
+        }
+      });
     });
-  });
+    return images;
+  }, [product.images, product.variants]);
 
   // Filter images to show in the gallery based on the selected color
-  const displayedImages = (() => {
+  const displayedImages = useMemo(() => {
     if (!selectedColor) return allImages;
 
     // Find all variants matching the selected color
@@ -146,7 +149,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
 
     // Fall back to allImages if no variant images are defined for this color
     return variantImages.length > 0 ? variantImages : allImages;
-  })();
+  }, [selectedColor, allImages, product.variants]);
 
   // Track gallery image selection
   const [activeImage, setActiveImage] = useState<string>(
