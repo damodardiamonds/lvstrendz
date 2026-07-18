@@ -18,6 +18,14 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const [appliedCoupon, setAppliedCoupon] = useState<any | null>(null);
   const [couponError, setCouponError] = useState("");
   const [isCouponExpanded, setIsCouponExpanded] = useState(false);
+  const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
+
+  const toggleDetails = (key: string) => {
+    setOpenDetails((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
 
   // Load cart items and coupon from localStorage
   const loadCartAndCoupon = () => {
@@ -242,30 +250,73 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                           </button>
                         </div>
 
-                        {/* Metadata (Size, Color) */}
-                        <div className="mt-1 space-y-1 text-[11px] font-semibold text-gray-500">
-                          <div className="flex flex-wrap gap-x-3 uppercase">
-                            {item.size && (
-                              <span>
-                                Size: <strong className="text-black">{item.size === 'CS' ? 'Custom Size' : item.size}</strong>
-                              </span>
-                            )}
-                            {item.color && (
-                              <span>
-                                Color: <strong className="text-black">{item.color}</strong>
-                              </span>
-                            )}
-                          </div>
-                          {item.customMeasurements && (
-                            <div className="border-l-2 border-[#A0463E]/30 pl-2 mt-1 py-0.5 space-y-0.5 text-[10px] normal-case">
-                              <span className="block uppercase text-[9px] tracking-wider text-gray-400 font-extrabold">Measurements (Inches):</span>
-                              <div className="text-black">Bust: <span className="font-bold">{item.customMeasurements.bust}&quot;</span> | Waist: <span className="font-bold">{item.customMeasurements.waist}&quot;</span> | Hip: <span className="font-bold">{item.customMeasurements.hip}&quot;</span> | Shoulder: <span className="font-bold">{item.customMeasurements.shoulder}&quot;</span></div>
-                              {item.customMeasurements.notes && (
-                                <div className="italic text-gray-500 line-clamp-2 max-w-[200px] mt-0.5">Note: &ldquo;{item.customMeasurements.notes}&rdquo;</div>
+                        {/* Toggle Details Link */}
+                        {(item.size || item.color || item.customMeasurements) && (() => {
+                          const itemKeyString = `${item.productId}-${item.variantId || ""}-${index}`;
+                          const isExpanded = !!openDetails[itemKeyString];
+                          return (
+                            <div className="mt-1">
+                              <button
+                                type="button"
+                                onClick={() => toggleDetails(itemKeyString)}
+                                className="text-xs font-semibold text-[#A0463E] hover:underline cursor-pointer border-none bg-transparent p-0 flex items-center gap-0.5"
+                              >
+                                {isExpanded ? "Hide details" : "View details"}
+                              </button>
+                              
+                              {isExpanded && (
+                                <div className="mt-2 border border-gray-150 rounded-md p-3 bg-gray-50/50 max-h-40 overflow-y-auto space-y-2 text-xs font-semibold text-gray-500 normal-case scrollbar-thin">
+                                  {item.size && (
+                                    <div>
+                                      <div className="text-gray-400 text-[10px] uppercase font-bold">Product details Size:</div>
+                                      <div className="text-black font-extrabold mt-0.5">{item.size === 'CS' ? 'CS' : item.size}</div>
+                                    </div>
+                                  )}
+                                  {item.color && (
+                                    <div>
+                                      <div className="text-gray-400 text-[10px] uppercase font-bold">Color:</div>
+                                      <div className="text-black font-extrabold mt-0.5">{item.color}</div>
+                                    </div>
+                                  )}
+                                  {item.customMeasurements && (
+                                    <>
+                                      {item.customMeasurements.bust && (
+                                        <div>
+                                          <div className="text-gray-400 text-[10px] uppercase font-bold">Bust:</div>
+                                          <div className="text-black font-extrabold mt-0.5">{item.customMeasurements.bust}</div>
+                                        </div>
+                                      )}
+                                      {item.customMeasurements.waist && (
+                                        <div>
+                                          <div className="text-gray-400 text-[10px] uppercase font-bold">Waist:</div>
+                                          <div className="text-black font-extrabold mt-0.5">{item.customMeasurements.waist}</div>
+                                        </div>
+                                      )}
+                                      {item.customMeasurements.hip && (
+                                        <div>
+                                          <div className="text-gray-400 text-[10px] uppercase font-bold">Hip:</div>
+                                          <div className="text-black font-extrabold mt-0.5">{item.customMeasurements.hip}</div>
+                                        </div>
+                                      )}
+                                      {item.customMeasurements.shoulder && (
+                                        <div>
+                                          <div className="text-gray-400 text-[10px] uppercase font-bold">Shoulder:</div>
+                                          <div className="text-black font-extrabold mt-0.5">{item.customMeasurements.shoulder}</div>
+                                        </div>
+                                      )}
+                                      {item.customMeasurements.notes && (
+                                        <div>
+                                          <div className="text-gray-400 text-[10px] uppercase font-bold">Notes:</div>
+                                          <div className="text-black font-medium mt-0.5 italic normal-case">&ldquo;{item.customMeasurements.notes}&rdquo;</div>
+                                        </div>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
                               )}
                             </div>
-                          )}
-                        </div>
+                          );
+                        })()}
                       </div>
 
                       {/* Pricing and Action row */}
