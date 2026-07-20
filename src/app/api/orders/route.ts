@@ -85,16 +85,14 @@ export async function POST(request: NextRequest) {
     // 3. Generate Order Number
     const orderNumber = `LVS-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    const isPrepaidPayGlocal = paymentMethod === "PayGlocal";
-
-    // 4. Create Order & Items
+    // 4. Create Order & Items (Initial status is UNPAID until payment completes)
     const order = await db.order.create({
       data: {
         orderNumber,
         userId: user.id,
         addressId: address.id,
         status: "PENDING",
-        paymentStatus: isPrepaidPayGlocal ? "UNPAID" : "PAID",
+        paymentStatus: "UNPAID",
         paymentMethod,
         paymentId: paymentId || `PAY-${Date.now()}`,
         subtotal: Number(subtotal),

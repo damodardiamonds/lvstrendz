@@ -1042,7 +1042,12 @@ export default function CheckoutClient({
       {createdOrder && (
         <PaymentModal
           isOpen={isPaymentModalOpen}
-          onClose={() => setIsPaymentModalOpen(false)}
+          onClose={() => {
+            setIsPaymentModalOpen(false);
+            if (createdOrder?.number) {
+              router.push(`/checkout/order-received?orderNumber=${createdOrder.number}`);
+            }
+          }}
           orderId={createdOrder.id}
           orderNumber={createdOrder.number}
           totalAmount={grandTotal}
