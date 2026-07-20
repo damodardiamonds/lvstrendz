@@ -53,8 +53,8 @@ const defaultCollections = [
 ];
 
 const defaultAboutUs = {
-  storyImage: 'https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_04_35-AM.webp',
-  missionVideo: 'https://lvstrendz.com/wp-content/uploads/2026/05/whatsapp-video-2024-11-20-at-12.01.55-pm.mp4',
+  storyImage: 'https://res.cloudinary.com/n5umtsub/image/upload/lvstrendz/products/fd41615365cea9a68738438feb0c1797.webp',
+  missionVideo: 'https://res.cloudinary.com/n5umtsub/video/upload/v1783773052/lvstrendz/videos/78db5a9a-b0f4-42a3-bbf2-93a75e80f804.mp4',
 };
 
 const defaultFaqs = {

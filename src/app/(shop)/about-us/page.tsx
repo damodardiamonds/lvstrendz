@@ -16,8 +16,8 @@ export default async function Page() {
     where: { key: 'about_us_media' },
   });
 
-  let storyImage = "https://lvstrendz.com/wp-content/uploads/2026/05/fd41615365cea9a68738438feb0c1797.jpg";
-  let missionVideo = "https://lvstrendz.com/wp-content/uploads/2026/05/5-6332416037950069725.mp4";
+  let storyImage = "https://res.cloudinary.com/n5umtsub/image/upload/lvstrendz/products/fd41615365cea9a68738438feb0c1797.webp";
+  let missionVideo = "https://res.cloudinary.com/n5umtsub/video/upload/v1783773052/lvstrendz/videos/78db5a9a-b0f4-42a3-bbf2-93a75e80f804.mp4";
 
   if (mediaSetting) {
     try {
