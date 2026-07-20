@@ -263,7 +263,14 @@ export default async function OrderReceivedPage({ searchParams }: PageProps) {
 
         {/* Action Buttons */}
         <div className="text-center pt-4 max-w-sm mx-auto space-y-3">
-          {!showSuccess && <RetryPayment orderId={order.id} />}
+          {!showSuccess && (
+            <RetryPayment
+              orderId={order.id}
+              orderNumber={order.orderNumber}
+              totalAmount={Number(order.total)}
+              customerEmail={order.user.email || "guest@lvstrendz.com"}
+            />
+          )}
           <Link
             href="/shop"
             className="w-full text-center block border border-[#A0463E] hover:bg-[#A0463E]/5 text-[#A0463E] text-xs font-bold uppercase tracking-widest py-4 px-8 rounded-lg transition-all duration-300 shadow-sm"
