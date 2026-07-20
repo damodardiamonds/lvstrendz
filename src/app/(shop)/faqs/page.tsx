@@ -14,8 +14,8 @@ export default async function Page() {
     where: { key: 'faqs_media' },
   });
 
-  let banner1_image = "https://lvstrendz.com/wp-content/uploads/2026/05/68011ba7032bd1b09686c8fa6f842fda.jpg";
-  let banner2_image = "https://bw-monki.bzotech.com/wp-content/uploads/2023/07/blog-5-1.jpg";
+  let banner1_image = "https://res.cloudinary.com/n5umtsub/image/upload/v1783772419/lvstrendz/products/68011ba7032bd1b09686c8fa6f842fda.webp";
+  let banner2_image = "https://res.cloudinary.com/n5umtsub/image/upload/v1783772421/lvstrendz/products/64635e6759794db0a6e2683972d3ae5e.webp";
 
   if (mediaSetting) {
     try {

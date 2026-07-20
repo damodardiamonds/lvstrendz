@@ -58,8 +58,8 @@ const defaultAboutUs = {
 };
 
 const defaultFaqs = {
-  banner1_image: 'https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_08_18-AM.webp',
-  banner2_image: 'https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_07_57-AM.webp',
+  banner1_image: 'https://res.cloudinary.com/n5umtsub/image/upload/v1783772419/lvstrendz/products/68011ba7032bd1b09686c8fa6f842fda.webp',
+  banner2_image: 'https://res.cloudinary.com/n5umtsub/image/upload/v1783772421/lvstrendz/products/64635e6759794db0a6e2683972d3ae5e.webp',
 };
 
 export default function MediaSettingsPage() {
