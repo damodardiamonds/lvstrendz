@@ -4,6 +4,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useCurrency } from '@/context/CurrencyContext';
 
 export interface ProductCardProps {
   id: string;
@@ -23,6 +24,7 @@ export default function ProductCard({
   image,
   slug,
 }: ProductCardProps) {
+  const { format } = useCurrency();
   const discount = originalPrice && originalPrice > price
     ? Math.round(((originalPrice - price) / originalPrice) * 100)
     : 0;
@@ -49,11 +51,11 @@ export default function ProductCard({
         </h3>
         <div className="flex items-center gap-2 mt-1.5">
           <span className="text-sm font-black text-black">
-            ₹{price.toLocaleString()}
+            {format(price)}
           </span>
           {originalPrice && originalPrice > price && (
             <span className="text-xs text-gray-400 line-through font-medium">
-              ₹{originalPrice.toLocaleString()}
+              {format(originalPrice)}
             </span>
           )}
         </div>

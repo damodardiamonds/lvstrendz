@@ -5,6 +5,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { ProductForHome } from '@/lib/products';
+import { useCurrency } from '@/context/CurrencyContext';
 
 interface ProductCarouselProps {
   products: ProductForHome[];
@@ -12,6 +13,7 @@ interface ProductCarouselProps {
 }
 
 export function ProductCarousel({ products, visibleCount = 4 }: ProductCarouselProps) {
+  const { format } = useCurrency();
   const [startIndex, setStartIndex] = useState(0);
 
   if (!products || products.length === 0) return null;
@@ -97,11 +99,11 @@ export function ProductCarousel({ products, visibleCount = 4 }: ProductCarouselP
                 </h3>
                 <div className="flex items-center gap-2 mt-1.5">
                   <span className="text-sm font-bold text-black">
-                    ₹{product.price.toLocaleString()}
+                    {format(product.price)}
                   </span>
                   {product.originalPrice && product.originalPrice > product.price && (
                     <span className="text-xs text-gray-400 line-through">
-                      ₹{product.originalPrice.toLocaleString()}
+                      {format(product.originalPrice)}
                     </span>
                   )}
                 </div>

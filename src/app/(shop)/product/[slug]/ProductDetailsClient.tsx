@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { Heart, ShoppingBag, Check, Truck, RotateCcw, ShieldCheck, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
+import { useCurrency } from '@/context/CurrencyContext';
 
 // Module-level image cache
 const imageCache: Record<string, HTMLImageElement> = {};
@@ -50,6 +51,7 @@ interface ProductDetailsProps {
 }
 
 export default function ProductDetailsClient({ product }: ProductDetailsProps) {
+  const { format } = useCurrency();
   // Extract all unique sizes and colors from the active variants
   const sizes: { value: string; slug: string }[] = [];
   const colors: { value: string; slug: string; colorCode: string | null }[] = [];
@@ -521,11 +523,11 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
           {/* Pricing */}
           <div className="flex items-center gap-4 mb-6 border-b border-gray-100 pb-6">
             <span className="text-2xl md:text-3xl font-black text-black">
-              ₹{activePrice.toLocaleString()}
+              {format(activePrice)}
             </span>
             {activeComparePrice && activeComparePrice > activePrice && (
               <span className="text-lg text-gray-400 line-through">
-                ₹{activeComparePrice.toLocaleString()}
+                {format(activeComparePrice)}
               </span>
             )}
             

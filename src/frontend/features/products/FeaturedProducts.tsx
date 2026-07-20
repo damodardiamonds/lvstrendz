@@ -1,6 +1,7 @@
 
 import Link from "next/link";
 import { db } from "@/lib/db";
+import ProductCard from "@/features/home/components/ProductCard";
 
 export default async function FeaturedProducts() {
   const products = await db.product.findMany({
@@ -36,38 +37,15 @@ export default async function FeaturedProducts() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
         {displayProducts.map((product) => (
-          <Link
+          <ProductCard
             key={product.id}
-            href={`/product/${product.slug}`}
-            className="group"
-          >
-            <div className="aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden mb-3">
-              {product.images[0] ? (
-                <img
-                  src={product.images[0].url}
-                  alt={product.images[0].alt || product.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400">
-                  No Image
-                </div>
-              )}
-            </div>
-            <h3 className="text-sm font-medium text-gray-900 line-clamp-2 group-hover:text-[#A0463E] transition-colors">
-              {product.name}
-            </h3>
-            <div className="mt-1 flex items-center gap-2">
-              <span className="text-sm font-bold text-gray-900">
-                ₹{Number(product.price).toLocaleString("en-IN")}
-              </span>
-              {product.compareAtPrice && (
-                <span className="text-xs text-gray-500 line-through">
-                  ₹{Number(product.compareAtPrice).toLocaleString("en-IN")}
-                </span>
-              )}
-            </div>
-          </Link>
+            id={product.id}
+            name={product.name}
+            slug={product.slug}
+            price={Number(product.price)}
+            originalPrice={product.compareAtPrice ? Number(product.compareAtPrice) : null}
+            image={product.images[0]?.url || "/images/placeholder.jpg"}
+          />
         ))}
       </div>
 

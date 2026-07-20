@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import CartClient from "./CartClient";
+import FormattedPrice from "@/components/ui/FormattedPrice";
 
 // Ensure the page is dynamic because we load cart details from localstorage on client side
 export const dynamic = "force-dynamic";
@@ -146,7 +147,7 @@ export default async function CartPage() {
 
                 <div className="flex justify-between items-center text-xs font-semibold text-gray-600">
                   <div>
-                    Range: <strong className="text-black">₹1,499 — ₹6,999</strong>
+                    Range: <strong className="text-black"><FormattedPrice price={1499} /> — <FormattedPrice price={6999} /></strong>
                   </div>
                   <Link
                     href="/shop?min_price=1499&max_price=6999"
@@ -236,17 +237,11 @@ export default async function CartPage() {
                       <div className="mt-1 flex items-center gap-1.5 text-xs">
                         {prod.originalPrice ? (
                           <>
-                            <span className="text-[#A0463E] font-extrabold">
-                              ₹{prod.price.toLocaleString("en-IN")}
-                            </span>
-                            <span className="text-gray-400 line-through text-[10px]">
-                              ₹{prod.originalPrice.toLocaleString("en-IN")}
-                            </span>
+                            <FormattedPrice price={prod.price} className="text-[#A0463E] font-extrabold" />
+                            <FormattedPrice price={prod.originalPrice} className="text-gray-400 line-through text-[10px]" />
                           </>
                         ) : (
-                          <span className="text-black font-extrabold">
-                            ₹{prod.price.toLocaleString("en-IN")}
-                          </span>
+                          <FormattedPrice price={prod.price} className="text-black font-extrabold" />
                         )}
                       </div>
                     </div>

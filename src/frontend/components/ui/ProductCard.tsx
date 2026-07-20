@@ -1,6 +1,9 @@
 
+"use client";
+
 import Link from "next/link";
 import { Decimal } from "@prisma/client/runtime/library";
+import { useCurrency } from "@/context/CurrencyContext";
 
 interface ProductCardProps {
   id: string;
@@ -21,6 +24,7 @@ export default function ProductCard({
   image,
   category,
 }: ProductCardProps) {
+  const { format } = useCurrency();
   const numericPrice = Number(price);
   const numericCompareAt = compareAtPrice ? Number(compareAtPrice) : null;
 
@@ -49,11 +53,11 @@ export default function ProductCard({
         <h3 className="text-sm font-medium text-gray-900 truncate">{name}</h3>
         <div className="mt-1 flex items-center gap-2">
           <span className="text-lg font-semibold text-gray-900">
-            ₹{numericPrice.toLocaleString()}
+            {format(numericPrice)}
           </span>
           {numericCompareAt && numericCompareAt > numericPrice && (
             <span className="text-sm text-gray-400 line-through">
-              ₹{numericCompareAt.toLocaleString()}
+              {format(numericCompareAt)}
             </span>
           )}
         </div>

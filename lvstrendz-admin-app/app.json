@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "LV's Trendz Admin",
+    "slug": "lvstrendz-admin-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#A0463E"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.damodardiamonds.lvstrendz.admin"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#A0463E"
+      },
+      "package": "com.damodardiamonds.lvstrendz.admin",
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "POST_NOTIFICATIONS",
+        "VIBRATE",
+        "INTERNET"
+      ]
+    },
+    "extra": {
+      "eas": {
+        "projectId": "d500babc-081a-4dcd-9e21-12b00553bb51"
+      }
+    }
+  }
+}
