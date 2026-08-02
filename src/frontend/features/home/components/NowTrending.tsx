@@ -41,7 +41,7 @@ export default function NowTrending() {
           {/* Cursive Brand Image */}
           <div className="relative w-[75%] sm:w-[65%] md:w-[85%] max-w-[280px] h-[70px] sm:h-[80px] md:h-[95px] lg:h-[110px] mb-4 md:mb-6 select-none">
             <Image
-              src="https://res.cloudinary.com/n5umtsub/image/upload/v1785663377/lvstrendz/hero/slide-1.webp"
+              src="https://res.cloudinary.com/n5umtsub/image/upload/v1783772681/lvstrendz/products/chatgpt-image-may-28-2026-10_45_12-am-1.webp"
               alt="Ethnic"
               fill
               className="object-contain object-left"
