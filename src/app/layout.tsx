@@ -11,6 +11,14 @@ export const metadata: Metadata = {
   title: "LV's Trendz — Women's Ethnic Wear",
   description:
     "Premium women's ethnic wear. Sarees, lehengas, suits, and more.",
+  icons: {
+    icon: [
+      { url: '/icon.jpg', type: 'image/jpeg' },
+      { url: '/favicon.ico' },
+    ],
+    shortcut: '/icon.jpg',
+    apple: '/apple-icon.jpg',
+  },
 };
 
 export default function RootLayout({
