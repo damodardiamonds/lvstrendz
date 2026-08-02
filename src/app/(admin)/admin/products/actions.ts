@@ -62,6 +62,11 @@ export async function createProduct(formData: FormData) {
 
 // Update product
 export async function updateProduct(id: string, formData: FormData) {
+  const existingProduct = await db.product.findUnique({
+    where: { id },
+    select: { slug: true },
+  });
+
   const name = formData.get("name") as string;
   const slug = formData.get("slug") as string;
   const description = formData.get("description") as string;
@@ -112,9 +117,26 @@ export async function updateProduct(id: string, formData: FormData) {
     },
   });
 
+  // Sync variant prices for this product so product page & variants stay in sync
+  await db.variant.updateMany({
+    where: { productId: id },
+    data: {
+      price,
+    },
+  });
+
   revalidatePath("/admin/products");
+  revalidatePath(`/admin/products/${id}`);
   revalidatePath("/shop");
-  redirect("/admin/products");
+  revalidatePath("/");
+  if (existingProduct?.slug) {
+    revalidatePath(`/product/${existingProduct.slug}`);
+  }
+  if (slug) {
+    revalidatePath(`/product/${slug}`);
+  }
+
+  redirect(`/admin/products/${id}?updated=true`);
 }
 
 // Delete product

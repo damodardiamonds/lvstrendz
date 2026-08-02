@@ -2,6 +2,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useFormStatus } from "react-dom";
+
+function SubmitButton({ label }: { label: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="px-6 py-2.5 bg-[#A0463E] text-white font-medium rounded-lg hover:bg-[#8a3b34] transition-colors disabled:opacity-60 flex items-center gap-2"
+    >
+      {pending && (
+        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+      )}
+      {pending ? "Saving..." : label}
+    </button>
+  );
+}
 
 interface ProductData {
   id?: string;
@@ -135,7 +152,7 @@ export default function ProductForm({
             <input
               type="text"
               name="shortDescription"
-              defaultValue={product?.shortDescription || ""}
+              defaultValue={product?.shortDescription ?? ""}
               placeholder="Brief one-liner about the product"
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A0463E] focus:border-transparent outline-none transition"
             />
@@ -148,7 +165,7 @@ export default function ProductForm({
             </label>
             <textarea
               name="description"
-              defaultValue={product?.description || ""}
+              defaultValue={product?.description ?? ""}
               rows={4}
               placeholder="Detailed product description..."
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A0463E] focus:border-transparent outline-none transition resize-y"
@@ -168,7 +185,7 @@ export default function ProductForm({
             <input
               type="number"
               name="price"
-              defaultValue={product?.price || ""}
+              defaultValue={product?.price ?? ""}
               required
               min="0"
               step="0.01"
@@ -183,7 +200,7 @@ export default function ProductForm({
             <input
               type="number"
               name="compareAtPrice"
-              defaultValue={product?.compareAtPrice || ""}
+              defaultValue={product?.compareAtPrice ?? ""}
               min="0"
               step="0.01"
               placeholder="2499.00"
@@ -197,7 +214,7 @@ export default function ProductForm({
             <input
               type="number"
               name="costPrice"
-              defaultValue={product?.costPrice || ""}
+              defaultValue={product?.costPrice ?? ""}
               min="0"
               step="0.01"
               placeholder="1200.00"
@@ -218,7 +235,7 @@ export default function ProductForm({
             <input
               type="text"
               name="sku"
-              defaultValue={product?.sku || ""}
+              defaultValue={product?.sku ?? ""}
               placeholder="LVS-SAR-001"
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A0463E] focus:border-transparent outline-none transition"
             />
@@ -254,7 +271,7 @@ export default function ProductForm({
             <input
               type="number"
               name="weight"
-              defaultValue={product?.weight || ""}
+              defaultValue={product?.weight ?? ""}
               min="0"
               step="0.01"
               placeholder="500"
@@ -275,7 +292,7 @@ export default function ProductForm({
             <input
               type="text"
               name="metaTitle"
-              defaultValue={product?.metaTitle || ""}
+              defaultValue={product?.metaTitle ?? ""}
               placeholder="Product title for search engines"
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A0463E] focus:border-transparent outline-none transition"
             />
@@ -286,7 +303,7 @@ export default function ProductForm({
             </label>
             <textarea
               name="metaDescription"
-              defaultValue={product?.metaDescription || ""}
+              defaultValue={product?.metaDescription ?? ""}
               rows={2}
               placeholder="Brief description for search results"
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A0463E] focus:border-transparent outline-none transition resize-y"
@@ -413,12 +430,7 @@ export default function ProductForm({
 
       {/* Submit */}
       <div className="flex items-center gap-4">
-        <button
-          type="submit"
-          className="px-6 py-2.5 bg-[#A0463E] text-white font-medium rounded-lg hover:bg-[#8a3b34] transition-colors"
-        >
-          {submitLabel}
-        </button>
+        <SubmitButton label={submitLabel} />
         <a
           href="/admin/products"
           className="px-6 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"

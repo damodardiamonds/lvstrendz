@@ -1,6 +1,6 @@
 
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import ProductForm from "../components/ProductForm";
@@ -12,10 +12,12 @@ export const metadata = {
 
 interface EditProductPageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ updated?: string }>;
 }
 
-export default async function EditProductPage({ params }: EditProductPageProps) {
+export default async function EditProductPage({ params, searchParams }: EditProductPageProps) {
   const { id } = await params;
+  const { updated } = await searchParams;
 
   const [product, categories] = await Promise.all([
     db.product.findUnique({
@@ -52,6 +54,17 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
 
   return (
     <div>
+      {/* Success Notification */}
+      {updated === "true" && (
+        <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 flex items-center gap-3">
+          <CheckCircle size={20} className="text-emerald-600 shrink-0" />
+          <div>
+            <p className="font-semibold text-sm">Product updated successfully!</p>
+            <p className="text-xs text-emerald-600 mt-0.5">All changes have been saved and applied across the store.</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <Link

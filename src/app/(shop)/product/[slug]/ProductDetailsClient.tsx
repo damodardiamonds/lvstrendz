@@ -309,7 +309,13 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
     container.scrollTo({ left: scrollPos, behavior: 'smooth' });
   }, [thumbPage, thumbsPerPage, isMobile]);
 
-  const activePrice = selectedVariant ? Number(selectedVariant.price) : Number(product.price);
+  const activePrice =
+    selectedVariant &&
+    selectedVariant.price !== null &&
+    selectedVariant.price !== undefined &&
+    selectedVariant.price !== ""
+      ? Number(selectedVariant.price)
+      : Number(product.price);
   const activeComparePrice = product.compareAtPrice ? Number(product.compareAtPrice) : null;
   const isOutOfStock = selectedVariant ? selectedVariant.stock <= 0 : false;
   
@@ -514,7 +520,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
           </h1>
 
           {/* Sku */}
-          {product.sku && (
+          {(selectedVariant?.sku || product.sku) && (
             <p className="text-xs text-gray-400 tracking-wider mb-4 uppercase">
               SKU: {selectedVariant?.sku || product.sku}
             </p>
