@@ -253,7 +253,7 @@ export default async function Page() {
           <div className="flex flex-col items-center text-center group">
             <div className="relative aspect-square w-full max-w-[280px] rounded-2xl overflow-hidden shadow-card border-4 border-white transition-all duration-500 group-hover:shadow-hover group-hover:scale-102">
               <Image
-                src="https://lvstrendz.com/wp-content/uploads/2026/05/krishna.webp"
+                src="https://res.cloudinary.com/n5umtsub/image/upload/v1785663377/lvstrendz/hero/slide-1.webp"
                 alt="Krishna Kikani"
                 fill
                 className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -268,7 +268,7 @@ export default async function Page() {
           <div className="flex flex-col items-center text-center group">
             <div className="relative aspect-square w-full max-w-[280px] rounded-2xl overflow-hidden shadow-card border-4 border-white transition-all duration-500 group-hover:shadow-hover group-hover:scale-102">
               <Image
-                src="https://lvstrendz.com/wp-content/uploads/2026/05/Divyesh-1-scaled-e1780150594916.webp"
+                src="https://res.cloudinary.com/n5umtsub/image/upload/v1785663378/lvstrendz/hero/slide-2.webp"
                 alt="Divyesh Kikani"
                 fill
                 className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -283,7 +283,7 @@ export default async function Page() {
           <div className="flex flex-col items-center text-center group">
             <div className="relative aspect-square w-full max-w-[280px] rounded-2xl overflow-hidden shadow-card border-4 border-white transition-all duration-500 group-hover:shadow-hover group-hover:scale-102">
               <Image
-                src="https://lvstrendz.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-31-at-4.38.56-PM-e1780227623965.webp"
+                src="https://res.cloudinary.com/n5umtsub/image/upload/v1785663379/lvstrendz/hero/slide-3.webp"
                 alt="Devang Kothiya"
                 fill
                 className="object-cover transition-transform duration-500 group-hover:scale-105"

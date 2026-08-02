@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
           slug: p.slug,
           price,
           originalPrice,
-          image: p.images[0]?.url ?? "/images/placeholder.jpg",
+          image: p.images[0]?.url ?? "https://res.cloudinary.com/n5umtsub/image/upload/v1784202406/lvstrendz/products/6-1784202406137-v51zlx.webp",
         };
       });
 
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
         slug: p.slug,
         price,
         originalPrice,
-        image: p.images[0]?.url ?? "/images/placeholder.jpg",
+        image: p.images[0]?.url ?? "https://res.cloudinary.com/n5umtsub/image/upload/v1784202406/lvstrendz/products/6-1784202406137-v51zlx.webp",
       };
     });
 

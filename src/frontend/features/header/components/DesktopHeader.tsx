@@ -11,7 +11,7 @@ export default function DesktopHeader() {
         {/* Logo */}
         <Link href="/" className="flex-shrink-0">
           <Image
-            src="/images/lvs-logo.svg"
+            src="https://res.cloudinary.com/n5umtsub/image/upload/v1785663381/lvstrendz/brand/lvs-logo.svg"
             alt="LV's Trendz"
             width={140}
             height={48}

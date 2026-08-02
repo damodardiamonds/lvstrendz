@@ -155,7 +155,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
 
   // Track gallery image selection
   const [activeImage, setActiveImage] = useState<string>(
-    displayedImages[0]?.url || '/images/placeholder.jpg'
+    displayedImages[0]?.url || 'https://res.cloudinary.com/n5umtsub/image/upload/v1784202406/lvstrendz/products/6-1784202406137-v51zlx.webp'
   );
 
   const thumbnailContainerRef = useRef<HTMLDivElement>(null);
@@ -542,7 +542,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
           {/* Size Guide Link */}
           <div className="mb-4">
             <a
-              href="https://lvstrendz.com/wp-content/uploads/2026/06/Size-Guide-LVS.pdf"
+              href="https://res.cloudinary.com/n5umtsub/image/upload/v1785663384/lvstrendz/brand/site-identity.jpg"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-800 hover:text-[#A0463E] transition-colors"
@@ -621,7 +621,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
                   className="flex items-center gap-1.5 text-xs font-extrabold text-[#111] hover:text-[#A0463E] border-none bg-transparent cursor-pointer whitespace-nowrap self-start md:self-auto"
                 >
                   <span>Custom Size</span>
-                  <img src="/images/sewing-machine.webp" alt="Sewing Machine" className="w-5 h-5 object-contain" />
+                  <img src="https://res.cloudinary.com/n5umtsub/image/upload/v1785663381/lvstrendz/icons/sewing-machine.webp" alt="Sewing Machine" className="w-5 h-5 object-contain" />
                 </button>
               </div>
             )}
@@ -631,7 +631,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
               <div className="mt-4 p-4 border border-dashed border-gray-300 rounded-lg bg-gray-50/50 space-y-3">
                 <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
                   <div className="w-6 h-6 bg-[#A0463E]/10 rounded-full flex items-center justify-center text-[#A0463E] p-1 shrink-0">
-                    <img src="/images/sewing-machine.webp" alt="Sewing Machine" className="w-4 h-4 object-contain" />
+                    <img src="https://res.cloudinary.com/n5umtsub/image/upload/v1785663381/lvstrendz/icons/sewing-machine.webp" alt="Sewing Machine" className="w-4 h-4 object-contain" />
                   </div>
                   <h4 className="text-xs uppercase tracking-wider font-bold text-black">
                     Custom Tailoring Specifications

@@ -9,27 +9,27 @@ const slides = [
   {
     title: 'Desi Glam',
     href: '/shop',
-    image: 'https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_02_49-AM.webp',
+    image: 'https://res.cloudinary.com/n5umtsub/image/upload/v1785663377/lvstrendz/hero/slide-1.webp',
   },
   {
     title: 'Queen Style',
     href: '/collections/wedding-wardrobe',
-    image: 'https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_08_18-AM.webp',
+    image: 'https://res.cloudinary.com/n5umtsub/image/upload/v1785663378/lvstrendz/hero/slide-2.webp',
   },
   {
     title: 'Patola Muse',
     href: '/collections/saree-studio',
-    image: 'https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_09_14-AM.webp',
+    image: 'https://res.cloudinary.com/n5umtsub/image/upload/v1785663379/lvstrendz/hero/slide-3.webp',
   },
   {
     title: 'Festive Mood',
     href: '/collections/festive-fits',
-    image: 'https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_02_32-AM.webp',
+    image: 'https://res.cloudinary.com/n5umtsub/image/upload/v1785663379/lvstrendz/hero/slide-4.webp',
   },
   {
     title: 'Ethnic Glow',
     href: '/collections/lehenga-choli',
-    image: 'https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_05_53-AM.webp',
+    image: 'https://res.cloudinary.com/n5umtsub/image/upload/v1785663380/lvstrendz/hero/slide-5.webp',
   },
 ];
 

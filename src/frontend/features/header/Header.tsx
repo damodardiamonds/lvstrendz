@@ -181,7 +181,7 @@ export default function Header() {
           {/* Logo (Centered & Large) */}
           <Link href="/" className="absolute left-1/2 -translate-x-1/2">
             <img
-              src="/images/lvs-logo.svg"
+              src="https://res.cloudinary.com/n5umtsub/image/upload/v1785663381/lvstrendz/brand/lvs-logo.svg"
               alt="LV's Trendz"
               className="h-20 w-auto"
             />
@@ -275,7 +275,7 @@ export default function Header() {
 
           <Link href="/" className="absolute left-1/2 -translate-x-1/2">
             <img
-              src="/images/lvs-logo.svg"
+              src="https://res.cloudinary.com/n5umtsub/image/upload/v1785663381/lvstrendz/brand/lvs-logo.svg"
               alt="LV's Trendz"
               className="h-10 w-auto"
             />

@@ -11,45 +11,45 @@ const defaultHeroSlides = [
     id: 1,
     title: 'Desi Glam',
     subtitle: 'Make a statement at every party',
-    image: 'https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_02_49-AM.webp',
+    image: 'https://res.cloudinary.com/n5umtsub/image/upload/v1785663377/lvstrendz/hero/slide-1.webp',
     link: '/collections/party-wear',
   },
   {
     id: 2,
     title: 'Queen Style',
     subtitle: 'Royal fits for your wedding wardrobe',
-    image: 'https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_08_18-AM.webp',
+    image: 'https://res.cloudinary.com/n5umtsub/image/upload/v1785663378/lvstrendz/hero/slide-2.webp',
     link: '/collections/wedding-wardrobe',
   },
   {
     id: 3,
     title: 'Patola Muse',
     subtitle: 'Classic silk sarees with modern grace',
-    image: 'https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_09_14-AM.webp',
+    image: 'https://res.cloudinary.com/n5umtsub/image/upload/v1785663379/lvstrendz/hero/slide-3.webp',
     link: '/collections/saree-studio',
   },
   {
     id: 4,
     title: 'Festive Mood',
     subtitle: 'Vibrant ethnic prints for celebrations',
-    image: 'https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_04_35-AM.webp',
+    image: 'https://res.cloudinary.com/n5umtsub/image/upload/v1785663379/lvstrendz/hero/slide-4.webp',
     link: '/collections/festive-fits',
   },
   {
     id: 5,
     title: 'Ethnic Glow',
     subtitle: 'Twirl in style with bridal lehengas',
-    image: 'https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_07_57-AM.webp',
+    image: 'https://res.cloudinary.com/n5umtsub/image/upload/v1785663380/lvstrendz/hero/slide-5.webp',
     link: '/collections/lehenga-choli',
   },
 ];
 
 const defaultCollections = [
-  { id: '1', name: 'Saree Studio', image: 'https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_09_14-AM.webp', link: '/collections/saree-studio' },
-  { id: '2', name: 'Festive Fits', image: 'https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_04_35-AM.webp', link: '/collections/festive-fits' },
-  { id: '3', name: 'Rooted Style', image: 'https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_02_49-AM.webp', link: '/collections/party-wear' },
-  { id: '4', name: 'Lehenga Choli', image: 'https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_07_57-AM.webp', link: '/collections/lehenga-choli' },
-  { id: '5', name: 'Wedding Wardrobe', image: 'https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_08_18-AM.webp', link: '/collections/wedding-wardrobe' },
+  { id: '1', name: 'Saree Studio', image: 'https://res.cloudinary.com/n5umtsub/image/upload/v1785663379/lvstrendz/hero/slide-4.webp', link: '/collections/saree-studio' },
+  { id: '2', name: 'Festive Fits', image: 'https://res.cloudinary.com/n5umtsub/image/upload/v1785663377/lvstrendz/hero/slide-1.webp', link: '/collections/festive-fits' },
+  { id: '3', name: 'Rooted Style', image: 'https://res.cloudinary.com/n5umtsub/image/upload/v1785663378/lvstrendz/hero/slide-2.webp', link: '/collections/party-wear' },
+  { id: '4', name: 'Lehenga Choli', image: 'https://res.cloudinary.com/n5umtsub/image/upload/v1785663380/lvstrendz/hero/slide-5.webp', link: '/collections/lehenga-choli' },
+  { id: '5', name: 'Wedding Wardrobe', image: 'https://res.cloudinary.com/n5umtsub/image/upload/v1785663378/lvstrendz/hero/slide-2.webp', link: '/collections/wedding-wardrobe' },
 ];
 
 const defaultAboutUs = {

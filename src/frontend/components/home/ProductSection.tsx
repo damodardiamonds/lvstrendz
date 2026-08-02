@@ -84,7 +84,7 @@ export default async function ProductSection({
               slug={product.slug}
               price={product.price}
               compareAtPrice={product.compareAtPrice}
-              image={product.images[0]?.url || "/placeholder-product.jpg"}
+              image={product.images[0]?.url || "https://res.cloudinary.com/n5umtsub/image/upload/v1784202406/lvstrendz/products/6-1784202406137-v51zlx.webp"}
               category={product.categories[0]?.category?.name}
             />
           ))}

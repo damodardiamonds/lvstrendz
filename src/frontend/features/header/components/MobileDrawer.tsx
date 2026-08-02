@@ -44,7 +44,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
         {/* Drawer Header */}
         <div className="flex h-16 items-center justify-between border-b border-gray-100 px-5">
           <Image
-            src="/images/lvs-logo.svg"
+            src="https://res.cloudinary.com/n5umtsub/image/upload/v1785663381/lvstrendz/brand/lvs-logo.svg"
             alt="LV's Trendz"
             width={100}
             height={34}

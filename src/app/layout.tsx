@@ -13,11 +13,10 @@ export const metadata: Metadata = {
     "Premium women's ethnic wear. Sarees, lehengas, suits, and more.",
   icons: {
     icon: [
-      { url: '/icon.jpg', type: 'image/jpeg' },
-      { url: '/favicon.ico' },
+      { url: 'https://res.cloudinary.com/n5umtsub/image/upload/v1785663385/lvstrendz/brand/icon.jpg', type: 'image/jpeg' },
     ],
-    shortcut: '/icon.jpg',
-    apple: '/apple-icon.jpg',
+    shortcut: 'https://res.cloudinary.com/n5umtsub/image/upload/v1785663385/lvstrendz/brand/icon.jpg',
+    apple: 'https://res.cloudinary.com/n5umtsub/image/upload/v1785663385/lvstrendz/brand/icon.jpg',
   },
 };
 

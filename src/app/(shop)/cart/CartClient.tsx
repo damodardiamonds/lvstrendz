@@ -199,7 +199,7 @@ export default function CartClient() {
                     <div className="w-20 h-24 rounded-lg overflow-hidden bg-gray-50 border border-gray-100 shadow-2xs">
                       <Link href={`/product/${item.productId}`}>
                         <img
-                          src={item.image || "/images/placeholder.jpg"}
+                          src={item.image || "https://res.cloudinary.com/n5umtsub/image/upload/v1784202406/lvstrendz/products/6-1784202406137-v51zlx.webp"}
                           alt={item.name}
                           className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                         />
@@ -351,7 +351,7 @@ export default function CartClient() {
               <div className="w-20 h-24 rounded-lg overflow-hidden bg-gray-50 border border-gray-100 shrink-0 shadow-2xs">
                 <Link href={`/product/${item.productId}`}>
                   <img
-                    src={item.image || "/images/placeholder.jpg"}
+                    src={item.image || "https://res.cloudinary.com/n5umtsub/image/upload/v1784202406/lvstrendz/products/6-1784202406137-v51zlx.webp"}
                     alt={item.name}
                     className="w-full h-full object-cover"
                   />

@@ -26,7 +26,7 @@ export default function MobileHeader({ onMenuOpen }: MobileHeaderProps) {
         {/* Logo */}
         <Link href="/" className="absolute left-1/2 -translate-x-1/2">
           <Image
-            src="/images/lvs-logo.svg"
+            src="https://res.cloudinary.com/n5umtsub/image/upload/v1785663381/lvstrendz/brand/lvs-logo.svg"
             alt="LV's Trendz"
             width={110}
             height={38}

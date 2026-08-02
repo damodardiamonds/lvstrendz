@@ -202,7 +202,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
                       slug={product.slug}
                       price={Number(product.price)}
                       originalPrice={product.compareAtPrice ? Number(product.compareAtPrice) : null}
-                      image={product.images[0]?.url || '/images/placeholder.jpg'}
+                      image={product.images[0]?.url || 'https://res.cloudinary.com/n5umtsub/image/upload/v1784202406/lvstrendz/products/6-1784202406137-v51zlx.webp'}
                     />
                   ))}
                 </div>

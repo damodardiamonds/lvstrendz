@@ -78,7 +78,7 @@ export default function CountdownBanner({ settings: initialSettings }: Countdown
   const buttonLink = settings?.buttonLink || '/shop';
   const bannerImage =
     settings?.bannerImage ||
-    'https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_08_18-AM.webp';
+    'https://res.cloudinary.com/n5umtsub/image/upload/v1785663378/lvstrendz/hero/slide-2.webp';
 
   return (
     <section className="w-full max-w-[1470px] mx-auto px-4 md:px-[45px] mb-[80px] max-md:mb-[50px]">

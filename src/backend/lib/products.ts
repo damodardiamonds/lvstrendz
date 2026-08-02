@@ -36,7 +36,7 @@ function toProductForHome(product: {
     slug: product.slug,
     price,
     originalPrice,
-    image: product.images[0]?.url ?? '/images/placeholder.jpg',
+    image: product.images[0]?.url ?? 'https://res.cloudinary.com/n5umtsub/image/upload/v1784202406/lvstrendz/products/6-1784202406137-v51zlx.webp',
     discount,
     isOnSale: discount > 0,
   };

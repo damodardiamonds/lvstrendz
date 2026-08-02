@@ -16,7 +16,7 @@ export async function GET() {
       endDate: new Date(Date.now() + 15 * 86400 * 1000 + 23 * 3600 * 1000).toISOString(),
       buttonText: "Shop Now →",
       buttonLink: "/shop",
-      bannerImage: "https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_08_18-AM.webp",
+      bannerImage: "https://res.cloudinary.com/n5umtsub/image/upload/v1785663378/lvstrendz/hero/slide-2.webp",
     };
 
     if (setting && setting.value) {

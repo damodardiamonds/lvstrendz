@@ -33,7 +33,7 @@ export default function ProductCard({
     <Link href={`/product/${slug}`} prefetch={true} className="group block">
       <div className="relative aspect-[3/4] overflow-hidden bg-gray-50 rounded-lg border border-gray-100 shadow-sm">
         <Image
-          src={image || '/images/placeholder.jpg'}
+          src={image || 'https://res.cloudinary.com/n5umtsub/image/upload/v1784202406/lvstrendz/products/6-1784202406137-v51zlx.webp'}
           alt={name}
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-500"
