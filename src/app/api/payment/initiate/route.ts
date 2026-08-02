@@ -102,11 +102,16 @@ export async function POST(request: NextRequest) {
 
     if (!pgResponse.ok) {
       console.error("PayGlocal API response error:", pgData);
-      const errorMsg =
+      let errorMsg =
         pgData.errors?.displayMessage ||
         pgData.errors?.detailedMessage ||
         pgData.message ||
         "Failed to initiate payment with PayGlocal API";
+
+      if (pgResponse.status === 401) {
+        errorMsg = `PayGlocal Gateway Error (401 Authentication Failed): ${pgData.message || "Invalid credentials"}. Please check your PayGlocal Merchant ID, Key IDs, and PEM files.`;
+      }
+
       return NextResponse.json(
         { error: errorMsg, rawResponse: pgData },
         { status: pgResponse.status }
