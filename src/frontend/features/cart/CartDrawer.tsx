@@ -49,8 +49,37 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
       } else {
         setAppliedGiftCard(null);
       }
+
+      // Check for auto-apply active coupon if no coupon is applied
+      if (!coupon) {
+        const cartSubtotal = cart.reduce((t: number, i: any) => t + Number(i.price) * i.quantity, 0);
+        checkAndAutoApplyCoupon(cartSubtotal);
+      }
     } catch (e) {
       console.error("Error loading cart/coupon/giftcard state:", e);
+    }
+  };
+
+  const checkAndAutoApplyCoupon = async (cartSubtotal: number) => {
+    if (cartSubtotal <= 0) return;
+    try {
+      const isDismissed = localStorage.getItem("lvstrendz_coupon_dismissed") === "true";
+      if (isDismissed) return;
+
+      const res = await fetch("/api/coupons/active");
+      const data = await res.json();
+      if (data.success && data.coupon) {
+        const activeCoupon = data.coupon;
+        if (!activeCoupon.minOrderValue || cartSubtotal >= activeCoupon.minOrderValue) {
+          setAppliedCoupon(activeCoupon);
+          localStorage.setItem("lvstrendz_coupon", JSON.stringify(activeCoupon));
+          toast.success(`Active offer code (${activeCoupon.code}) auto-applied!`, {
+            style: { background: "#3D1515", color: "#fff" },
+          });
+        }
+      }
+    } catch (e) {
+      console.error("Auto coupon check error:", e);
     }
   };
 
@@ -124,6 +153,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
       if (data.success) {
         setAppliedCoupon(data.coupon);
         localStorage.setItem("lvstrendz_coupon", JSON.stringify(data.coupon));
+        localStorage.removeItem("lvstrendz_coupon_dismissed");
         setCouponError("");
         setCouponCode("");
         toast.success("Coupon applied successfully!", {
@@ -146,6 +176,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null);
     localStorage.removeItem("lvstrendz_coupon");
+    localStorage.setItem("lvstrendz_coupon_dismissed", "true");
     toast.success("Coupon removed", {
       style: { background: "#3D1515", color: "#fff" },
     });

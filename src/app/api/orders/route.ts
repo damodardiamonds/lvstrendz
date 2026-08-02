@@ -85,6 +85,43 @@ export async function POST(request: NextRequest) {
     // 3. Generate Order Number
     const orderNumber = `LVS-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+    // Auto-apply active eligible coupon server-side if client didn't specify a coupon
+    let finalCouponCode = couponCode || null;
+    let finalDiscount = Number(discount || 0);
+    let finalTotal = Number(total);
+
+    if (!finalCouponCode && finalDiscount === 0) {
+      const now = new Date();
+      const activeCoupon = await db.coupon.findFirst({
+        where: {
+          isActive: true,
+          OR: [{ startsAt: null }, { startsAt: { lte: now } }],
+          AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] }],
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (activeCoupon) {
+        const minVal = activeCoupon.minOrderValue ? Number(activeCoupon.minOrderValue) : 0;
+        const subVal = Number(subtotal);
+
+        if (subVal >= minVal && (activeCoupon.usageLimit === null || activeCoupon.usedCount < activeCoupon.usageLimit)) {
+          finalCouponCode = activeCoupon.code;
+          let calculatedDiscount = 0;
+          if (activeCoupon.type === "PERCENTAGE") {
+            calculatedDiscount = (subVal * Number(activeCoupon.value)) / 100;
+          } else {
+            calculatedDiscount = Number(activeCoupon.value);
+          }
+          if (activeCoupon.maxDiscount && calculatedDiscount > Number(activeCoupon.maxDiscount)) {
+            calculatedDiscount = Number(activeCoupon.maxDiscount);
+          }
+          finalDiscount = calculatedDiscount;
+          finalTotal = Math.max(0, subVal - finalDiscount + Number(shipping || 0));
+        }
+      }
+    }
+
     // 4. Create Order & Items (Initial status is UNPAID until payment completes)
     const order = await db.order.create({
       data: {
@@ -96,10 +133,10 @@ export async function POST(request: NextRequest) {
         paymentMethod,
         paymentId: paymentId || `PAY-${Date.now()}`,
         subtotal: Number(subtotal),
-        discount: Number(discount || 0),
+        discount: finalDiscount,
         shipping: Number(shipping || 0),
-        total: Number(total),
-        couponCode: couponCode || null,
+        total: finalTotal,
+        couponCode: finalCouponCode,
         notes: notes || null,
         shippingAddress: {
           name: `${firstName.trim()} ${lastName.trim()}`,

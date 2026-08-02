@@ -80,6 +80,25 @@ export default function CheckoutClient() {
       const coupon = localStorage.getItem("lvstrendz_coupon");
       if (coupon) {
         setAppliedCoupon(JSON.parse(coupon));
+      } else {
+        const cartSubtotal = cart.reduce((t: number, i: any) => t + Number(i.price) * i.quantity, 0);
+        if (cartSubtotal > 0) {
+          const isDismissed = localStorage.getItem("lvstrendz_coupon_dismissed") === "true";
+          if (!isDismissed) {
+            fetch("/api/coupons/active")
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.success && data.coupon) {
+                  const activeCoupon = data.coupon;
+                  if (!activeCoupon.minOrderValue || cartSubtotal >= activeCoupon.minOrderValue) {
+                    setAppliedCoupon(activeCoupon);
+                    localStorage.setItem("lvstrendz_coupon", JSON.stringify(activeCoupon));
+                  }
+                }
+              })
+              .catch((e) => console.error("Checkout auto coupon check error:", e));
+          }
+        }
       }
 
       const giftCard = localStorage.getItem("lvstrendz_giftcard");

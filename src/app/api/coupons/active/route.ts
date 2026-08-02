@@ -42,6 +42,7 @@ export async function GET() {
         type: coupon.type,
         value: Number(coupon.value),
         minOrderValue: coupon.minOrderValue ? Number(coupon.minOrderValue) : null,
+        maxDiscount: coupon.maxDiscount ? Number(coupon.maxDiscount) : null,
       },
     });
   } catch (error: any) {
