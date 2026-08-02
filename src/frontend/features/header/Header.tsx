@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import CartDrawer from "@/features/cart/CartDrawer";
 import HeaderSearch from "./components/HeaderSearch";
+import AnnouncementBar from "./components/AnnouncementBar";
 
 const navLinks = [
   { label: "HOME", href: "/", hasDropdown: false, dropdownItems: [] },
@@ -142,22 +143,7 @@ export default function Header() {
       }`}
     >
       {/* Row 1: Announcement Bar */}
-      <div className="bg-[#A0463E] text-white">
-        <div className="mx-auto flex h-10 max-w-[1440px] items-center justify-center px-4">
-          <p className="text-[12px] font-medium tracking-wide sm:text-[13px]">
-            Flat 20% OFF! Use:{" "}
-            <span className="inline-block rounded border border-white/40 px-2 py-0.5 font-bold mx-1">
-              FLAT20
-            </span>{" "}
-            <Link
-              href="/shop"
-              className="ml-2 underline underline-offset-2 hover:text-white/80"
-            >
-              Shop Now
-            </Link>
-          </p>
-        </div>
-      </div>
+      <AnnouncementBar />
 
       {/* Row 2: Top Bar (Desktop) */}
       <div className="hidden border-b border-gray-200 lg:block">
