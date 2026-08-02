@@ -24,7 +24,6 @@ import {
   Globe,
   ShieldCheck,
 } from "lucide-react";
-import PaymentModal from "./PaymentModal";
 
 export default function CheckoutClient() {
   const { format } = useCurrency();
@@ -57,15 +56,8 @@ export default function CheckoutClient() {
   // Shipping choice
   const [shippingMethod, setShippingMethod] = useState<"standard" | "express">("standard");
 
-  // Payment choice
-  const [paymentMethod, setPaymentMethod] = useState<"CARD" | "UPI" | "NETBANKING" | "PAYGLOCAL">("CARD");
-
-  // Payment Modal State
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [createdOrder, setCreatedOrder] = useState<{
-    id: string;
-    number: string;
-  } | null>(null);
+  // Payment choice (Default PayGlocal Gateway)
+  const [paymentMethod, setPaymentMethod] = useState<"PAYGLOCAL" | "CARD" | "UPI" | "NETBANKING">("PAYGLOCAL");
 
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -226,38 +218,34 @@ export default function CheckoutClient() {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        // Handle PayGlocal Hosted Gateway option if selected
-        if (paymentMethod === "PAYGLOCAL") {
-          try {
-            const initRes = await fetch("/api/payment/initiate", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ orderId: data.orderId }),
-            });
+        // Always initiate PayGlocal Hosted Gateway
+        toast.loading("Initiating PayGlocal payment gateway...", { id: "pg-init" });
 
-            const initData = await initRes.json();
-
-            if (initRes.ok && initData.redirectUrl) {
-              toast.success("Redirecting to PayGlocal secure gateway...", {
-                duration: 3000,
-                style: { background: "#1a4223", color: "#fff" },
-              });
-              window.location.href = initData.redirectUrl;
-              return;
-            }
-          } catch (pgErr) {
-            console.warn("PayGlocal redirect unavailable, using online gateway portal modal instead.");
-          }
-        }
-
-        // For CARD, UPI, NETBANKING or PayGlocal fallback: Open Payment Modal
-        setCreatedOrder({
-          id: data.orderId,
-          number: data.orderNumber,
+        const initRes = await fetch("/api/payment/initiate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ orderId: data.orderId }),
         });
-        setIsPaymentModalOpen(true);
+
+        const initData = await initRes.json();
+
+        if (initRes.ok && initData.redirectUrl) {
+          toast.success("Redirecting to PayGlocal secure gateway...", {
+            id: "pg-init",
+            duration: 3000,
+            style: { background: "#1a4223", color: "#fff" },
+          });
+          window.location.href = initData.redirectUrl;
+          return;
+        } else {
+          toast.dismiss("pg-init");
+          throw new Error(
+            initData.error ||
+              "Failed to initiate payment with PayGlocal gateway (api.payglocal.in). Please try again."
+          );
+        }
       } else {
         throw new Error(data.error || "Failed to submit order");
       }
@@ -680,137 +668,24 @@ export default function CheckoutClient() {
                     </span>
                   </div>
 
-                  {/* Payment Method Radio Cards */}
-                  <div className="space-y-3">
-                    
-                    {/* Option 1: Credit / Debit Card */}
-                    <label
-                      onClick={() => setPaymentMethod("CARD")}
-                      className={`block p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                        paymentMethod === "CARD"
-                          ? "border-[#A0463E] bg-[#A0463E]/5 shadow-2xs"
-                          : "border-gray-200 hover:border-gray-300 bg-white"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <input
-                          type="radio"
-                          name="paymentOption"
-                          checked={paymentMethod === "CARD"}
-                          onChange={() => setPaymentMethod("CARD")}
-                          className="mt-1 accent-[#A0463E] w-4 h-4"
-                        />
-                        <div className="grow space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs font-extrabold text-black uppercase tracking-wider flex items-center gap-1.5">
-                              <CreditCard size={16} className="text-[#A0463E]" />
-                              Credit / Debit Card
-                            </span>
-                            <span className="text-[10px] font-bold text-gray-400">Visa, MasterCard, RuPay, Amex</span>
-                          </div>
-                          <p className="text-[11px] text-gray-500 font-semibold leading-relaxed">
-                            Pay instantly using any Debit or Credit card with 3D-Secure 2FA protection.
-                          </p>
-                        </div>
-                      </div>
-                    </label>
-
-                    {/* Option 2: UPI / Instant QR */}
-                    <label
-                      onClick={() => setPaymentMethod("UPI")}
-                      className={`block p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                        paymentMethod === "UPI"
-                          ? "border-[#A0463E] bg-[#A0463E]/5 shadow-2xs"
-                          : "border-gray-200 hover:border-gray-300 bg-white"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <input
-                          type="radio"
-                          name="paymentOption"
-                          checked={paymentMethod === "UPI"}
-                          onChange={() => setPaymentMethod("UPI")}
-                          className="mt-1 accent-[#A0463E] w-4 h-4"
-                        />
-                        <div className="grow space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs font-extrabold text-black uppercase tracking-wider flex items-center gap-1.5">
-                              <Smartphone size={16} className="text-[#A0463E]" />
-                              UPI / Instant QR Code
-                            </span>
-                            <span className="text-[10px] font-bold text-gray-400">Google Pay, PhonePe, Paytm</span>
-                          </div>
-                          <p className="text-[11px] text-gray-500 font-semibold leading-relaxed">
-                            Instant payment via Dynamic QR Scan or UPI ID (Google Pay, PhonePe, Paytm, BHIM).
-                          </p>
-                        </div>
-                      </div>
-                    </label>
-
-                    {/* Option 3: Net Banking */}
-                    <label
-                      onClick={() => setPaymentMethod("NETBANKING")}
-                      className={`block p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                        paymentMethod === "NETBANKING"
-                          ? "border-[#A0463E] bg-[#A0463E]/5 shadow-2xs"
-                          : "border-gray-200 hover:border-gray-300 bg-white"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <input
-                          type="radio"
-                          name="paymentOption"
-                          checked={paymentMethod === "NETBANKING"}
-                          onChange={() => setPaymentMethod("NETBANKING")}
-                          className="mt-1 accent-[#A0463E] w-4 h-4"
-                        />
-                        <div className="grow space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs font-extrabold text-black uppercase tracking-wider flex items-center gap-1.5">
-                              <Landmark size={16} className="text-[#A0463E]" />
-                              Net Banking
-                            </span>
-                            <span className="text-[10px] font-bold text-gray-400">All Major Indian Banks</span>
-                          </div>
-                          <p className="text-[11px] text-gray-500 font-semibold leading-relaxed">
-                            Pay directly from HDFC, ICICI, SBI, Axis, Kotak, or any major Indian Bank account.
-                          </p>
-                        </div>
-                      </div>
-                    </label>
-
-                    {/* Option 4: PayGlocal Gateway */}
-                    <label
-                      onClick={() => setPaymentMethod("PAYGLOCAL")}
-                      className={`block p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                        paymentMethod === "PAYGLOCAL"
-                          ? "border-[#A0463E] bg-[#A0463E]/5 shadow-2xs"
-                          : "border-gray-200 hover:border-gray-300 bg-white"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <input
-                          type="radio"
-                          name="paymentOption"
-                          checked={paymentMethod === "PAYGLOCAL"}
-                          onChange={() => setPaymentMethod("PAYGLOCAL")}
-                          className="mt-1 accent-[#A0463E] w-4 h-4"
-                        />
-                        <div className="grow space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs font-extrabold text-black uppercase tracking-wider flex items-center gap-1.5">
-                              <Globe size={16} className="text-[#A0463E]" />
-                              PayGlocal Gateway
-                            </span>
-                            <span className="text-[10px] font-bold text-gray-400">International / Hosted</span>
-                          </div>
-                          <p className="text-[11px] text-gray-500 font-semibold leading-relaxed">
-                            Redirect to PayGlocal portal for international cards and multi-currency payments.
-                          </p>
-                        </div>
-                      </div>
-                    </label>
-
+                  {/* PayGlocal Gateway Banner & Information */}
+                  <div className="p-4 rounded-xl border-2 border-[#A0463E] bg-[#A0463E]/5 space-y-3">
+                    <div className="flex justify-between items-center border-b border-[#A0463E]/10 pb-2">
+                      <span className="text-xs font-extrabold text-black uppercase tracking-wider flex items-center gap-1.5">
+                        <Globe size={16} className="text-[#A0463E]" />
+                        PayGlocal Payment Gateway
+                      </span>
+                      <span className="text-[10px] font-bold text-gray-500">api.payglocal.in</span>
+                    </div>
+                    <p className="text-[11px] text-gray-600 font-semibold leading-relaxed">
+                      All payments (Credit/Debit Cards, UPI, Net Banking, and International Cards) are securely processed via the official PayGlocal Hosted Gateway.
+                    </p>
+                    <div className="flex flex-wrap gap-2 pt-1 text-[10px] font-bold text-gray-500">
+                      <span className="bg-white border border-gray-200 rounded px-2 py-0.5">Visa / MasterCard</span>
+                      <span className="bg-white border border-gray-200 rounded px-2 py-0.5">RuPay</span>
+                      <span className="bg-white border border-gray-200 rounded px-2 py-0.5">UPI / QR</span>
+                      <span className="bg-white border border-gray-200 rounded px-2 py-0.5">Net Banking</span>
+                    </div>
                   </div>
 
                   {/* Submission triggers */}
@@ -822,16 +697,16 @@ export default function CheckoutClient() {
                     {isSubmitting ? (
                       <>
                         <Loader2 size={16} className="animate-spin mr-2" />
-                        Processing Order...
+                        Redirecting to PayGlocal...
                       </>
                     ) : (
-                      `Proceed to Payment (${format(grandTotal)})`
+                      `Pay via PayGlocal (${format(grandTotal)})`
                     )}
                   </button>
 
                   <div className="flex items-center justify-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                     <Lock size={12} />
-                    <span>256-Bit Encrypted Payment Gateway</span>
+                    <span>256-Bit Encrypted Secure Gateway</span>
                   </div>
                 </div>
 
@@ -839,24 +714,6 @@ export default function CheckoutClient() {
             </div>
           </form>
       </section>
-
-      {/* Payment Gateway Modal */}
-      {createdOrder && (
-        <PaymentModal
-          isOpen={isPaymentModalOpen}
-          onClose={() => {
-            setIsPaymentModalOpen(false);
-            if (createdOrder?.number) {
-              router.push(`/checkout/order-received?orderNumber=${createdOrder.number}`);
-            }
-          }}
-          orderId={createdOrder.id}
-          orderNumber={createdOrder.number}
-          totalAmount={grandTotal}
-          customerEmail={form.email}
-          initialMethod={paymentMethod}
-        />
-      )}
     </main>
   );
 }

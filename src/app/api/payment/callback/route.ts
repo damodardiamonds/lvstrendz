@@ -144,7 +144,7 @@ async function handleCallback(request: NextRequest) {
         await processOrderStockAndCoupon(order.id);
       }
 
-      return NextResponse.redirect(`${baseUrl}/checkout/order-received?orderNumber=${merchantTxnId}`);
+      return NextResponse.redirect(`${baseUrl}/checkout/order-received?orderNumber=${merchantTxnId}&clearCart=true`);
     } else {
       console.warn(`Transaction was not approved: ${transactionStatus}`);
       

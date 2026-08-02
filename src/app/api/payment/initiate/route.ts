@@ -102,8 +102,13 @@ export async function POST(request: NextRequest) {
 
     if (!pgResponse.ok) {
       console.error("PayGlocal API response error:", pgData);
+      const errorMsg =
+        pgData.errors?.displayMessage ||
+        pgData.errors?.detailedMessage ||
+        pgData.message ||
+        "Failed to initiate payment with PayGlocal API";
       return NextResponse.json(
-        { error: pgData.message || "Failed to initiate payment with PayGlocal API" },
+        { error: errorMsg, rawResponse: pgData },
         { status: pgResponse.status }
       );
     }
