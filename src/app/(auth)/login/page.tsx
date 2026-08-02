@@ -1,9 +1,16 @@
-
 "use client";
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { getFirebaseAuth } from "@/lib/firebase";
+import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "@firebase/auth";
+
+declare global {
+  interface Window {
+    recaptchaVerifier?: RecaptchaVerifier;
+  }
+}
 
 function LoginContent() {
   const router = useRouter();
@@ -22,6 +29,7 @@ function LoginContent() {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -38,7 +46,7 @@ function LoginContent() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error);
+        setError(data.error || "Login failed.");
         return;
       }
 
@@ -55,23 +63,55 @@ function LoginContent() {
     setLoading(true);
     setError("");
 
+    if (phone.length !== 10) {
+      setError("Please enter a valid 10-digit mobile number.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const res = await fetch("/api/auth/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
-      });
+      const auth = getFirebaseAuth();
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error);
-        return;
+      if (!window.recaptchaVerifier) {
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+          size: "invisible",
+          callback: () => {
+            // reCAPTCHA solved automatically
+          },
+          "expired-callback": () => {
+            setError("Security check expired. Please try sending OTP again.");
+          },
+        });
       }
 
+      const formattedPhone = `+91${phone}`;
+      const confirmation = await signInWithPhoneNumber(
+        auth,
+        formattedPhone,
+        window.recaptchaVerifier
+      );
+
+      setConfirmationResult(confirmation);
       setOtpSent(true);
-    } catch {
-      setError("Failed to send OTP. Please try again.");
+    } catch (err: any) {
+      console.error("Firebase Send OTP Error:", err);
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+        } catch {}
+        window.recaptchaVerifier = undefined;
+      }
+
+      let errorMsg = "Failed to send OTP via SMS. Please check your phone number and try again.";
+      if (err.code === "auth/invalid-app-credential") {
+        errorMsg = "Firebase configuration mismatch. Please check Domain Authorization in Firebase Console.";
+      } else if (err.code === "auth/too-many-requests") {
+        errorMsg = "Too many requests. Please try again after a few minutes.";
+      } else if (err.message) {
+        errorMsg = err.message;
+      }
+
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -83,22 +123,29 @@ function LoginContent() {
     setError("");
 
     try {
+      let idToken = "";
+      if (confirmationResult) {
+        const result = await confirmationResult.confirm(otp);
+        idToken = await result.user.getIdToken();
+      }
+
       const res = await fetch("/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, otp }),
+        body: JSON.stringify({ phone, otp, isFirebase: true, idToken }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error);
+        setError(data.error || "Verification failed.");
         return;
       }
 
       window.location.href = redirect;
-    } catch {
-      setError("Verification failed. Please try again.");
+    } catch (err: any) {
+      console.error("Verify OTP Error:", err);
+      setError(err.message || "Invalid OTP code. Please check and try again.");
     } finally {
       setLoading(false);
     }
@@ -106,6 +153,9 @@ function LoginContent() {
 
   return (
     <div className="bg-white rounded-lg shadow-md p-8">
+      {/* Invisible container required for Firebase reCAPTCHA */}
+      <div id="recaptcha-container"></div>
+
       <div className="text-center mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
         <p className="text-gray-600 mt-2">Sign in to your LV&apos;s Trendz account</p>
@@ -274,4 +324,3 @@ export default function LoginPage() {
     </Suspense>
   );
 }
-

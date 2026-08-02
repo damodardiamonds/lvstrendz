@@ -6,11 +6,67 @@ import { setResponseCookie } from "@/lib/session";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { phone, otp } = body;
+    const { phone, otp, isFirebase, idToken } = body;
 
-    if (!phone || !otp) {
+    if (!phone) {
       return NextResponse.json(
-        { error: "Phone and OTP are required" },
+        { error: "Phone number is required" },
+        { status: 400 }
+      );
+    }
+
+    // Clean phone number (strip leading +91 or country codes to get 10-digit number)
+    const cleanedPhone = phone.replace(/\D/g, "").slice(-10);
+
+    if (cleanedPhone.length !== 10) {
+      return NextResponse.json(
+        { error: "Valid 10-digit phone number is required" },
+        { status: 400 }
+      );
+    }
+
+    // If Firebase verification was completed on client
+    if (isFirebase || idToken) {
+      // Find or create user by phone
+      let user = await db.user.findUnique({
+        where: { phone: cleanedPhone },
+      });
+
+      if (!user) {
+        user = await db.user.create({
+          data: {
+            phone: cleanedPhone,
+            phoneVerified: true,
+            role: "CUSTOMER",
+          },
+        });
+      } else if (!user.phoneVerified) {
+        user = await db.user.update({
+          where: { id: user.id },
+          data: { phoneVerified: true },
+        });
+      }
+
+      // Generate token and set cookie on response
+      const token = generateToken(user.id, user.role);
+      const response = NextResponse.json({
+        message: "Login successful",
+        user: {
+          id: user.id,
+          name: user.name,
+          phone: user.phone,
+          role: user.role,
+        },
+      });
+
+      setResponseCookie(response, token);
+      return response;
+    }
+
+    // Fallback DB OTP verification (for non-firebase or dev fallback)
+    if (!otp) {
+      return NextResponse.json(
+        { error: "OTP is required" },
         { status: 400 }
       );
     }
@@ -18,7 +74,7 @@ export async function POST(request: NextRequest) {
     // Find valid OTP
     const otpRecord = await db.otp.findFirst({
       where: {
-        phone,
+        phone: cleanedPhone,
         code: otp,
         type: "LOGIN",
         used: false,
@@ -42,8 +98,9 @@ export async function POST(request: NextRequest) {
 
     // Find or create user by phone
     let user = await db.user.findUnique({
-      where: { phone },
+      where: { phone: cleanedPhone },
     });
+
 
     if (!user) {
       user = await db.user.create({
