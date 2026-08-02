@@ -26,48 +26,7 @@ import {
 } from "lucide-react";
 import PaymentModal from "./PaymentModal";
 
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  count: number;
-}
-
-interface Color {
-  name: string;
-  slug: string;
-  colorCode: string;
-}
-
-interface Size {
-  name: string;
-  slug: string;
-}
-
-interface TopRatedProduct {
-  id: string;
-  name: string;
-  slug: string;
-  price: number;
-  originalPrice: number | null;
-  image: string;
-  rating: number;
-  reviewsCount: number;
-}
-
-interface CheckoutClientProps {
-  categories: Category[];
-  colors: Color[];
-  sizes: Size[];
-  topRatedProducts: TopRatedProduct[];
-}
-
-export default function CheckoutClient({
-  categories,
-  colors,
-  sizes,
-  topRatedProducts,
-}: CheckoutClientProps) {
+export default function CheckoutClient() {
   const { format } = useCurrency();
   const router = useRouter();
 
@@ -109,10 +68,6 @@ export default function CheckoutClient({
 
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [topRatedIndex, setTopRatedIndex] = useState(0);
-
-  // Price slider filter state (WooCommerce Widget simulation)
-  const [priceRange, setPriceRange] = useState({ min: 1499, max: 6999 });
 
   // Load cart and coupon
   useEffect(() => {
@@ -166,14 +121,7 @@ export default function CheckoutClient({
 
   // PayGlocal integration logic
 
-  // Top rated product carousel navigation
-  const nextTopRated = () => {
-    setTopRatedIndex((prev) => (prev + 1) % topRatedProducts.length);
-  };
 
-  const prevTopRated = () => {
-    setTopRatedIndex((prev) => (prev - 1 + topRatedProducts.length) % topRatedProducts.length);
-  };
 
   // Field validations
   const validateForm = () => {
@@ -341,197 +289,15 @@ export default function CheckoutClient({
         </div>
       </section>
 
-      {/* Main Grid */}
+      {/* Main Checkout Section */}
       <section className="max-w-[1470px] mx-auto px-4 md:px-[45px] pb-20">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
+        <form onSubmit={handlePlaceOrder} className="space-y-10">
           
-          {/* Left Column: WooCommerce Sidebar Widgets (3 columns) */}
-          <aside className="lg:col-span-3 space-y-10 max-lg:order-2 max-lg:border-t max-lg:pt-10">
+          {/* Steps & Checkout Form Inputs */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
             
-            {/* Widget: Categories */}
-            <div className="border border-gray-100 rounded-xl p-5 bg-white shadow-2xs">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-black border-b border-gray-100 pb-3 mb-4">
-                Categories
-              </h3>
-              <ul className="space-y-3 text-sm font-medium">
-                {categories.map((cat) => (
-                  <li key={cat.id} className="flex justify-between items-center group">
-                    <Link
-                      href={`/shop?category=${cat.slug}`}
-                      className="text-gray-600 group-hover:text-[#A0463E] transition-colors"
-                    >
-                      {cat.name}
-                    </Link>
-                    <span className="text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded-md font-bold">
-                      ({cat.count})
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Widget: Price Filter */}
-            <div className="border border-gray-100 rounded-xl p-5 bg-white shadow-2xs">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-black border-b border-gray-100 pb-3 mb-4">
-                Price
-              </h3>
-              <div className="space-y-4">
-                {/* Simulated Range Slider */}
-                <div className="space-y-2">
-                  <input
-                    type="range"
-                    min="1499"
-                    max="6999"
-                    value={priceRange.max}
-                    onChange={(e) =>
-                      setPriceRange((prev) => ({ ...prev, max: Number(e.target.value) }))
-                    }
-                    className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#A0463E]"
-                  />
-                  <div className="flex justify-between items-center text-xs font-bold text-gray-700">
-                    <span>Range:</span>
-                    <span>
-                      {format(priceRange.min)} — {format(priceRange.max)}
-                    </span>
-                  </div>
-                </div>
-                <Link
-                  href={`/shop?min_price=${priceRange.min}&max_price=${priceRange.max}`}
-                  className="w-full text-center block bg-gray-900 hover:bg-[#A0463E] text-white text-xs font-bold uppercase tracking-widest py-2.5 rounded-lg transition-colors"
-                >
-                  Filter
-                </Link>
-              </div>
-            </div>
-
-            {/* Widget: Colors Swatches */}
-            <div className="border border-gray-100 rounded-xl p-5 bg-white shadow-2xs">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-black border-b border-gray-100 pb-3 mb-4">
-                Color
-              </h3>
-              <div className="flex flex-wrap gap-2.5">
-                {colors.map((color) => (
-                  <Link
-                    key={color.slug}
-                    href={`/shop?color=${color.slug}`}
-                    title={color.name}
-                    className="group relative flex items-center justify-center w-7 h-7 rounded-full border border-gray-200 shadow-2xs hover:scale-110 hover:shadow-md transition-all"
-                  >
-                    <span
-                      className="w-5 h-5 rounded-full"
-                      style={{ backgroundColor: color.colorCode }}
-                    />
-                    <span className="absolute bottom-full mb-1.5 hidden group-hover:block bg-gray-950 text-white text-[10px] font-bold py-1 px-2 rounded-md whitespace-nowrap z-10 shadow-lg">
-                      {color.name}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {/* Widget: Sizes */}
-            <div className="border border-gray-100 rounded-xl p-5 bg-white shadow-2xs">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-black border-b border-gray-100 pb-3 mb-4">
-                Size
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {sizes.map((size) => (
-                  <Link
-                    key={size.slug}
-                    href={`/shop?size=${size.slug}`}
-                    className="px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider border border-gray-200 rounded-lg text-gray-700 bg-white hover:border-[#A0463E] hover:text-[#A0463E] transition-all"
-                  >
-                    {size.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {/* Widget: Top Rated Products Slider */}
-            {topRatedProducts.length > 0 && (
-              <div className="border border-gray-100 rounded-xl p-5 bg-white shadow-2xs">
-                <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-black">
-                    Top Rated
-                  </h3>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={prevTopRated}
-                      className="w-6 h-6 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:text-black hover:border-black transition-colors"
-                      aria-label="Previous rated product"
-                    >
-                      <ChevronLeft size={12} strokeWidth={2.5} />
-                    </button>
-                    <button
-                      onClick={nextTopRated}
-                      className="w-6 h-6 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:text-black hover:border-black transition-colors"
-                      aria-label="Next rated product"
-                    >
-                      <ChevronRight size={12} strokeWidth={2.5} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Slider Item */}
-                <div className="relative overflow-hidden h-[240px] flex items-center justify-center">
-                  {topRatedProducts.map((prod, idx) => {
-                    const isActive = idx === topRatedIndex;
-                    return (
-                      <div
-                        key={prod.id}
-                        className={`absolute w-full top-0 left-0 transition-all duration-500 ease-in-out transform flex flex-col items-center text-center ${
-                          isActive
-                            ? "opacity-100 translate-x-0 scale-100 pointer-events-auto"
-                            : "opacity-0 translate-x-12 scale-95 pointer-events-none"
-                        }`}
-                      >
-                        <Link href={`/product/${prod.slug}`} className="group block mb-3.5">
-                          <div className="w-32 h-40 bg-gray-50 rounded-lg overflow-hidden border border-gray-100 shadow-2xs mx-auto">
-                            <img
-                              src={prod.image}
-                              alt={prod.name}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                          </div>
-                        </Link>
-                        <h4 className="text-xs font-bold text-gray-900 line-clamp-1 max-w-[200px] mb-1">
-                          <Link href={`/product/${prod.slug}`} className="hover:text-[#A0463E]">
-                            {prod.name}
-                          </Link>
-                        </h4>
-                        
-                        {/* Rating Stars */}
-                        <div className="flex justify-center items-center gap-0.5 text-xs text-amber-500 mb-1">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <span key={i}>★</span>
-                          ))}
-                        </div>
-
-                        {/* Prices */}
-                        <div className="text-xs font-extrabold flex justify-center items-center gap-1.5">
-                          {prod.originalPrice && (
-                            <span className="text-gray-400 line-through">
-                              {format(prod.originalPrice)}
-                            </span>
-                          )}
-                          <span className="text-[#A0463E]">{format(prod.price)}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </aside>
-
-          {/* Right Column: Checkout Form (9 columns) */}
-          <form onSubmit={handlePlaceOrder} className="lg:col-span-9 space-y-10 max-lg:order-1">
-            
-            {/* Steps & Checkout Form Inputs */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-10">
-              
-              {/* Form Inputs (7 columns) */}
-              <div className="md:col-span-7 space-y-8">
+            {/* Form Inputs (7 columns) */}
+            <div className="lg:col-span-7 space-y-8">
                 
                 {/* Block 1: Contact info */}
                 <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-2xs space-y-4">
@@ -781,7 +547,7 @@ export default function CheckoutClient({
               </div>
 
               {/* Order Summary & Payments (5 columns) */}
-              <div className="md:col-span-5 space-y-8">
+              <div className="lg:col-span-5 space-y-8">
                 
                 {/* Block 4: Order totals & summary */}
                 <div className="bg-[#FAF8F5] border border-[#F0EBE0] rounded-2xl p-6 shadow-2xs space-y-5">
@@ -1030,12 +796,8 @@ export default function CheckoutClient({
                 </div>
 
               </div>
-
             </div>
-
           </form>
-
-        </div>
       </section>
 
       {/* Payment Gateway Modal */}

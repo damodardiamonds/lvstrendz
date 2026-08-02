@@ -109,7 +109,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
           {/* Filters Sidebar (3 columns) */}
           <aside className="lg:col-span-3 space-y-8 max-lg:border-b max-lg:pb-8">
             {/* Category Filter */}
-            <div>
+            <div className="hidden lg:block">
               <h3 className="text-sm font-bold uppercase tracking-wider text-black border-b border-gray-100 pb-3 mb-4">
                 Categories
               </h3>
