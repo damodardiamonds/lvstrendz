@@ -33,6 +33,7 @@ export default function CheckoutClient() {
   // Cart and Discount states
   const [items, setItems] = useState<any[]>([]);
   const [appliedCoupon, setAppliedCoupon] = useState<any | null>(null);
+  const [appliedGiftCard, setAppliedGiftCard] = useState<any | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   // Billing form states
@@ -69,7 +70,7 @@ export default function CheckoutClient() {
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load cart and coupon
+  // Load cart, coupon, and gift card
   useEffect(() => {
     setIsMounted(true);
     try {
@@ -80,8 +81,13 @@ export default function CheckoutClient() {
       if (coupon) {
         setAppliedCoupon(JSON.parse(coupon));
       }
+
+      const giftCard = localStorage.getItem("lvstrendz_giftcard");
+      if (giftCard) {
+        setAppliedGiftCard(JSON.parse(giftCard));
+      }
     } catch (e) {
-      console.error("Error reading cart/coupon from localStorage:", e);
+      console.error("Error reading cart/coupon/giftcard from localStorage:", e);
     }
   }, []);
 
@@ -102,13 +108,19 @@ export default function CheckoutClient() {
     }
   }
 
+  let giftCardDiscount = 0;
+  if (appliedGiftCard) {
+    const remainingAfterCoupon = Math.max(0, subtotal - discount);
+    giftCardDiscount = Math.min(remainingAfterCoupon, Number(appliedGiftCard.balance));
+  }
+
   // Shipping logic
   const shippingCost =
     shippingMethod === "express"
       ? 250
       : 0;
 
-  const grandTotal = Math.max(0, subtotal - discount + shippingCost);
+  const grandTotal = Math.max(0, subtotal - discount - giftCardDiscount + shippingCost);
 
   // Handlers for inputs
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -594,9 +606,18 @@ export default function CheckoutClient() {
                     {discount > 0 && (
                       <div className="flex justify-between items-center text-emerald-700 font-semibold">
                         <span>
-                          Discount {appliedCoupon?.code && `(${appliedCoupon.code})`}
+                          Coupon Discount {appliedCoupon?.code && `(${appliedCoupon.code})`}
                         </span>
                         <span>-{format(discount)}</span>
+                      </div>
+                    )}
+
+                    {appliedGiftCard && giftCardDiscount > 0 && (
+                      <div className="flex justify-between items-center text-amber-700 font-semibold">
+                        <span>
+                          Gift Card ({appliedGiftCard.code})
+                        </span>
+                        <span>-{format(giftCardDiscount)}</span>
                       </div>
                     )}
 

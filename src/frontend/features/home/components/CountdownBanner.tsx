@@ -4,17 +4,66 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
-export default function CountdownBanner() {
-  // Initialize with 15 days, 23 hours, 17 minutes, 51 seconds in seconds
-  const [secondsLeft, setSecondsLeft] = useState(15 * 86400 + 23 * 3600 + 17 * 60 + 51);
+export interface TimerSettings {
+  isActive?: boolean;
+  tagline?: string;
+  title?: string;
+  endDate?: string;
+  buttonText?: string;
+  buttonLink?: string;
+  bannerImage?: string;
+}
+
+interface CountdownBannerProps {
+  settings?: TimerSettings | null;
+}
+
+export default function CountdownBanner({ settings: initialSettings }: CountdownBannerProps) {
+  const [settings, setSettings] = useState<TimerSettings | null>(initialSettings || null);
+  const [secondsLeft, setSecondsLeft] = useState<number>(0);
+  const [isLoaded, setIsLoaded] = useState<boolean>(!!initialSettings);
 
   useEffect(() => {
+    if (!initialSettings) {
+      fetch('/api/site-settings/timer')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data) {
+            setSettings(data);
+          }
+        })
+        .catch((e) => console.error('Failed to fetch timer settings:', e))
+        .finally(() => setIsLoaded(true));
+    }
+  }, [initialSettings]);
+
+  useEffect(() => {
+    if (!settings || settings.isActive === false) return;
+
+    const calculateRemainingSeconds = () => {
+      if (!settings.endDate) {
+        // Fallback: 15 days from now
+        return 15 * 86400 + 23 * 3600 + 17 * 60 + 51;
+      }
+      const targetTime = new Date(settings.endDate).getTime();
+      const now = Date.now();
+      const diff = Math.floor((targetTime - now) / 1000);
+      return diff > 0 ? diff : 0;
+    };
+
+    setSecondsLeft(calculateRemainingSeconds());
+
     const timer = setInterval(() => {
       setSecondsLeft((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [settings]);
+
+  // If not active or settings disabled, return null
+  if (isLoaded && settings && settings.isActive === false) {
+    return null;
+  }
 
   const days = Math.floor(secondsLeft / 86400);
   const hours = Math.floor((secondsLeft % 86400) / 3600);
@@ -23,16 +72,24 @@ export default function CountdownBanner() {
 
   const pad = (num: number) => String(num).padStart(2, '0');
 
+  const tagline = settings?.tagline || 'Flat 20% OFF';
+  const title = settings?.title || "Limited Time Offer! Don't Miss Out!";
+  const buttonText = settings?.buttonText || 'Shop Now →';
+  const buttonLink = settings?.buttonLink || '/shop';
+  const bannerImage =
+    settings?.bannerImage ||
+    'https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_08_18-AM.webp';
+
   return (
     <section className="w-full max-w-[1470px] mx-auto px-4 md:px-[45px] mb-[80px] max-md:mb-[50px]">
       <div className="grid grid-cols-1 md:grid-cols-12 rounded-2xl overflow-hidden shadow-sm bg-[#FAF0F2] border border-[#F2BDD4]/20 min-h-[400px]">
         {/* Left Column: Offer Details & Countdown */}
         <div className="col-span-1 md:col-span-7 flex flex-col justify-center items-start text-left p-8 md:p-14">
           <span className="text-[#A0463E] text-base md:text-lg font-bold tracking-wider mb-2">
-            Flat 20% OFF
+            {tagline}
           </span>
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 leading-tight mb-8">
-            Limited Time Offer! Don&apos;t Miss Out!
+            {title}
           </h2>
 
           {/* Countdown Boxes */}
@@ -72,21 +129,22 @@ export default function CountdownBanner() {
           </div>
 
           <Link
-            href="/shop"
+            href={buttonLink}
             className="border-2 border-black text-black px-8 py-3 text-xs font-bold uppercase tracking-wider hover:bg-black hover:text-white transition-all duration-300 rounded"
           >
-            Shop Now &rarr;
+            {buttonText}
           </Link>
         </div>
 
         {/* Right Column: Image */}
         <div className="col-span-1 md:col-span-5 relative min-h-[300px] md:min-h-full">
           <Image
-            src="https://lvstrendz.com/wp-content/uploads/2026/05/ChatGPT-Image-May-15-2026-12_08_18-AM.webp"
-            alt="Countdown Offer"
+            src={bannerImage}
+            alt={title}
             fill
             className="object-cover"
             sizes="(max-width: 768px) 100vw, 40vw"
+            unoptimized={bannerImage.startsWith('http')}
           />
         </div>
       </div>

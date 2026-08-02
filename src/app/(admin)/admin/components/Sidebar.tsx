@@ -15,6 +15,7 @@ import {
   Image as ImageIcon,
   MessageSquare,
   FolderOpen,
+  Tag,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -23,6 +24,7 @@ const navItems = [
   { label: "Products", href: "/admin/products", icon: Package },
   { label: "Categories", href: "/admin/categories", icon: FolderOpen },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
+  { label: "Discounts & Timer", href: "/admin/discounts", icon: Tag },
   { label: "Chat Inbox", href: "/admin/chat", icon: MessageSquare },
   { label: "Variants", href: "/admin/variants", icon: Palette },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },

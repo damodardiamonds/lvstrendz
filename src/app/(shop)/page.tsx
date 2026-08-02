@@ -17,15 +17,18 @@ export default async function HomePage() {
   const [
     { spotlight, newArrivals, elite, justForYou },
     slidesSetting,
-    collectionsSetting
+    collectionsSetting,
+    timerSetting
   ] = await Promise.all([
     getHomepageProducts(),
     db.siteSetting.findUnique({ where: { key: 'homepage_hero_slides' } }),
     db.siteSetting.findUnique({ where: { key: 'homepage_collections' } }),
+    db.siteSetting.findUnique({ where: { key: 'countdown_timer' } }),
   ]);
 
   let customSlides = null;
   let customCollections = null;
+  let customTimer = null;
 
   if (slidesSetting) {
     try {
@@ -43,6 +46,14 @@ export default async function HomePage() {
     }
   }
 
+  if (timerSetting) {
+    try {
+      customTimer = JSON.parse(timerSetting.value);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-white">
       <HeroSlider slides={customSlides} />
@@ -51,7 +62,7 @@ export default async function HomePage() {
       <EliteCollection products={elite} />
       <NowTrending />
       <JustForYou products={justForYou} />
-      <CountdownBanner />
+      <CountdownBanner settings={customTimer} />
     </main>
   );
 }

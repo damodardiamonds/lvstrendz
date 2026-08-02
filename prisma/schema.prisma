@@ -341,7 +341,7 @@ model OrderItem {
   @@index([orderId])
 }
 
-// ==================== COUPONS ====================
+// ==================== COUPONS & GIFT CARDS ====================
 
 model Coupon {
   id            String     @id @default(cuid())
@@ -363,6 +363,19 @@ model Coupon {
 enum CouponType {
   PERCENTAGE
   FIXED
+}
+
+model GiftCard {
+  id           String    @id @default(cuid())
+  code         String    @unique
+  initialValue Decimal   @db.Decimal(10, 2)
+  balance      Decimal   @db.Decimal(10, 2)
+  isActive     Boolean   @default(true)
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([code])
 }
 
 // ==================== REVIEWS ====================

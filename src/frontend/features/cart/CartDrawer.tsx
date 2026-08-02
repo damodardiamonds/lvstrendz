@@ -17,6 +17,9 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<any | null>(null);
   const [couponError, setCouponError] = useState("");
+  const [giftCardCode, setGiftCardCode] = useState("");
+  const [appliedGiftCard, setAppliedGiftCard] = useState<any | null>(null);
+  const [giftCardError, setGiftCardError] = useState("");
   const [isCouponExpanded, setIsCouponExpanded] = useState(false);
   const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
 
@@ -27,7 +30,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     }));
   };
 
-  // Load cart items and coupon from localStorage
+  // Load cart items, coupon and gift card from localStorage
   const loadCartAndCoupon = () => {
     try {
       const cart = JSON.parse(localStorage.getItem("lvstrendz_cart") || "[]");
@@ -39,8 +42,15 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
       } else {
         setAppliedCoupon(null);
       }
+
+      const giftCard = localStorage.getItem("lvstrendz_giftcard");
+      if (giftCard) {
+        setAppliedGiftCard(JSON.parse(giftCard));
+      } else {
+        setAppliedGiftCard(null);
+      }
     } catch (e) {
-      console.error("Error loading cart/coupon state:", e);
+      console.error("Error loading cart/coupon/giftcard state:", e);
     }
   };
 
@@ -141,9 +151,50 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     });
   };
 
+  const handleApplyGiftCard = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!giftCardCode.trim()) return;
+
+    try {
+      const res = await fetch("/api/gift-cards/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: giftCardCode }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAppliedGiftCard(data.giftCard);
+        localStorage.setItem("lvstrendz_giftcard", JSON.stringify(data.giftCard));
+        setGiftCardError("");
+        setGiftCardCode("");
+        toast.success("Gift Card applied successfully!", {
+          style: { background: "#3D1515", color: "#fff" },
+        });
+      } else {
+        setGiftCardError(data.error || "Invalid gift card code");
+        toast.error(data.error || "Invalid gift card code", {
+          style: { background: "#3D1515", color: "#fff" },
+        });
+      }
+    } catch (err) {
+      setGiftCardError("Failed to validate gift card");
+      toast.error("Failed to validate gift card", {
+        style: { background: "#3D1515", color: "#fff" },
+      });
+    }
+  };
+
+  const handleRemoveGiftCard = () => {
+    setAppliedGiftCard(null);
+    localStorage.removeItem("lvstrendz_giftcard");
+    toast.success("Gift Card removed", {
+      style: { background: "#3D1515", color: "#fff" },
+    });
+  };
+
   const subtotal = items.reduce((total, item) => total + Number(item.price) * item.quantity, 0);
 
-  // Compute discount and check criteria
+  // Compute coupon discount and check criteria
   let discount = 0;
   let couponWarning = "";
   if (appliedCoupon) {
@@ -161,7 +212,14 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     }
   }
 
-  const total = Math.max(0, subtotal - discount);
+  // Compute gift card discount
+  let giftCardDiscount = 0;
+  if (appliedGiftCard) {
+    const remainingAfterCoupon = Math.max(0, subtotal - discount);
+    giftCardDiscount = Math.min(remainingAfterCoupon, Number(appliedGiftCard.balance));
+  }
+
+  const total = Math.max(0, subtotal - discount - giftCardDiscount);
   const totalCount = items.reduce((total, item) => total + item.quantity, 0);
 
   return (
@@ -359,22 +417,23 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         {/* Drawer Footer */}
         {items.length > 0 && (
           <div className="border-t border-gray-100 bg-gray-50/50 p-6 shrink-0 space-y-4">
-            {/* Coupon accordion */}
+            {/* Coupon & Gift Card accordion */}
             <div className="border-b border-gray-100 pb-3">
               <button
                 onClick={() => setIsCouponExpanded(!isCouponExpanded)}
                 className="flex items-center justify-between w-full text-xs font-bold text-gray-700 hover:text-black uppercase tracking-wider transition-colors"
               >
-                <span>Got a Discount Code?</span>
+                <span>Coupon or Gift Card?</span>
                 {isCouponExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               </button>
 
               {isCouponExpanded && (
-                <div className="mt-3">
+                <div className="mt-3 space-y-3">
+                  {/* Coupon Block */}
                   {appliedCoupon ? (
                     <div className="flex items-center justify-between bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs px-3 py-2 rounded-md font-semibold">
                       <span>
-                        Applied: <strong>{appliedCoupon.code}</strong> (
+                        Coupon: <strong>{appliedCoupon.code}</strong> (
                         {appliedCoupon.type === "PERCENTAGE" ? `${appliedCoupon.value}%` : format(appliedCoupon.value)} off)
                       </span>
                       <button
@@ -390,7 +449,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                         type="text"
                         value={couponCode}
                         onChange={(e) => setCouponCode(e.target.value)}
-                        placeholder="Enter discount code"
+                        placeholder="Enter coupon code"
                         className="flex-1 bg-white border border-gray-200 rounded-md px-3 py-2 text-xs placeholder-gray-400 outline-none focus:border-[#A0463E] transition-colors"
                         required
                       />
@@ -402,7 +461,40 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       </button>
                     </form>
                   )}
-                  {couponError && <p className="text-red-600 text-[11px] font-semibold mt-1">{couponError}</p>}
+                  {couponError && <p className="text-red-600 text-[11px] font-semibold">{couponError}</p>}
+
+                  {/* Gift Card Block */}
+                  {appliedGiftCard ? (
+                    <div className="flex items-center justify-between bg-amber-50 border border-amber-100 text-amber-900 text-xs px-3 py-2 rounded-md font-semibold">
+                      <span>
+                        Gift Card: <strong>{appliedGiftCard.code}</strong> (Bal: {format(appliedGiftCard.balance)})
+                      </span>
+                      <button
+                        onClick={handleRemoveGiftCard}
+                        className="text-amber-800 hover:text-red-700 font-bold underline ml-2"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleApplyGiftCard} className="flex gap-2">
+                      <input
+                        type="text"
+                        value={giftCardCode}
+                        onChange={(e) => setGiftCardCode(e.target.value)}
+                        placeholder="Enter gift card code"
+                        className="flex-1 bg-white border border-gray-200 rounded-md px-3 py-2 text-xs placeholder-gray-400 outline-none focus:border-[#A0463E] transition-colors"
+                        required
+                      />
+                      <button
+                        type="submit"
+                        className="bg-gray-800 hover:bg-black text-white text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-md transition-all duration-300"
+                      >
+                        Apply
+                      </button>
+                    </form>
+                  )}
+                  {giftCardError && <p className="text-red-600 text-[11px] font-semibold">{giftCardError}</p>}
                 </div>
               )}
             </div>
@@ -416,8 +508,15 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
               {appliedCoupon && !couponWarning && (
                 <div className="flex justify-between text-emerald-700">
-                  <span>Discount ({appliedCoupon.code})</span>
+                  <span>Coupon Discount ({appliedCoupon.code})</span>
                   <span>-{format(discount)}</span>
+                </div>
+              )}
+
+              {appliedGiftCard && giftCardDiscount > 0 && (
+                <div className="flex justify-between text-amber-700">
+                  <span>Gift Card ({appliedGiftCard.code})</span>
+                  <span>-{format(giftCardDiscount)}</span>
                 </div>
               )}
 
