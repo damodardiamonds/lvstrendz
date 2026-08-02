@@ -30,7 +30,7 @@ export default function ProductCard({
     : 0;
 
   return (
-    <Link href={`/product/${slug}`} className="group block">
+    <Link href={`/product/${slug}`} prefetch={true} className="group block">
       <div className="relative aspect-[3/4] overflow-hidden bg-gray-50 rounded-lg border border-gray-100 shadow-sm">
         <Image
           src={image || '/images/placeholder.jpg'}

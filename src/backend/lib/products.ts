@@ -1,4 +1,5 @@
 
+import { cache } from 'react';
 import { prisma } from './db';
 
 // ==================== TYPES ====================
@@ -135,7 +136,7 @@ export async function getHomepageProducts() {
 }
 
 // ==================== GET PRODUCT BY SLUG ====================
-export async function getProductBySlug(slug: string) {
+export const getProductBySlug = cache(async (slug: string) => {
   const product = await prisma.product.findUnique({
     where: { slug },
     include: {
@@ -160,7 +161,7 @@ export async function getProductBySlug(slug: string) {
   });
 
   return product;
-}
+});
 
 // ==================== GET ALL PRODUCTS (PAGINATED) ====================
 export async function getAllProducts({

@@ -78,7 +78,7 @@ export function ProductCarousel({ products, visibleCount = 4 }: ProductCarouselP
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
         {visibleProducts.map((product) => {
           return (
-            <Link key={product.id} href={`/product/${product.slug}`} className="group block">
+            <Link key={product.id} href={`/product/${product.slug}`} prefetch={true} className="group block">
               <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
                 <Image
                   src={product.image}
