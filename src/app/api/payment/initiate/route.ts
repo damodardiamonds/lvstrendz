@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     // 4. Construct PayGlocal PayCollect Payload
     const totalAmountStr = Number(order.total).toFixed(2);
-    
+
     // Fallback names in case order address doesn't have it parsed
     const fullName = order.address.name || "Customer";
     const nameParts = fullName.trim().split(/\s+/);
@@ -78,11 +78,11 @@ export async function POST(request: NextRequest) {
       privateKey: privateKey,
       merchantId: process.env.PAYGLOCAL_MERCHANT_ID || "ptplkikanikr2907",
       publicKeyId: process.env.PAYGLOCAL_PUBLIC_KEY_ID || "8cc91c8d-8030-4660-a9c7-33de886fb495",
-      privateKeyId: process.env.PAYGLOCAL_PRIVATE_KEY_ID || "orLiT1gipnQYVqey_ptplkikanikr2907",
+      privateKeyId: process.env.PAYGLOCAL_PRIVATE_KEY_ID || "kId-orLiT1gipnQYVqey",
     });
 
     const isProduction = process.env.PAYGLOCAL_ENVIRONMENT === "production";
-    const baseUrl = isProduction 
+    const baseUrl = isProduction
       ? (process.env.PAYGLOCAL_PRODUCTION_URL || "https://api.payglocal.in")
       : (process.env.PAYGLOCAL_SANDBOX_URL || "https://sandbox.payglocal.in");
 
@@ -90,12 +90,12 @@ export async function POST(request: NextRequest) {
     const pgResponse = await fetch(`${baseUrl}/gl/v1/payments/paycollect`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "text/plain",
         "x-gl-token-external": secureTokens.jwsToken,
       },
-      body: JSON.stringify({
-        jweToken: secureTokens.jweToken,
-      }),
+      body:
+        secureTokens.jweToken,
+
     });
 
     const pgData = await pgResponse.json();
