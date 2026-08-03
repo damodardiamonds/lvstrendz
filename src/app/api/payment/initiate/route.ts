@@ -90,18 +90,18 @@ export async function POST(request: NextRequest) {
     const isProduction = process.env.PAYGLOCAL_ENVIRONMENT === "production";
     const baseUrl = isProduction
       ? (process.env.PAYGLOCAL_PRODUCTION_URL || "https://api.payglocal.in")
-      : (process.env.PAYGLOCAL_SANDBOX_URL || "https://sandbox.payglocal.in");
+      : (process.env.PAYGLOCAL_SANDBOX_URL || "https://api.uat.payglocal.in");
 
     // 6. Post Secure Payload to PayGlocal
-    const pgResponse = await fetch(`${baseUrl}/gl/v1/payments/paycollect`, {
+    const pgResponse = await fetch(`${baseUrl}/gl/v1/payments/initiate`, {
       method: "POST",
       headers: {
-        "Content-Type": "text/plain",
+        "Content-Type": "application/json",
         "x-gl-token-external": secureTokens.jwsToken,
       },
-      body:
-        secureTokens.jweToken,
-
+      body: JSON.stringify({
+        jweToken: secureTokens.jweToken,
+      }),
     });
 
     const pgData = await pgResponse.json();

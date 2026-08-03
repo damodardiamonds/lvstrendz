@@ -100,7 +100,7 @@ async function handleCallback(request: NextRequest) {
     const isProduction = process.env.PAYGLOCAL_ENVIRONMENT === "production";
     const pgApiUrl = isProduction 
       ? (process.env.PAYGLOCAL_PRODUCTION_URL || "https://api.payglocal.in")
-      : (process.env.PAYGLOCAL_SANDBOX_URL || "https://sandbox.payglocal.in");
+      : (process.env.PAYGLOCAL_SANDBOX_URL || "https://api.uat.payglocal.in");
 
     // 4. Server-to-server check to verify payment status
     const verifyRes = await fetch(`${pgApiUrl}/gl/v1/payments/status`, {
