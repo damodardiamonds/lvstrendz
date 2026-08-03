@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
       payload,
       publicKey: publicKey,
       privateKey: privateKey,
-      merchantId: process.env.PAYGLOCAL_MERCHANT_ID || "ptplkikanikr2907",
+      merchantId: process.env.PAYGLOCAL_MERCHANT_ID || "kikanikr298007",
       publicKeyId: process.env.PAYGLOCAL_PUBLIC_KEY_ID || "8cc91c8d-8030-4660-a9c7-33de886fb495",
       privateKeyId: process.env.PAYGLOCAL_PRIVATE_KEY_ID || "kId-orLiT1gipnQYVqey",
     });
