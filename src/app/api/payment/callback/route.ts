@@ -50,14 +50,24 @@ async function handleCallback(request: NextRequest) {
       return NextResponse.redirect(`${baseUrl}/checkout?error=invalid_callback`);
     }
 
-    // 2. Validate PEM files exist for doing the secure status call
-    const publicPemPath = path.resolve(process.cwd(), process.env.PAYGLOCAL_PUBLIC_PEM_PATH || "./keys/payglocal_public.pem");
-    const privatePemPath = path.resolve(process.cwd(), process.env.PAYGLOCAL_PRIVATE_PEM_PATH || "./keys/payglocal_private.pem");
+    // 2. Load PEM keys from Environment Variables or file system
+    let publicKey = process.env.PAYGLOCAL_PUBLIC_KEY?.replace(/\\n/g, "\n");
+    let privateKey = process.env.PAYGLOCAL_PRIVATE_KEY?.replace(/\\n/g, "\n");
 
-    if (!fs.existsSync(publicPemPath) || !fs.existsSync(privatePemPath)) {
-      console.error("PayGlocal PEM files missing in callback. Marking payment as PENDING for manual reconciliation.");
+    if (!publicKey || !privateKey) {
+      const publicPemPath = path.resolve(process.cwd(), process.env.PAYGLOCAL_PUBLIC_PEM_PATH || "./keys/payglocal_public.pem");
+      const privatePemPath = path.resolve(process.cwd(), process.env.PAYGLOCAL_PRIVATE_PEM_PATH || "./keys/payglocal_private.pem");
+
+      if (fs.existsSync(publicPemPath) && fs.existsSync(privatePemPath)) {
+        publicKey = fs.readFileSync(publicPemPath, "utf8");
+        privateKey = fs.readFileSync(privatePemPath, "utf8");
+      }
+    }
+
+    if (!publicKey || !privateKey) {
+      console.error("PayGlocal PEM files/keys missing in callback. Marking payment as UNPAID for manual reconciliation.");
       
-      // Update order to PENDING payment status for manual review
+      // Update order to UNPAID payment status for manual review
       await db.order.update({
         where: { orderNumber: merchantTxnId },
         data: {
@@ -69,9 +79,6 @@ async function handleCallback(request: NextRequest) {
 
       return NextResponse.redirect(`${baseUrl}/checkout/order-received?orderNumber=${merchantTxnId}&pending_verification=true`);
     }
-
-    const publicKey = fs.readFileSync(publicPemPath, "utf8");
-    const privateKey = fs.readFileSync(privatePemPath, "utf8");
 
     // 3. Prepare payload to call PayGlocal's transaction status API
     const statusPayload = {

@@ -24,25 +24,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // 2. Validate PEM files existence
-    const publicPemPath = path.resolve(process.cwd(), process.env.PAYGLOCAL_PUBLIC_PEM_PATH || "./keys/payglocal_public.pem");
-    const privatePemPath = path.resolve(process.cwd(), process.env.PAYGLOCAL_PRIVATE_PEM_PATH || "./keys/payglocal_private.pem");
+    // 2. Load PEM keys from Environment Variables or file system
+    let publicKey = process.env.PAYGLOCAL_PUBLIC_KEY?.replace(/\\n/g, "\n");
+    let privateKey = process.env.PAYGLOCAL_PRIVATE_KEY?.replace(/\\n/g, "\n");
 
-    if (!fs.existsSync(publicPemPath) || !fs.existsSync(privatePemPath)) {
-      console.warn("PayGlocal PEM files are missing. Please upload them to the keys/ directory.");
+    if (!publicKey || !privateKey) {
+      const publicPemPath = path.resolve(process.cwd(), process.env.PAYGLOCAL_PUBLIC_PEM_PATH || "./keys/payglocal_public.pem");
+      const privatePemPath = path.resolve(process.cwd(), process.env.PAYGLOCAL_PRIVATE_PEM_PATH || "./keys/payglocal_private.pem");
+
+      if (fs.existsSync(publicPemPath) && fs.existsSync(privatePemPath)) {
+        publicKey = fs.readFileSync(publicPemPath, "utf8");
+        privateKey = fs.readFileSync(privatePemPath, "utf8");
+      }
+    }
+
+    if (!publicKey || !privateKey) {
+      console.warn("PayGlocal PEM keys are missing.");
       return NextResponse.json(
         {
-          error: "PayGlocal PEM files are missing.",
+          error: "PayGlocal PEM keys are missing on the server.",
           setupRequired: true,
-          message: "Please place payglocal_public.pem and payglocal_private.pem in your project's keys/ directory to connect to PayGlocal.",
+          message: "Please configure PAYGLOCAL_PUBLIC_KEY and PAYGLOCAL_PRIVATE_KEY in your hosting environment variables (e.g. Vercel) or place PEM files in keys/.",
         },
         { status: 503 }
       );
     }
-
-    // 3. Read PEM contents
-    const publicKey = fs.readFileSync(publicPemPath, "utf8");
-    const privateKey = fs.readFileSync(privatePemPath, "utf8");
 
     // 4. Construct PayGlocal PayCollect Payload
     const totalAmountStr = Number(order.total).toFixed(2);
