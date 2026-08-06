@@ -29,8 +29,8 @@ export async function POST(request: NextRequest) {
     let privateKey = process.env.PAYGLOCAL_PRIVATE_KEY?.replace(/\\n/g, "\n");
 
     if (!publicKey || !privateKey) {
-      const publicPemPath = path.resolve(process.cwd(), process.env.PAYGLOCAL_PUBLIC_PEM_PATH || "./keys/payglocal_public.pem");
-      const privatePemPath = path.resolve(process.cwd(), process.env.PAYGLOCAL_PRIVATE_PEM_PATH || "./keys/payglocal_private.pem");
+      const publicPemPath = path.resolve(process.cwd(), process.env.PAYGLOCAL_PUBLIC_PEM_PATH || "./keys/8cc91c8d-8030-4660-a9c7-33de886fb495_payglocal_mid.pem.pem");
+      const privatePemPath = path.resolve(process.cwd(), process.env.PAYGLOCAL_PRIVATE_PEM_PATH || "./keys/kId-edUmioEvV6nLsG6l_ptplkikanikr2907.pem.pem");
 
       if (fs.existsSync(publicPemPath) && fs.existsSync(privatePemPath)) {
         publicKey = fs.readFileSync(publicPemPath, "utf8");
