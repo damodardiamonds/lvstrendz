@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       : (process.env.PAYGLOCAL_SANDBOX_URL || "https://api.uat.payglocal.in");
 
     // 6. Post Secure Payload to PayGlocal
-    const pgResponse = await fetch(`${baseUrl}/gl/v1/payments/initiate`, {
+    const pgResponse = await fetch(`${baseUrl}/gl/v1/payments/initiate/paycollect`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
