@@ -66,7 +66,7 @@ async function main() {
   const publicKeyId =
     envVars.PAYGLOCAL_PUBLIC_KEY_ID || "8cc91c8d-8030-4660-a9c7-33de886fb495";
   const privateKeyId =
-    envVars.PAYGLOCAL_PRIVATE_KEY_ID || "kId-orLiT1gipnQYVqey";
+    envVars.PAYGLOCAL_PRIVATE_KEY_ID || "kId-edUmioEvV6nLsG6l";
 
   console.log("=========================================");
   console.log("        PAYGLOCAL TOKEN GENERATOR        ");

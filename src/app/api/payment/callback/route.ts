@@ -94,7 +94,7 @@ async function handleCallback(request: NextRequest) {
       privateKey: privateKey,
       merchantId: process.env.PAYGLOCAL_MERCHANT_ID || "ptplkikanikr2907",
       publicKeyId: process.env.PAYGLOCAL_PUBLIC_KEY_ID || "8cc91c8d-8030-4660-a9c7-33de886fb495",
-      privateKeyId: process.env.PAYGLOCAL_PRIVATE_KEY_ID || "kId-orLiT1gipnQYVqey",
+      privateKeyId: process.env.PAYGLOCAL_PRIVATE_KEY_ID || "kId-edUmioEvV6nLsG6l",
     });
 
     const isProduction = process.env.PAYGLOCAL_ENVIRONMENT === "production";
