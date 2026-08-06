@@ -65,11 +65,20 @@ export async function POST(request: NextRequest) {
         totalAmount: totalAmountStr,
         txnCurrency: "INR",
       },
-      clientData: {
-        emailId: order.user.email || "guest@lvstrendz.com",
-        phoneNumber: order.address.phone || order.user.phone || "9999999999",
-        firstName: firstName,
-        lastName: lastName,
+      riskData: {
+        shippingData: {
+          firstName: firstName,
+          lastName: lastName,
+          addressStreet1: order.address.line1,
+          addressStreet2: order.address.line2 || "",
+          addressCity: order.address.city,
+          addressState: order.address.state,
+          addressPostalCode: order.address.pincode,
+          addressCountry: "IN",
+          emailId: order.user.email || "guest@lvstrendz.com",
+          callingCode: "+91",
+          phoneNumber: order.address.phone || order.user.phone || "9999999999",
+        },
       },
       merchantCallbackURL: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/payment/callback`,
     };
