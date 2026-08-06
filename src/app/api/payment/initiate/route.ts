@@ -99,9 +99,7 @@ export async function POST(request: NextRequest) {
         "Content-Type": "text/plain",
         "x-gl-token-external": secureTokens.jwsToken,
       },
-      body: JSON.stringify({
-        jweToken: secureTokens.jweToken,
-      }),
+      body: secureTokens.jweToken,
     });
 
     const pgData = await pgResponse.json();
@@ -137,7 +135,6 @@ export async function POST(request: NextRequest) {
       { error: "No redirect URL returned by PayGlocal", rawResponse: pgData },
       { status: 502 }
     );
-
   } catch (error: any) {
     console.error("Error in /api/payment/initiate:", error);
     return NextResponse.json(
