@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
 
       // Update order → PAID + CONFIRMED
       await db.order.update({
-        where: { orderNumber: merchantTxnId },
+        where: { id: order.id },
         data: {
           paymentStatus: "PAID",
           status:        "CONFIRMED",
@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
     } else if (["FAILED", "DECLINED", "CANCELLED", "REJECTED"].includes(verifiedStatus)) {
 
       await db.order.update({
-        where: { orderNumber: merchantTxnId },
+        where: { id: order.id },
         data: {
           paymentStatus: "FAILED",
           status:        "CANCELLED",
