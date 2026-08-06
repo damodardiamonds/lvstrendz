@@ -84,10 +84,19 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 2. Idempotency — skip if already finalized ───────────────────────────
-    const order = await db.order.findUnique({
-      where: { orderNumber: merchantTxnId },
+    // merchantTxnId is now "orderNumber-epochSeconds" format.
+    // Look up by paymentAttemptId first, then fall back to plain orderNumber.
+    let order = await db.order.findFirst({
+      where: { paymentAttemptId: merchantTxnId },
     });
 
+    if (!order) {
+      // Fallback: strip the suffix and look up by plain orderNumber
+      const baseOrderNumber = merchantTxnId.replace(/-\d+$/, "");
+      order = await db.order.findUnique({
+        where: { orderNumber: baseOrderNumber },
+      });
+    }
     if (!order) {
       console.error("[webhook] Order not found:", merchantTxnId);
       return NextResponse.json({ received: true, error: "order_not_found" }, { status: 200 });

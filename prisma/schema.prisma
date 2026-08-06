@@ -278,23 +278,24 @@ model CartItem {
 // ==================== ORDERS ====================
 
 model Order {
-  id              String        @id @default(cuid())
-  orderNumber     String        @unique
-  userId          String
-  addressId       String
-  status          OrderStatus   @default(PENDING)
-  paymentStatus   PaymentStatus @default(UNPAID)
-  paymentMethod   String?
-  paymentId       String?
-  subtotal        Decimal       @db.Decimal(10, 2)
-  discount        Decimal       @default(0) @db.Decimal(10, 2)
-  shipping        Decimal       @default(0) @db.Decimal(10, 2)
-  total           Decimal       @db.Decimal(10, 2)
-  couponCode      String?
-  notes           String?
-  shippingAddress Json?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                String        @id @default(cuid())
+  orderNumber       String        @unique
+  userId            String
+  addressId         String
+  status            OrderStatus   @default(PENDING)
+  paymentStatus     PaymentStatus @default(UNPAID)
+  paymentMethod     String?
+  paymentId         String?
+  paymentAttemptId  String?       // unique merchantTxnId per PayGlocal attempt (orderNumber + timestamp suffix)
+  subtotal          Decimal       @db.Decimal(10, 2)
+  discount          Decimal       @default(0) @db.Decimal(10, 2)
+  shipping          Decimal       @default(0) @db.Decimal(10, 2)
+  total             Decimal       @db.Decimal(10, 2)
+  couponCode        String?
+  notes             String?
+  shippingAddress   Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
   user    User        @relation(fields: [userId], references: [id])
   address Address     @relation(fields: [addressId], references: [id], onDelete: Restrict)
@@ -302,6 +303,7 @@ model Order {
 
   @@index([userId])
   @@index([orderNumber])
+  @@index([paymentAttemptId])
   @@index([status])
   @@index([createdAt])
 }

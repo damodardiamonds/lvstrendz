@@ -55,18 +55,21 @@ async function handleRedirect(request: NextRequest) {
       return NextResponse.redirect(`${baseUrl}/checkout?error=invalid_callback`);
     }
 
+    // merchantTxnId is now "orderNumber-epochSeconds" — strip the suffix to get the plain orderNumber
+    const orderNumber = merchantTxnId.replace(/-\d+$/, "");
+
     const upperStatus = (status || "").toUpperCase();
 
     // Redirect to success page — webhook will confirm and update DB
     if (upperStatus === "APPROVED" || upperStatus === "SUCCESS" || upperStatus === "PAID" || upperStatus === "INPROGRESS") {
       return NextResponse.redirect(
-        `${baseUrl}/checkout/order-received?orderNumber=${merchantTxnId}&clearCart=true`
+        `${baseUrl}/checkout/order-received?orderNumber=${orderNumber}&clearCart=true`
       );
     }
 
     // Redirect to failure — payment was declined or cancelled
     return NextResponse.redirect(
-      `${baseUrl}/checkout?error=payment_declined&orderNumber=${merchantTxnId}`
+      `${baseUrl}/checkout?error=payment_declined&orderNumber=${orderNumber}`
     );
 
   } catch (error: any) {

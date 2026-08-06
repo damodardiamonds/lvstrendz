@@ -59,8 +59,20 @@ export async function POST(request: NextRequest) {
     const firstName = nameParts[0] || "Customer";
     const lastName = nameParts.slice(1).join(" ") || "Trendz";
 
+    // PayGlocal rejects duplicate merchantTxnId across attempts.
+    // We append a short epoch-seconds suffix so every payment attempt is unique.
+    // Format: <orderNumber>-<epochSeconds>  e.g. "ORD-0042-1786020107"
+    const attemptSuffix = Math.floor(Date.now() / 1000).toString();
+    const merchantTxnId = `${order.orderNumber}-${attemptSuffix}`;
+
+    // Persist the attempt ID so webhook/callback can resolve back to this order
+    await db.order.update({
+      where: { id: order.id },
+      data: { paymentAttemptId: merchantTxnId },
+    });
+
     const payload = {
-      merchantTxnId: order.orderNumber,
+      merchantTxnId,
       paymentData: {
         totalAmount: totalAmountStr,
         txnCurrency: "INR",
