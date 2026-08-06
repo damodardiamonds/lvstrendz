@@ -21,7 +21,7 @@ async function getProducts() {
       },
       categories: {
         include: {
-          category: { select: { name: true } },
+          category: { select: { id: true, name: true } },
         },
       },
     },
@@ -30,7 +30,13 @@ async function getProducts() {
 }
 
 export default async function ProductsPage() {
-  const products = await getProducts();
+  const [products, allCategories] = await Promise.all([
+    getProducts(),
+    db.category.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   return (
     <div>
@@ -53,7 +59,7 @@ export default async function ProductsPage() {
 
       {/* Products Table */}
       {products.length > 0 ? (
-        <ProductTable products={products} />
+        <ProductTable products={products} allCategories={allCategories} />
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
           <Package size={48} className="mx-auto text-gray-300 mb-4" />

@@ -54,3 +54,14 @@ export async function updateOrderNotes(orderId: string, notes: string) {
   revalidatePath(`/admin/orders/${orderId}`);
 }
 
+// Delete order
+export async function deleteOrder(orderId: string) {
+  await db.order.delete({
+    where: { id: orderId },
+  });
+
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin");
+}
+
+

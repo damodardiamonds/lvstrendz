@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import fs from "fs";
 import path from "path";
 import { processOrderStockAndCoupon } from "@/lib/orders";
+import { sendOrderConfirmationEmail } from "@/backend/lib/email";
 
 /**
  * PayGlocal server-to-server webhook.
@@ -202,8 +203,10 @@ export async function POST(request: NextRequest) {
       console.log("[webhook] ✅ Stock deducted & coupons updated. Order ready for dispatch:", merchantTxnId);
 
       // ── Dispatch pipeline hooks ──────────────────────────────────────────
-      // TODO: Send order confirmation email to customer
-      // await sendOrderConfirmationEmail(order);
+      // Send order confirmation email to customer via Resend
+      sendOrderConfirmationEmail(order.id).catch((emailErr) => {
+        console.error("[webhook] Non-blocking email dispatch error:", emailErr);
+      });
 
       // TODO: Notify admin / fulfilment team
       // await notifyAdminNewOrder(order);

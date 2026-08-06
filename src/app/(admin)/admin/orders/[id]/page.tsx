@@ -5,6 +5,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { OrderStatusBadge, PaymentStatusBadge } from "../components/StatusBadge";
 import OrderStatusUpdater from "./OrderStatusUpdater";
+import DeleteOrderButton from "../components/DeleteOrderButton";
 
 export const metadata = {
   title: "Order Details | Admin - LV's Trendz",
@@ -41,32 +42,40 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <Link
-          href="/admin/orders"
-          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-        >
-          <ArrowLeft size={20} className="text-gray-600" />
-        </Link>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Order #{order.orderNumber}
-            </h1>
-            <OrderStatusBadge status={order.status} />
-            <PaymentStatusBadge status={order.paymentStatus} />
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/admin/orders"
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <ArrowLeft size={20} className="text-gray-600" />
+          </Link>
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-900">
+                Order #{order.orderNumber}
+              </h1>
+              <OrderStatusBadge status={order.status} />
+              <PaymentStatusBadge status={order.paymentStatus} />
+            </div>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Placed on{" "}
+              {new Date(order.createdAt).toLocaleDateString("en-IN", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </p>
           </div>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Placed on{" "}
-            {new Date(order.createdAt).toLocaleDateString("en-IN", {
-              day: "2-digit",
-              month: "long",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </p>
         </div>
+        <DeleteOrderButton
+          orderId={order.id}
+          orderNumber={order.orderNumber}
+          redirectToOrders={true}
+          variant="button"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

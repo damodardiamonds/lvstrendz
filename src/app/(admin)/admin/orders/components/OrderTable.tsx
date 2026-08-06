@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { Eye } from "lucide-react";
 import { OrderStatusBadge, PaymentStatusBadge } from "./StatusBadge";
+import DeleteOrderButton from "./DeleteOrderButton";
 
 interface Order {
   id: string;
@@ -91,13 +92,19 @@ export default function OrderTable({ orders }: { orders: Order[] }) {
                   })}
                 </td>
                 <td className="px-4 py-3">
-                  <Link
-                    href={`/admin/orders/${order.id}`}
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-[#A0463E] hover:bg-[#A0463E]/10 rounded-lg transition-colors"
-                  >
-                    <Eye size={14} />
-                    View
-                  </Link>
+                  <div className="flex items-center justify-end gap-2">
+                    <Link
+                      href={`/admin/orders/${order.id}`}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-[#A0463E] hover:bg-[#A0463E]/10 rounded-lg transition-colors"
+                    >
+                      <Eye size={14} />
+                      View
+                    </Link>
+                    <DeleteOrderButton
+                      orderId={order.id}
+                      orderNumber={order.orderNumber}
+                    />
+                  </div>
                 </td>
               </tr>
             ))}
@@ -107,4 +114,5 @@ export default function OrderTable({ orders }: { orders: Order[] }) {
     </div>
   );
 }
+
 

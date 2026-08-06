@@ -158,3 +158,79 @@ export async function toggleProductStatus(id: string, isActive: boolean) {
   revalidatePath("/admin/products");
 }
 
+// Quick update product (Title, SKU, Price, Categories)
+export async function quickUpdateProduct(
+  id: string,
+  data: {
+    name: string;
+    sku: string | null;
+    price: number;
+    categoryIds: string[];
+  }
+) {
+  const name = data.name.trim();
+  const sku = data.sku ? data.sku.trim() : null;
+  const price = Number(data.price);
+  const categoryIds = data.categoryIds || [];
+
+  if (!name) {
+    throw new Error("Product title is required");
+  }
+
+  if (isNaN(price) || price < 0) {
+    throw new Error("Valid price is required");
+  }
+
+  // Check if SKU exists on another product if provided
+  if (sku) {
+    const existingSku = await db.product.findFirst({
+      where: {
+        sku: { equals: sku, mode: "insensitive" },
+        NOT: { id },
+      },
+    });
+    if (existingSku) {
+      throw new Error(`SKU "${sku}" is already assigned to another product.`);
+    }
+  }
+
+  const existingProduct = await db.product.findUnique({
+    where: { id },
+    select: { slug: true },
+  });
+
+  if (!existingProduct) {
+    throw new Error("Product not found");
+  }
+
+  await db.product.update({
+    where: { id },
+    data: {
+      name,
+      sku: sku || null,
+      price,
+      categories: {
+        deleteMany: {},
+        create: categoryIds.map((categoryId) => ({
+          category: { connect: { id: categoryId } },
+        })),
+      },
+    },
+  });
+
+  // Sync variant prices for this product
+  await db.variant.updateMany({
+    where: { productId: id },
+    data: { price },
+  });
+
+  revalidatePath("/admin/products");
+  revalidatePath(`/admin/products/${id}`);
+  revalidatePath("/shop");
+  revalidatePath("/");
+  if (existingProduct.slug) {
+    revalidatePath(`/product/${existingProduct.slug}`);
+  }
+}
+
+

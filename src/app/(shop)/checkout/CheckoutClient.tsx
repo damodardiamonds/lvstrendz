@@ -218,8 +218,8 @@ export default function CheckoutClient() {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        // Always initiate PayGlocal Hosted Gateway
-        toast.loading("Initiating PayGlocal payment gateway...", { id: "pg-init" });
+        // Always initiate Hosted Gateway
+        toast.loading("Initiating secure payment gateway...", { id: "pg-init" });
 
         const initRes = await fetch("/api/payment/initiate", {
           method: "POST",
@@ -232,7 +232,7 @@ export default function CheckoutClient() {
         const initData = await initRes.json();
 
         if (initRes.ok && initData.redirectUrl) {
-          toast.success("Redirecting to PayGlocal secure gateway...", {
+          toast.success("Redirecting to secure gateway...", {
             id: "pg-init",
             duration: 3000,
             style: { background: "#1a4223", color: "#fff" },
@@ -243,7 +243,7 @@ export default function CheckoutClient() {
           toast.dismiss("pg-init");
           throw new Error(
             initData.error ||
-              "Failed to initiate payment with PayGlocal gateway (api.prod.payglocal.in). Please try again."
+              "Failed to initiate payment gateway. Please try again."
           );
         }
       } else {
@@ -668,21 +668,21 @@ export default function CheckoutClient() {
                     </span>
                   </div>
 
-                  {/* PayGlocal Gateway Banner & Information */}
+                  {/* Payment Method Gateway Banner & Information */}
                   <div className="p-4 rounded-xl border-2 border-[#A0463E] bg-[#A0463E]/5 space-y-3">
                     <div className="flex justify-between items-center border-b border-[#A0463E]/10 pb-2">
                       <span className="text-xs font-extrabold text-black uppercase tracking-wider flex items-center gap-1.5">
-                        <Globe size={16} className="text-[#A0463E]" />
-                        PayGlocal Payment Gateway
+                        <ShieldCheck size={16} className="text-[#A0463E]" />
+                        Secure Checkout
                       </span>
-                      <span className="text-[10px] font-bold text-gray-500">api.payglocal.in</span>
                     </div>
                     <p className="text-[11px] text-gray-600 font-semibold leading-relaxed">
-                      All payments (Credit/Debit Cards, UPI, Net Banking, and International Cards) are securely processed via the official PayGlocal Hosted Gateway.
+                      We accept Debit/Credit Cards, Apple Pay, Google Pay, American Express, and UPI. All transactions are securely encrypted
                     </p>
                     <div className="flex flex-wrap gap-2 pt-1 text-[10px] font-bold text-gray-500">
                       <span className="bg-white border border-gray-200 rounded px-2 py-0.5">Visa / MasterCard</span>
-                      <span className="bg-white border border-gray-200 rounded px-2 py-0.5">RuPay</span>
+                      <span className="bg-white border border-gray-200 rounded px-2 py-0.5">Amex</span>
+                      <span className="bg-white border border-gray-200 rounded px-2 py-0.5">Apple Pay / GPay</span>
                       <span className="bg-white border border-gray-200 rounded px-2 py-0.5">UPI / QR</span>
                       <span className="bg-white border border-gray-200 rounded px-2 py-0.5">Net Banking</span>
                     </div>
@@ -697,10 +697,10 @@ export default function CheckoutClient() {
                     {isSubmitting ? (
                       <>
                         <Loader2 size={16} className="animate-spin mr-2" />
-                        Redirecting to PayGlocal...
+                        Redirecting to Secure Gateway...
                       </>
                     ) : (
-                      `Pay via PayGlocal (${format(grandTotal)})`
+                      `PAY NOW (${format(grandTotal)})`
                     )}
                   </button>
 
