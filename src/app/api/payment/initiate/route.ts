@@ -104,6 +104,17 @@ export async function POST(request: NextRequest) {
       ? (process.env.PAYGLOCAL_PRODUCTION_URL || "https://api.prod.payglocal.in")
       : (process.env.PAYGLOCAL_SANDBOX_URL || "https://api.uat.payglocal.in");
 
+    // Diagnostic log — cross-check these values against your PayGlocal portal
+    console.log("[payment/initiate] Sending to PayGlocal:", {
+      environment: isProduction ? "PRODUCTION" : "SANDBOX/UAT",
+      url: `${baseUrl}/gl/v1/payments/initiate/paycollect`,
+      merchantId: process.env.PAYGLOCAL_MERCHANT_ID || "ptplkikanikr2907",
+      publicKeyId: process.env.PAYGLOCAL_PUBLIC_KEY_ID || "8cc91c8d-8030-4660-a9c7-33de886fb495",
+      privateKeyId: process.env.PAYGLOCAL_PRIVATE_KEY_ID || "kId-edUmioEvV6nLsG6l",
+      merchantTxnId,
+      amount: totalAmountStr,
+    });
+
     // 6. Post Secure Payload to PayGlocal
     const pgResponse = await fetch(`${baseUrl}/gl/v1/payments/initiate/paycollect`, {
       method: "POST",
@@ -147,10 +158,11 @@ export async function POST(request: NextRequest) {
       { error: "No redirect URL returned by PayGlocal", rawResponse: pgData },
       { status: 502 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Internal server error during payment initiation";
     console.error("Error in /api/payment/initiate:", error);
     return NextResponse.json(
-      { error: error.message || "Internal server error during payment initiation" },
+      { error: errorMessage },
       { status: 500 }
     );
   }
