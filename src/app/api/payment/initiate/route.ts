@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     const pgResponse = await fetch(`${baseUrl}/gl/v1/payments/initiate/paycollect`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "text/plain",
         "x-gl-token-external": secureTokens.jwsToken,
       },
       body: JSON.stringify({
