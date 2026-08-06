@@ -243,7 +243,7 @@ export default function CheckoutClient() {
           toast.dismiss("pg-init");
           throw new Error(
             initData.error ||
-              "Failed to initiate payment with PayGlocal gateway (api.payglocal.in). Please try again."
+              "Failed to initiate payment with PayGlocal gateway (api.prod.payglocal.in). Please try again."
           );
         }
       } else {
