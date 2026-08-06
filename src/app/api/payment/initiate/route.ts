@@ -65,20 +65,11 @@ export async function POST(request: NextRequest) {
         totalAmount: totalAmountStr,
         txnCurrency: "INR",
       },
-      riskData: {
-        shippingData: {
-          firstName: firstName,
-          lastName: lastName,
-          addressStreet1: order.address.line1,
-          addressStreet2: order.address.line2 || "",
-          addressCity: order.address.city,
-          addressState: order.address.state,
-          addressPostalCode: order.address.pincode,
-          addressCountry: "IN",
-          emailId: order.user.email || "guest@lvstrendz.com",
-          callingCode: "+91",
-          phoneNumber: order.address.phone || order.user.phone || "9999999999",
-        },
+      clientData: {
+        emailId: order.user.email || "guest@lvstrendz.com",
+        phoneNumber: order.address.phone || order.user.phone || "9999999999",
+        firstName: firstName,
+        lastName: lastName,
       },
       merchantCallbackURL: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/payment/callback`,
     };
@@ -96,11 +87,13 @@ export async function POST(request: NextRequest) {
       privateKeyId: process.env.PAYGLOCAL_PRIVATE_KEY_ID || "kId-edUmioEvV6nLsG6l",
     });
 
-    // 6. Post Secure Payload to PayGlocal (production endpoint)
-    const pgUrl = "https://api.prod.payglocal.in/gl/v1/payments/initiate/paycollect";
-    console.log("[PayGlocal] Posting to:", pgUrl);
+    const isProduction = process.env.PAYGLOCAL_ENVIRONMENT === "production";
+    const baseUrl = isProduction
+      ? (process.env.PAYGLOCAL_PRODUCTION_URL || "https://api.prod.payglocal.in")
+      : (process.env.PAYGLOCAL_SANDBOX_URL || "https://api.uat.payglocal.in");
 
-    const pgResponse = await fetch(pgUrl, {
+    // 6. Post Secure Payload to PayGlocal
+    const pgResponse = await fetch(`${baseUrl}/gl/v1/payments/initiate/paycollect`, {
       method: "POST",
       headers: {
         "Content-Type": "text/plain",
@@ -110,19 +103,18 @@ export async function POST(request: NextRequest) {
     });
 
     const pgData = await pgResponse.json();
-    console.log("[PayGlocal] Response status:", pgResponse.status, "| Body:", JSON.stringify(pgData));
 
     if (!pgResponse.ok) {
-      console.error("[PayGlocal] API error:", pgData);
+      console.error("PayGlocal API response error:", pgData);
       let errorMsg =
         pgData.errors?.displayMessage ||
         pgData.errors?.detailedMessage ||
         pgData.message ||
         "Failed to initiate payment with PayGlocal API";
 
-      if (pgResponse.status === 401) {
-        errorMsg = `PayGlocal 401 Auth Failed: ${pgData.message || "Invalid credentials"}. Check Merchant ID, Key IDs, and PEM files.`;
-      }
+      // if (pgResponse.status === 401) {
+      //   errorMsg = `PayGlocal Gateway Error (401 Authentication Failed): ${pgData.message || "Invalid credentials"}. Please check your PayGlocal Merchant ID, Key IDs, and PEM files.`;
+      // }
 
       return NextResponse.json(
         { error: errorMsg, rawResponse: pgData },

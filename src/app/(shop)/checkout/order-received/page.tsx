@@ -10,6 +10,7 @@ interface PageProps {
   searchParams: Promise<{
     orderNumber?: string;
     pending_verification?: string;
+    clearCart?: string;
   }>;
 }
 
@@ -17,7 +18,7 @@ export const revalidate = 0; // Don't cache receipt page
 
 export default async function OrderReceivedPage({ searchParams }: PageProps) {
   const resolvedParams = await searchParams;
-  const { orderNumber, pending_verification } = resolvedParams;
+  const { orderNumber, pending_verification, clearCart } = resolvedParams;
 
   if (!orderNumber) {
     redirect("/shop");
@@ -51,7 +52,11 @@ export default async function OrderReceivedPage({ searchParams }: PageProps) {
 
   const isPaid = order.paymentStatus === "PAID";
   const isSandbox = pending_verification === "true";
-  const showSuccess = isPaid || isSandbox;
+  // clearCart=true is sent by the payment callback on successful payment redirect.
+  // The webhook may not have updated the DB yet when the browser lands here,
+  // so we treat clearCart=true as a reliable success signal from PayGlocal.
+  const isPaymentRedirect = clearCart === "true";
+  const showSuccess = isPaid || isSandbox || isPaymentRedirect;
 
   return (
     <main className="bg-white min-h-screen py-16 px-4">
@@ -81,13 +86,13 @@ export default async function OrderReceivedPage({ searchParams }: PageProps) {
               <CheckCircle size={36} strokeWidth={2.5} />
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-wide">
-              {isSandbox ? "Order Registered" : "Thank you!"}
+              {isSandbox ? "Order Registered" : "Payment Successful!"}
             </h1>
             <p className="text-gray-500 font-semibold text-sm max-w-md mx-auto">
               {isSandbox ? (
                 <>Your order is pending manual verification. We will send updates to <span className="text-black font-extrabold">{order.user.email}</span>.</>
               ) : (
-                <>Your order has been successfully received. We've sent a confirmation email to <span className="text-black font-extrabold">{order.user.email}</span>.</>
+                <>Your payment was successful and your order has been placed successfully. A confirmation will be sent to <span className="text-black font-extrabold">{order.user.email}</span>.</>
               )}
             </p>
           </div>
