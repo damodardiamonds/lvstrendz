@@ -30,11 +30,11 @@ if (fs.existsSync(envPath)) {
 async function main() {
   const publicPemPath = path.resolve(
     process.cwd(),
-    envVars.PAYGLOCAL_PUBLIC_PEM_PATH || "./keys/8cc91c8d-8030-4660-a9c7-33de886fb495_payglocal_mid.pem.pem"
+    envVars.PAYGLOCAL_PUBLIC_PEM_PATH || "./keys/8cc91c8d-8030-4660-a9c7-33de886fb495_payglocal_mid.pem"
   );
   const privatePemPath = path.resolve(
     process.cwd(),
-    envVars.PAYGLOCAL_PRIVATE_PEM_PATH || "./keys/kId-edUmioEvV6nLsG6l_ptplkikanikr2907.pem.pem"
+    envVars.PAYGLOCAL_PRIVATE_PEM_PATH || "./keys/kId-edUmioEvV6nLsG6l_ptplkikanikr2907.pem"
   );
 
   if (!fs.existsSync(publicPemPath) || !fs.existsSync(privatePemPath)) {
