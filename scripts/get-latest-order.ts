@@ -23,10 +23,10 @@ async function main() {
   console.log(`ALL 10 RECENT ORDERS IN DATABASE:`);
   console.log("=========================================");
   latestOrders.forEach((o, i) => {
-    console.log(`${i + 1}. Order ${o.orderNumber} | Amount: ₹${o.total.toString()} | Status: ${o.paymentStatus} | Created: ${o.createdAt}`);
+    console.log(`${i + 1}. Order ${o.orderNumber} | AttemptId: ${o.paymentAttemptId} | Status: ${o.paymentStatus} | Created: ${o.createdAt}`);
   });
 
-  const order = latestOrders[1]; // Order LVS-1786014123506-6931 for ₹2
+  const order = latestOrders[0];
   console.log(`\n--- SELECTED ₹2 ORDER DETAILS ---`);
   console.log("Order ID     :", order.id);
   console.log("Order Number :", order.orderNumber);
