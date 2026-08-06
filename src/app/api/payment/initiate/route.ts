@@ -99,14 +99,14 @@ export async function POST(request: NextRequest) {
       privateKeyId: process.env.PAYGLOCAL_PRIVATE_KEY_ID || "kId-edUmioEvV6nLsG6l",
     });
 
-    const isProduction = process.env.PAYGLOCAL_ENVIRONMENT === "production";
-    const baseUrl = isProduction
-      ? (process.env.PAYGLOCAL_PRODUCTION_URL || "https://api.prod.payglocal.in")
-      : (process.env.PAYGLOCAL_SANDBOX_URL || "https://api.uat.payglocal.in");
+    const isSandbox = process.env.PAYGLOCAL_ENVIRONMENT === "sandbox" || process.env.PAYGLOCAL_ENVIRONMENT === "development";
+    const baseUrl = isSandbox
+      ? (process.env.PAYGLOCAL_SANDBOX_URL || "https://api.uat.payglocal.in")
+      : (process.env.PAYGLOCAL_PRODUCTION_URL || "https://api.prod.payglocal.in");
 
     // Diagnostic log — cross-check these values against your PayGlocal portal
     console.log("[payment/initiate] Sending to PayGlocal:", {
-      environment: isProduction ? "PRODUCTION" : "SANDBOX/UAT",
+      environment: isSandbox ? "SANDBOX/UAT" : "PRODUCTION",
       url: `${baseUrl}/gl/v1/payments/initiate/paycollect`,
       merchantId: process.env.PAYGLOCAL_MERCHANT_ID || "ptplkikanikr2907",
       publicKeyId: process.env.PAYGLOCAL_PUBLIC_KEY_ID || "8cc91c8d-8030-4660-a9c7-33de886fb495",
