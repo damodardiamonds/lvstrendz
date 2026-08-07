@@ -1,5 +1,6 @@
 
 import { Package, ShoppingCart, IndianRupee, AlertTriangle } from "lucide-react";
+import Link from "next/link";
 import { db } from "@/lib/db";
 import StatCard from "./components/StatCard";
 
@@ -90,7 +91,7 @@ export default async function AdminDashboard() {
           Quick Actions
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <a
+          <Link
             href="/admin/products/new"
             className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:border-[#A0463E] hover:bg-[#A0463E]/5 transition-all group"
           >
@@ -101,8 +102,8 @@ export default async function AdminDashboard() {
             <span className="text-sm font-medium text-gray-700 group-hover:text-[#A0463E]">
               Add New Product
             </span>
-          </a>
-          <a
+          </Link>
+          <Link
             href="/admin/orders"
             className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:border-[#A0463E] hover:bg-[#A0463E]/5 transition-all group"
           >
@@ -113,8 +114,8 @@ export default async function AdminDashboard() {
             <span className="text-sm font-medium text-gray-700 group-hover:text-[#A0463E]">
               View Orders
             </span>
-          </a>
-          <a
+          </Link>
+          <Link
             href="/admin/attributes"
             className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:border-[#A0463E] hover:bg-[#A0463E]/5 transition-all group"
           >
@@ -125,7 +126,7 @@ export default async function AdminDashboard() {
             <span className="text-sm font-medium text-gray-700 group-hover:text-[#A0463E]">
               Attributes & Stock
             </span>
-          </a>
+          </Link>
         </div>
       </div>
 
@@ -138,12 +139,12 @@ export default async function AdminDashboard() {
           </h3>
           <p className="text-sm text-red-600 mt-1">
             {stats.lowStockVariants} variant(s) have 5 or fewer units in stock.
-            <a
+            <Link
               href="/admin/attributes"
               className="underline ml-1 font-medium"
             >
               View all →
-            </a>
+            </Link>
           </p>
         </div>
       )}

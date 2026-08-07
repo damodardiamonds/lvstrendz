@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { AlertCircle } from "lucide-react";
 
 function SubmitButton({ label, isSubmitting }: { label: string; isSubmitting?: boolean }) {
@@ -521,12 +522,12 @@ export default function ProductForm({
       {/* Submit */}
       <div className="flex items-center gap-4">
         <SubmitButton label={submitLabel} isSubmitting={isSubmitting} />
-        <a
+        <Link
           href="/admin/products"
           className="px-6 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
         >
           Cancel
-        </a>
+        </Link>
       </div>
     </form>
   );

@@ -1,5 +1,6 @@
 import { cookies, headers } from "next/headers";
 import { NextResponse } from "next/server";
+import { cache } from "react";
 import { verifyToken } from "./auth";
 import { db } from "./db";
 
@@ -28,8 +29,8 @@ export async function setSessionCookie(token: string) {
   });
 }
 
-// Get current user from session (supports cookies, Authorization header, and X-Admin-Token header)
-export async function getCurrentUser() {
+// Get current user from session (cached per request to avoid duplicate DB queries)
+export const getCurrentUser = cache(async () => {
   const cookieStore = await cookies();
   let token = cookieStore.get(COOKIE_NAME)?.value;
 
@@ -64,7 +65,7 @@ export async function getCurrentUser() {
   });
 
   return user;
-}
+});
 
 // Get admin user helper
 export async function getAdminUser() {

@@ -1,5 +1,6 @@
 
 import { db } from "@/lib/db";
+import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
 import OrderTable from "./components/OrderTable";
 
@@ -68,7 +69,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
           const isActive = (status || "ALL") === s;
           const count = statusCounts[s] || 0;
           return (
-            <a
+            <Link
               key={s}
               href={s === "ALL" ? "/admin/orders" : `/admin/orders?status=${s}`}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
@@ -78,7 +79,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
               }`}
             >
               {s.charAt(0) + s.slice(1).toLowerCase()} ({count})
-            </a>
+            </Link>
           );
         })}
       </div>
