@@ -157,6 +157,7 @@ model Product {
   @@index([slug])
   @@index([isActive])
   @@index([isFeatured])
+  @@index([createdAt])
 }
 
 model ProductCategory {
@@ -183,6 +184,7 @@ model ProductImage {
   color   AttributeValue? @relation(fields: [colorId], references: [id], onDelete: SetNull)
 
   @@index([productId])
+  @@index([productId, sortOrder])
   @@index([variantId])
   @@index([colorId])
 }

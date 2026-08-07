@@ -10,17 +10,27 @@ export const metadata = {
 
 async function getProducts() {
   return db.product.findMany({
-    include: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      sku: true,
+      price: true,
+      compareAtPrice: true,
+      stock: true,
+      isActive: true,
+      isFeatured: true,
+      createdAt: true,
       variants: {
         select: { id: true, stock: true },
       },
       images: {
-        where: { sortOrder: 0 },
+        orderBy: { sortOrder: "asc" },
         select: { url: true, alt: true },
         take: 1,
       },
       categories: {
-        include: {
+        select: {
           category: { select: { id: true, name: true } },
         },
       },
