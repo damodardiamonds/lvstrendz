@@ -138,7 +138,7 @@ export default function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-30 bg-white shadow-sm transition-transform duration-300 ${
+      className={`sticky top-0 z-40 bg-white shadow-sm transition-transform duration-300 ${
         isVisible ? "translate-y-0" : "-translate-y-full"
       }`}
     >

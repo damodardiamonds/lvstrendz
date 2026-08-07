@@ -507,7 +507,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
                 <button
                   type="button"
                   onClick={handlePrevImage}
-                  className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 z-[100] w-9 h-9 md:w-11 md:h-11 bg-white/90 text-[#333] hover:bg-[#333] hover:text-white flex items-center justify-center rounded-full border-none shadow-[0_2px_8px_rgba(0,0,0,0.15)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all duration-200 active:scale-[0.92] cursor-pointer"
+                  className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 md:w-11 md:h-11 bg-white/90 text-[#333] hover:bg-[#333] hover:text-white flex items-center justify-center rounded-full border-none shadow-[0_2px_8px_rgba(0,0,0,0.15)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all duration-200 active:scale-[0.92] cursor-pointer"
                   aria-label="Previous image"
                 >
                   <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
@@ -515,7 +515,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
                 <button
                   type="button"
                   onClick={handleNextImage}
-                  className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 z-[100] w-9 h-9 md:w-11 md:h-11 bg-white/90 text-[#333] hover:bg-[#333] hover:text-white flex items-center justify-center rounded-full border-none shadow-[0_2px_8px_rgba(0,0,0,0.15)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all duration-200 active:scale-[0.92] cursor-pointer"
+                  className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 md:w-11 md:h-11 bg-white/90 text-[#333] hover:bg-[#333] hover:text-white flex items-center justify-center rounded-full border-none shadow-[0_2px_8px_rgba(0,0,0,0.15)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all duration-200 active:scale-[0.92] cursor-pointer"
                   aria-label="Next image"
                 >
                   <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
