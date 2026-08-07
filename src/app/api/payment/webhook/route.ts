@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import { processOrderStockAndCoupon } from "@/lib/orders";
 import { sendOrderConfirmationEmail } from "@/backend/lib/email";
+import { sendAdminPushNotification } from "@/backend/lib/push-notifications";
 
 /**
  * PayGlocal server-to-server webhook.
@@ -208,8 +209,14 @@ export async function POST(request: NextRequest) {
         console.error("[webhook] Non-blocking email dispatch error:", emailErr);
       });
 
-      // TODO: Notify admin / fulfilment team
-      // await notifyAdminNewOrder(order);
+      // Notify admin team via push notification
+      sendAdminPushNotification({
+        title: '🎉 New Order Paid!',
+        body: `Order #${order.orderNumber} (₹${order.total.toFixed(2)}) has been paid successfully.`,
+        data: { url: `/admin/orders/${order.id}`, screen: 'orders' },
+      }).catch((pushErr) => {
+        console.error('[webhook] Admin push notification error:', pushErr);
+      });
 
       // TODO: Trigger shipping label generation
       // await createShipmentLabel(order);

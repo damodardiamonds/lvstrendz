@@ -45,6 +45,7 @@ interface ProductDetailsProps {
     sku: string | null;
     price: any;
     compareAtPrice: any;
+    displayAttributes?: string[];
     images: { id: string; url: string; alt: string | null }[];
     variants: Variant[];
   };
@@ -52,7 +53,11 @@ interface ProductDetailsProps {
 
 export default function ProductDetailsClient({ product }: ProductDetailsProps) {
   const { format } = useCurrency();
-  // Extract all unique sizes and colors from the active variants
+  const displayAttributes = product.displayAttributes || ['size', 'color'];
+  const showSizeSelector = displayAttributes.includes('size');
+  const showColorSelector = displayAttributes.includes('color');
+
+  // Extract all unique sizes and colors from the active variants based on enabled displayAttributes
   const sizes: { value: string; slug: string }[] = [];
   const colors: { value: string; slug: string; colorCode: string | null }[] = [];
 
@@ -64,12 +69,12 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
       const attrVal = attrAttr.attributeValue;
       const attrName = attrVal.attribute.slug;
 
-      if (attrName === 'size') {
+      if (showSizeSelector && attrName === 'size') {
         if (!seenSizes.has(attrVal.slug)) {
           seenSizes.add(attrVal.slug);
           sizes.push({ value: attrVal.value, slug: attrVal.slug });
         }
-      } else if (attrName === 'color') {
+      } else if (showColorSelector && attrName === 'color') {
         if (!seenColors.has(attrVal.slug)) {
           seenColors.add(attrVal.slug);
           colors.push({
@@ -82,9 +87,8 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
     });
   });
 
-  // Fallback to standard sizes if no size attribute values are explicitly defined for clothing items
-  const isSaree = product.name.toLowerCase().includes('saree');
-  if (sizes.length === 0 && !isSaree) {
+  // If size selector is explicitly enabled for this product but no explicit variant sizes were added, show standard sizes
+  if (showSizeSelector && sizes.length === 0) {
     sizes.push(
       { value: 'CS', slug: 'cs' },
       { value: 'XS', slug: 'x-small' },
@@ -96,8 +100,8 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
     );
   }
 
-  const [selectedSize, setSelectedSize] = useState<string>(sizes[0]?.value || '');
-  const [selectedColor, setSelectedColor] = useState<string>(colors[0]?.value || '');
+  const [selectedSize, setSelectedSize] = useState<string>(showSizeSelector ? (sizes[0]?.value || '') : '');
+  const [selectedColor, setSelectedColor] = useState<string>(showColorSelector ? (colors[0]?.value || '') : '');
   const [quantity, setQuantity] = useState(1);
   const [customBust, setCustomBust] = useState('');
   const [customWaist, setCustomWaist] = useState('');
@@ -110,8 +114,8 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
     const sizeVal = v.attributes.find((a) => a.attributeValue.attribute.slug === 'size')?.attributeValue.value;
     const colorVal = v.attributes.find((a) => a.attributeValue.attribute.slug === 'color')?.attributeValue.value;
 
-    const sizeMatches = sizes.length === 0 || sizeVal === selectedSize || !sizeVal;
-    const colorMatches = colors.length === 0 || colorVal === selectedColor;
+    const sizeMatches = !showSizeSelector || sizes.length === 0 || sizeVal === selectedSize || !sizeVal;
+    const colorMatches = !showColorSelector || colors.length === 0 || colorVal === selectedColor;
 
     return sizeMatches && colorMatches;
   });
@@ -546,16 +550,18 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
           </div>
 
           {/* Size Guide Link */}
-          <div className="mb-4">
-            <a
-              href="https://res.cloudinary.com/n5umtsub/image/upload/v1785663384/lvstrendz/brand/site-identity.jpg"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-800 hover:text-[#A0463E] transition-colors"
-            >
-              📏 Size Guide
-            </a>
-          </div>
+          {showSizeSelector && (
+            <div className="mb-4">
+              <a
+                href="https://res.cloudinary.com/n5umtsub/image/upload/v1785663384/lvstrendz/brand/site-identity.jpg"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-800 hover:text-[#A0463E] transition-colors"
+              >
+                📏 Size Guide
+              </a>
+            </div>
+          )}
 
           {/* Short description */}
           {product.shortDescription && (

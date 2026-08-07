@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { processOrderStockAndCoupon } from "@/lib/orders";
+import { sendAdminPushNotification } from "@/backend/lib/push-notifications";
 
 export async function POST(request: NextRequest) {
   try {
@@ -166,6 +167,15 @@ export async function POST(request: NextRequest) {
     if (order.paymentStatus === "PAID") {
       await processOrderStockAndCoupon(order.id);
     }
+
+    // 6. Push notification to admin app
+    sendAdminPushNotification({
+      title: "📦 New Order Created",
+      body: `Order #${order.orderNumber} (₹${finalTotal.toFixed(2)}) placed via ${paymentMethod}.`,
+      data: { url: `/admin/orders/${order.id}`, screen: "orders" },
+    }).catch((pushErr) => {
+      console.error("[orders] Admin push notification error:", pushErr);
+    });
 
     return NextResponse.json({
       success: true,

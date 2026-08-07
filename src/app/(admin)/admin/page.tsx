@@ -115,7 +115,7 @@ export default async function AdminDashboard() {
             </span>
           </a>
           <a
-            href="/admin/variants"
+            href="/admin/attributes"
             className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:border-[#A0463E] hover:bg-[#A0463E]/5 transition-all group"
           >
             <AlertTriangle
@@ -123,7 +123,7 @@ export default async function AdminDashboard() {
               className="text-gray-400 group-hover:text-[#A0463E]"
             />
             <span className="text-sm font-medium text-gray-700 group-hover:text-[#A0463E]">
-              Manage Stock
+              Attributes & Stock
             </span>
           </a>
         </div>
@@ -139,7 +139,7 @@ export default async function AdminDashboard() {
           <p className="text-sm text-red-600 mt-1">
             {stats.lowStockVariants} variant(s) have 5 or fewer units in stock.
             <a
-              href="/admin/variants?filter=low-stock"
+              href="/admin/attributes"
               className="underline ml-1 font-medium"
             >
               View all →

@@ -26,7 +26,7 @@ const navItems = [
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { label: "Discounts & Timer", href: "/admin/discounts", icon: Tag },
   { label: "Chat Inbox", href: "/admin/chat", icon: MessageSquare },
-  { label: "Variants", href: "/admin/variants", icon: Palette },
+  { label: "Attributes", href: "/admin/attributes", icon: Palette },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
   { label: "Media Settings", href: "/admin/media-settings", icon: ImageIcon },
   { label: "Settings", href: "/admin/settings", icon: Settings },

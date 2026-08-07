@@ -83,7 +83,7 @@ export default async function EditProductPage({ params, searchParams }: EditProd
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-blue-800">Variants</p>
+            <p className="text-sm font-medium text-blue-800">Attributes & Stock</p>
             <p className="text-xs text-blue-600 mt-0.5">
               Manage colors, sizes & stock
             </p>

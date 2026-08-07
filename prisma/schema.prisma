@@ -137,6 +137,7 @@ model Product {
   isActive         Boolean  @default(true)
   isFeatured       Boolean  @default(false)
   weight           Decimal? @db.Decimal(8, 2)
+  displayAttributes String[] @default(["size", "color"])
   metaTitle        String?
   metaDescription  String?
   createdAt        DateTime @default(now())

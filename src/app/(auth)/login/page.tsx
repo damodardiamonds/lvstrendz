@@ -72,17 +72,28 @@ function LoginContent() {
     try {
       const auth = getFirebaseAuth();
 
-      if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-          size: "invisible",
-          callback: () => {
-            // reCAPTCHA solved automatically
-          },
-          "expired-callback": () => {
-            setError("Security check expired. Please try sending OTP again.");
-          },
-        });
+      // Reset any existing recaptcha verifier and container element to prevent "reCAPTCHA has already been rendered" error
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+        } catch {}
+        window.recaptchaVerifier = undefined;
       }
+
+      const recaptchaContainer = document.getElementById("recaptcha-container");
+      if (recaptchaContainer) {
+        recaptchaContainer.innerHTML = "";
+      }
+
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+        size: "invisible",
+        callback: () => {
+          // reCAPTCHA solved automatically
+        },
+        "expired-callback": () => {
+          setError("Security check expired. Please try sending OTP again.");
+        },
+      });
 
       const formattedPhone = `+91${phone}`;
       const confirmation = await signInWithPhoneNumber(
@@ -102,8 +113,15 @@ function LoginContent() {
         window.recaptchaVerifier = undefined;
       }
 
+      const recaptchaContainer = document.getElementById("recaptcha-container");
+      if (recaptchaContainer) {
+        recaptchaContainer.innerHTML = "";
+      }
+
       let errorMsg = "Failed to send OTP via SMS. Please check your phone number and try again.";
-      if (err.code === "auth/invalid-app-credential") {
+      if (err.code === "auth/captcha-check-failed" || err.message?.includes("captcha-check-failed") || err.message?.includes("Hostname match not found")) {
+        errorMsg = "Domain authorization error: Please add your domain (e.g., lvstrendz.vercel.app) to Firebase Console > Authentication > Settings > Authorized domains.";
+      } else if (err.code === "auth/invalid-app-credential") {
         errorMsg = "Firebase configuration mismatch. Please check Domain Authorization in Firebase Console.";
       } else if (err.code === "auth/too-many-requests") {
         errorMsg = "Too many requests. Please try again after a few minutes.";

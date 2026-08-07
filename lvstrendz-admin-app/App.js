@@ -6,9 +6,9 @@ import {
   SafeAreaView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Platform,
   StatusBar as RNStatusBar,
+  BackHandler,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { StatusBar } from "expo-status-bar";
@@ -25,7 +25,7 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Default server URLs - update according to environment
+// Default server URLs
 const DEFAULT_PROD_URL = "https://lvstrendz.com/admin";
 const DEFAULT_DEV_URL = Platform.OS === "android" ? "http://10.0.2.2:3000/admin" : "http://localhost:3000/admin";
 
@@ -35,11 +35,14 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
   const [expoPushToken, setExpoPushToken] = useState("");
-  
+  const [canGoBack, setCanGoBack] = useState(false);
+
   const webViewRef = useRef(null);
 
   const currentTargetUrl = useLocalHost ? DEFAULT_DEV_URL : adminUrl;
+  const baseUrl = currentTargetUrl.replace(/\/admin.*$/, "");
 
+  // Register push notifications & setup hardware back handler
   useEffect(() => {
     registerForPushNotificationsAsync().then((token) => {
       if (token) {
@@ -48,28 +51,43 @@ export default function App() {
       }
     });
 
+    // Hardware back button navigation for Android
+    const onBackPress = () => {
+      if (canGoBack && webViewRef.current) {
+        webViewRef.current.goBack();
+        return true;
+      }
+      return false;
+    };
+
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+
     // Listen for incoming notifications when app is foregrounded
     const notificationListener = Notifications.addNotificationReceivedListener((notification) => {
-      console.log("Notification Received:", notification);
+      console.log("[App] Notification Received:", notification);
     });
 
     // Listen for user clicking a notification
     const responseListener = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data;
       if (data?.url && webViewRef.current) {
-        webViewRef.current.navigate(data.url);
+        const fullNavUrl = data.url.startsWith("http") ? data.url : `${baseUrl}${data.url}`;
+        console.log("[App] Navigating to notification URL:", fullNavUrl);
+        webViewRef.current.injectJavaScript(`window.location.href = '${fullNavUrl}'; true;`);
       }
     });
 
     return () => {
+      backHandler.remove();
       Notifications.removeNotificationSubscription(notificationListener);
       Notifications.removeNotificationSubscription(responseListener);
     };
-  }, [currentTargetUrl]);
+  }, [currentTargetUrl, canGoBack, baseUrl]);
 
-  async function sendTokenToBackend(token, baseUrl) {
+  // Attempt direct backend token registration
+  async function sendTokenToBackend(token, targetUrl) {
     try {
-      const apiHost = baseUrl.replace(/\/admin.*$/, "");
+      const apiHost = targetUrl.replace(/\/admin.*$/, "");
       await fetch(`${apiHost}/api/admin/push-token`, {
         method: "POST",
         headers: {
@@ -78,9 +96,29 @@ export default function App() {
         body: JSON.stringify({ pushToken: token }),
       });
     } catch (err) {
-      console.warn("Failed to register push token with backend:", err);
+      console.warn("[App] Direct push token registration attempt:", err);
     }
   }
+
+  // Inject push token inside WebView browser session context
+  const injectPushTokenScript = () => {
+    if (!expoPushToken) return;
+    const script = `
+      (function() {
+        try {
+          fetch('/api/admin/push-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pushToken: ${JSON.stringify(expoPushToken)} })
+          }).then(r => r.json()).then(d => console.log('Push token sync:', d)).catch(e => console.error(e));
+        } catch(e){}
+      })();
+      true;
+    `;
+    if (webViewRef.current) {
+      webViewRef.current.injectJavaScript(script);
+    }
+  };
 
   const handleRefresh = () => {
     setIsError(false);
@@ -110,10 +148,7 @@ export default function App() {
         </View>
 
         <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.envButton}
-            onPress={toggleEnvironment}
-          >
+          <TouchableOpacity style={styles.envButton} onPress={toggleEnvironment}>
             <Text style={styles.envButtonText}>
               {useLocalHost ? "Use Live" : "Use Local"}
             </Text>
@@ -137,9 +172,7 @@ export default function App() {
       {isError ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorTitle}>Unable to connect to Admin Panel</Text>
-          <Text style={styles.errorSub}>
-            Target URL: {currentTargetUrl}
-          </Text>
+          <Text style={styles.errorSub}>Target URL: {currentTargetUrl}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
             <Text style={styles.retryButtonText}>Retry Connection</Text>
           </TouchableOpacity>
@@ -149,7 +182,13 @@ export default function App() {
           ref={webViewRef}
           source={{ uri: currentTargetUrl }}
           onLoadStart={() => setIsLoading(true)}
-          onLoadEnd={() => setIsLoading(false)}
+          onLoadEnd={() => {
+            setIsLoading(false);
+            injectPushTokenScript();
+          }}
+          onNavigationStateChange={(navState) => {
+            setCanGoBack(navState.canGoBack);
+          }}
           onError={() => {
             setIsLoading(false);
             setIsError(true);

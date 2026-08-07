@@ -49,6 +49,7 @@ export default async function ProductPage({ params }: PageProps) {
     sku: product.sku,
     price: product.price.toString(),
     compareAtPrice: product.compareAtPrice ? product.compareAtPrice.toString() : null,
+    displayAttributes: product.displayAttributes || ["size", "color"],
     images: product.images.map((img) => ({
       id: img.id,
       url: img.url,

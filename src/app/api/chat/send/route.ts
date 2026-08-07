@@ -2,35 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { cookies } from 'next/headers';
+import { sendAdminPushNotification } from '@/backend/lib/push-notifications';
 
 const SESSION_COOKIE = 'lvs_chat_session';
-
-async function sendExpoPushNotification(title: string, body: string) {
-  try {
-    const tokens = await db.adminPushToken.findMany();
-    if (!tokens.length) return;
-
-    const messages = tokens.map((t) => ({
-      to: t.token,
-      sound: 'default',
-      title,
-      body,
-      data: { screen: 'chat' },
-    }));
-
-    await fetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Accept-encoding': 'gzip, deflate',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(messages),
-    });
-  } catch (err) {
-    console.error('Push notification error:', err);
-  }
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -80,10 +54,11 @@ export async function POST(req: NextRequest) {
 
     // Send push notification to admin
     const senderLabel = email || 'A visitor';
-    await sendExpoPushNotification(
-      `💬 New message from ${senderLabel}`,
-      message.trim().slice(0, 100)
-    );
+    await sendAdminPushNotification({
+      title: `💬 New message from ${senderLabel}`,
+      body: message.trim().slice(0, 100),
+      data: { url: '/admin/chat', screen: 'chat' },
+    });
 
     const response = NextResponse.json({ success: true, messageId: chatMessage.id });
 

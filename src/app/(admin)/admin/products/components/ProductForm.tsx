@@ -2,20 +2,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useFormStatus } from "react-dom";
+import { AlertCircle } from "lucide-react";
 
-function SubmitButton({ label }: { label: string }) {
-  const { pending } = useFormStatus();
+function SubmitButton({ label, isSubmitting }: { label: string; isSubmitting?: boolean }) {
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={isSubmitting}
       className="px-6 py-2.5 bg-[#A0463E] text-white font-medium rounded-lg hover:bg-[#8a3b34] transition-colors disabled:opacity-60 flex items-center gap-2"
     >
-      {pending && (
+      {isSubmitting && (
         <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
       )}
-      {pending ? "Saving..." : label}
+      {isSubmitting ? "Saving..." : label}
     </button>
   );
 }
@@ -35,6 +34,7 @@ interface ProductData {
   isActive: boolean;
   isFeatured: boolean;
   weight: number | null;
+  displayAttributes?: string[];
   metaTitle: string | null;
   metaDescription: string | null;
 }
@@ -48,7 +48,7 @@ interface ProductFormProps {
   product?: ProductData;
   selectedCategoryIds?: string[];
   categories?: CategoryOption[];
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<{ error?: string } | void>;
   submitLabel: string;
 }
 
@@ -63,7 +63,12 @@ export default function ProductForm({
   const [slug, setSlug] = useState(product?.slug || "");
   const [autoSlug, setAutoSlug] = useState(!product);
   const [selectedIds, setSelectedIds] = useState<string[]>(selectedCategoryIds);
+  const [displayAttrs, setDisplayAttrs] = useState<string[]>(
+    product?.displayAttributes ?? ["size", "color"]
+  );
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleToggleCategory = (id: string) => {
     setSelectedIds((prev) =>
@@ -90,8 +95,41 @@ export default function ProductForm({
     }
   }, [name, autoSlug]);
 
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      const formData = new FormData(e.currentTarget);
+      const res = await action(formData);
+      if (res && res.error) {
+        setError(res.error);
+        setIsSubmitting(false);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    } catch (err: any) {
+      if (err?.message?.includes("NEXT_REDIRECT") || err?.digest?.startsWith("NEXT_REDIRECT")) {
+        return;
+      }
+      console.error("Product action error:", err);
+      setError(err?.message || "An unexpected error occurred. Please try again.");
+      setIsSubmitting(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
   return (
-    <form action={action} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-8">
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 flex items-center gap-3 shadow-sm">
+          <AlertCircle size={20} className="shrink-0 text-red-500" />
+          <div className="flex-1">
+            <p className="font-semibold text-sm">Could not save product</p>
+            <p className="text-xs text-red-600 mt-0.5">{error}</p>
+          </div>
+        </div>
+      )}
       {/* Basic Info */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">
@@ -389,6 +427,58 @@ export default function ProductForm({
         ))}
       </div>
 
+      {/* Product Attributes / Selectors to Display */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-800 mb-1">
+          Product Attributes (Selectors on Store Page)
+        </h2>
+        <p className="text-xs text-gray-500 mb-4">
+          Select which attribute options should be displayed for customers on the product page.
+        </p>
+
+        <div className="flex flex-wrap gap-6 bg-gray-50 p-4 rounded-lg border border-gray-150">
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              name="displayAttributes"
+              value="size"
+              checked={displayAttrs.includes("size")}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setDisplayAttrs([...displayAttrs, "size"]);
+                } else {
+                  setDisplayAttrs(displayAttrs.filter((a) => a !== "size"));
+                }
+              }}
+              className="w-4 h-4 rounded border-gray-300 text-[#A0463E] focus:ring-[#A0463E]"
+            />
+            <span className="text-sm font-medium text-gray-800">
+              Size Selector <span className="text-xs text-gray-500 font-normal">(S, M, L, XL, XXL)</span>
+            </span>
+          </label>
+
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              name="displayAttributes"
+              value="color"
+              checked={displayAttrs.includes("color")}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setDisplayAttrs([...displayAttrs, "color"]);
+                } else {
+                  setDisplayAttrs(displayAttrs.filter((a) => a !== "color"));
+                }
+              }}
+              className="w-4 h-4 rounded border-gray-300 text-[#A0463E] focus:ring-[#A0463E]"
+            />
+            <span className="text-sm font-medium text-gray-800">
+              Color Selector <span className="text-xs text-gray-500 font-normal">(Swatches / Options)</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
       {/* Visibility */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">
@@ -430,7 +520,7 @@ export default function ProductForm({
 
       {/* Submit */}
       <div className="flex items-center gap-4">
-        <SubmitButton label={submitLabel} />
+        <SubmitButton label={submitLabel} isSubmitting={isSubmitting} />
         <a
           href="/admin/products"
           className="px-6 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
