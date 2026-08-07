@@ -147,9 +147,9 @@ export async function uploadProductImages(productId: string, formData: FormData)
       continue;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      results.push({ error: `File "${file.name}" exceeds the 5MB size limit.`, filename: file.name });
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      results.push({ error: `File "${file.name}" exceeds the 10MB size limit.`, filename: file.name });
       continue;
     }
 

@@ -95,7 +95,12 @@ export default function ProductForm({
 
   const handleAddFiles = (files: FileList | File[]) => {
     const newItems: { id: string; file: File; preview: string; alt: string; colorId: string }[] = [];
+    const errors: string[] = [];
     Array.from(files).forEach((file) => {
+      if (file.size > 10 * 1024 * 1024) {
+        errors.push(`"${file.name}" exceeds the 10MB size limit`);
+        return;
+      }
       newItems.push({
         id: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
         file,
@@ -104,6 +109,9 @@ export default function ProductForm({
         colorId: "",
       });
     });
+    if (errors.length > 0) {
+      setError(errors.join(". "));
+    }
     setUploadQueue((prev) => [...prev, ...newItems]);
   };
 
@@ -700,7 +708,7 @@ export default function ProductForm({
               Click to upload product images or drag & drop
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              JPG, PNG, WebP, AVIF • Max 5MB per image • You can select multiple files
+              JPG, PNG, WebP, AVIF • Max 10MB per image • You can select multiple files
             </p>
             <input
               ref={fileInputRef}

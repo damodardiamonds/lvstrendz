@@ -65,8 +65,8 @@ export default function ImageUploader({ productId, variants, colors = [], isClou
         errors.push(`"${file.name}" is not an allowed image format (only JPG, PNG, WebP, AVIF)`);
         return;
       }
-      if (file.size > 4 * 1024 * 1024) {
-        errors.push(`"${file.name}" exceeds the 4MB size limit`);
+      if (file.size > 10 * 1024 * 1024) {
+        errors.push(`"${file.name}" exceeds the 10MB size limit`);
         return;
       }
       newItems.push({
@@ -260,7 +260,7 @@ export default function ImageUploader({ productId, variants, colors = [], isClou
           Drag & drop images here, or click to browse
         </p>
         <p className="text-xs text-gray-500 mt-1">
-          JPG, PNG, WebP, AVIF • Max 4MB per image • You can select multiple files
+          JPG, PNG, WebP, AVIF • Max 10MB per image • You can select multiple files
         </p>
         <input
           ref={fileInputRef}
