@@ -14,7 +14,7 @@ interface ColorOption {
 
 interface ImageUploaderProps {
   productId: string;
-  variants: { id: string; attributes: string }[];
+  variants?: { id: string; attributes: string }[];
   colors?: ColorOption[];
   isCloudinaryConfigured: boolean;
 }
@@ -24,22 +24,19 @@ interface UploadItem {
   file: File;
   preview: string;
   alt: string;
-  variantId: string;
   colorId: string;
   status: "idle" | "uploading" | "success" | "error";
   error?: string;
 }
 
-export default function ImageUploader({ productId, variants, colors = [], isCloudinaryConfigured }: ImageUploaderProps) {
+export default function ImageUploader({ productId, colors = [], isCloudinaryConfigured }: ImageUploaderProps) {
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadQueue, setUploadQueue] = useState<UploadItem[]>([]);
   const [storage, setStorage] = useState<"cloudinary" | "local">(
     isCloudinaryConfigured ? "cloudinary" : "local"
   );
-  const [bulkAlt, setBulkAlt] = useState("");
   const [bulkColorId, setBulkColorId] = useState("");
-  const [bulkVariantId, setBulkVariantId] = useState("");
   const [globalError, setGlobalError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -75,7 +72,6 @@ export default function ImageUploader({ productId, variants, colors = [], isClou
         file,
         preview: URL.createObjectURL(file),
         alt: "",
-        variantId: "",
         colorId: "",
         status: "idle",
       });
@@ -114,9 +110,7 @@ export default function ImageUploader({ productId, variants, colors = [], isClou
     uploadQueue.forEach((item) => URL.revokeObjectURL(item.preview));
     setUploadQueue([]);
     setGlobalError("");
-    setBulkAlt("");
     setBulkColorId("");
-    setBulkVariantId("");
   };
 
   const clearCompleted = () => {
@@ -125,31 +119,11 @@ export default function ImageUploader({ productId, variants, colors = [], isClou
     setUploadQueue((prev) => prev.filter((q) => q.status !== "success"));
   };
 
-  const applyBulkAlt = () => {
-    setUploadQueue((prev) =>
-      prev.map((item) =>
-        item.status === "idle" || item.status === "error"
-          ? { ...item, alt: bulkAlt }
-          : item
-      )
-    );
-  };
-
   const applyBulkColor = () => {
     setUploadQueue((prev) =>
       prev.map((item) =>
         item.status === "idle" || item.status === "error"
           ? { ...item, colorId: bulkColorId }
-          : item
-      )
-    );
-  };
-
-  const applyBulkVariant = () => {
-    setUploadQueue((prev) =>
-      prev.map((item) =>
-        item.status === "idle" || item.status === "error"
-          ? { ...item, variantId: bulkVariantId }
           : item
       )
     );
@@ -167,18 +141,17 @@ export default function ImageUploader({ productId, variants, colors = [], isClou
       prev.map((q) => (q.status !== "success" ? { ...q, status: "uploading", error: undefined } : q))
     );
 
-    // Upload files sequentially to avoid Vercel / server request payload limits (e.g. 4.5MB request body limit)
+    // Upload files sequentially to avoid Vercel / server request payload limits
     let uploadFailed = false;
     for (let i = 0; i < pendingItems.length; i++) {
       const item = pendingItems[i];
       const formData = new FormData();
       formData.set("storage", storage);
       formData.append("files", item.file);
-      formData.append("alts", item.alt || "");
-      formData.append("variantIds", item.variantId || "");
+      formData.append("alts", "");
+      formData.append("variantIds", "");
       formData.append("colorIds", item.colorId || "");
       
-      // Only call revalidatePath/revalidateProductPage on the last file to optimize performance
       const isLast = i === pendingItems.length - 1;
       formData.set("revalidate", isLast ? "true" : "false");
 
@@ -294,87 +267,38 @@ export default function ImageUploader({ productId, variants, colors = [], isClou
             <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
               Bulk Actions (Apply to all queued items)
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
+            {colors.length > 0 ? (
+              <div className="max-w-xs">
                 <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Bulk Alt Text
+                  Bulk Color Link
                 </label>
                 <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Describe these images..."
-                    value={bulkAlt}
-                    onChange={(e) => setBulkAlt(e.target.value)}
+                  <select
+                    value={bulkColorId}
+                    onChange={(e) => setBulkColorId(e.target.value)}
                     className="flex-1 min-w-0 px-3 py-1.5 border border-gray-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-[#A0463E] focus:border-[#A0463E]"
-                  />
+                  >
+                    <option value="">All Colors (general image)</option>
+                    {colors.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        🎨 {c.name}
+                      </option>
+                    ))}
+                  </select>
                   <button
                     type="button"
-                    onClick={applyBulkAlt}
+                    onClick={applyBulkColor}
                     className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-medium rounded-lg transition-colors whitespace-nowrap"
                   >
                     Apply to All
                   </button>
                 </div>
               </div>
-
-              {colors.length > 0 && (
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Bulk Color Link
-                  </label>
-                  <div className="flex gap-2">
-                    <select
-                      value={bulkColorId}
-                      onChange={(e) => setBulkColorId(e.target.value)}
-                      className="flex-1 min-w-0 px-3 py-1.5 border border-gray-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-[#A0463E] focus:border-[#A0463E]"
-                    >
-                      <option value="">All Colors (general image)</option>
-                      {colors.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          🎨 {c.name}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={applyBulkColor}
-                      className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-medium rounded-lg transition-colors whitespace-nowrap"
-                    >
-                      Apply to All
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {variants.length > 0 && (
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Bulk Variant Link
-                  </label>
-                  <div className="flex gap-2">
-                    <select
-                      value={bulkVariantId}
-                      onChange={(e) => setBulkVariantId(e.target.value)}
-                      className="flex-1 min-w-0 px-3 py-1.5 border border-gray-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-[#A0463E] focus:border-[#A0463E]"
-                    >
-                      <option value="">No variant (general image)</option>
-                      {variants.map((v) => (
-                        <option key={v.id} value={v.id}>
-                          {v.attributes}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={applyBulkVariant}
-                      className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-medium rounded-lg transition-colors whitespace-nowrap"
-                    >
-                      Apply to All
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            ) : (
+              <p className="text-xs text-amber-700 italic">
+                No color attributes selected for this product yet. You can select color attributes in the product edit page.
+              </p>
+            )}
           </div>
 
           {/* Queue List */}
@@ -436,73 +360,30 @@ export default function ImageUploader({ productId, variants, colors = [], isClou
                   </div>
                 </div>
 
-                {/* Form fields */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 w-full md:w-[480px] flex-shrink-0">
-                  <div>
-                    <input
-                      type="text"
-                      placeholder="SEO Alt Text"
-                      value={item.alt}
+                {/* Form fields - Color Selector Only */}
+                {colors.length > 0 && (
+                  <div className="w-full md:w-[220px] flex-shrink-0">
+                    <select
+                      value={item.colorId}
                       disabled={item.status === "uploading" || item.status === "success"}
                       onChange={(e) => {
                         setUploadQueue((prev) =>
                           prev.map((q) =>
-                            q.id === item.id ? { ...q, alt: e.target.value } : q
+                            q.id === item.id ? { ...q, colorId: e.target.value } : q
                           )
                         );
                       }}
-                      className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-[#A0463E] focus:border-[#A0463E] disabled:bg-gray-100 disabled:text-gray-400"
-                    />
+                      className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-[#A0463E] focus:border-[#A0463E] disabled:bg-gray-100 disabled:text-gray-400 bg-white"
+                    >
+                      <option value="">All Colors (Default)</option>
+                      {colors.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          🎨 {c.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-
-                  {colors.length > 0 && (
-                    <div>
-                      <select
-                        value={item.colorId}
-                        disabled={item.status === "uploading" || item.status === "success"}
-                        onChange={(e) => {
-                          setUploadQueue((prev) =>
-                            prev.map((q) =>
-                              q.id === item.id ? { ...q, colorId: e.target.value } : q
-                            )
-                          );
-                        }}
-                        className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-[#A0463E] focus:border-[#A0463E] disabled:bg-gray-100 disabled:text-gray-400"
-                      >
-                        <option value="">All Colors</option>
-                        {colors.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            🎨 {c.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {variants.length > 0 && (
-                    <div>
-                      <select
-                        value={item.variantId}
-                        disabled={item.status === "uploading" || item.status === "success"}
-                        onChange={(e) => {
-                          setUploadQueue((prev) =>
-                            prev.map((q) =>
-                              q.id === item.id ? { ...q, variantId: e.target.value } : q
-                            )
-                          );
-                        }}
-                        className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-[#A0463E] focus:border-[#A0463E] disabled:bg-gray-100 disabled:text-gray-400"
-                      >
-                        <option value="">No variant</option>
-                        {variants.map((v) => (
-                          <option key={v.id} value={v.id}>
-                            {v.attributes}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
+                )}
 
                 {/* Action button */}
                 <button

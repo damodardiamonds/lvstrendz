@@ -241,24 +241,7 @@ export default function ImageGrid({ images, productId, variants, colors = [] }: 
               </div>
             )}
 
-            {/* Link to Variant Selector */}
-            {variants.length > 0 && (
-              <div className="px-2 py-1 bg-gray-50 border-t border-gray-100">
-                <select
-                  value={image.variantId || ""}
-                  onChange={(e) => handleVariantChange(image.id, e.target.value || null)}
-                  disabled={updatingVariantImageId === image.id}
-                  className="w-full text-[10px] font-medium bg-white border border-gray-200 rounded px-1 py-0.5 focus:ring-1 focus:ring-[#A0463E] outline-none disabled:opacity-50"
-                >
-                  <option value="">General Image</option>
-                  {variants.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.attributes}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+
 
             {/* Alt text */}
             {image.alt && (

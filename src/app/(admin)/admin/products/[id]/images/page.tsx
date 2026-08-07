@@ -67,23 +67,21 @@ export default async function ImagesPage({ params }: ImagesPageProps) {
       .join(", ") || "No attributes",
   }));
 
-  // Filter colors to those kept for this product (selectedColorIds or variant colors)
+  // Filter colors to ONLY those selected in attributes or variants for this product
   const variantColorIds = product.variants.flatMap((v) =>
     v.attributes
       .filter((a) => a.attributeValue.attribute.slug === "color")
       .map((a) => a.attributeValueId)
   );
 
-  let productColors = colorAttr?.values || [];
-  if (product.selectedColorIds && product.selectedColorIds.length > 0) {
-    productColors = productColors.filter((v) =>
-      product.selectedColorIds.includes(v.id)
-    );
-  } else if (variantColorIds.length > 0) {
-    productColors = productColors.filter((v) =>
-      variantColorIds.includes(v.id)
-    );
-  }
+  const keepColorIds = new Set([
+    ...(product.selectedColorIds || []),
+    ...variantColorIds,
+  ]);
+
+  const productColors = colorAttr
+    ? colorAttr.values.filter((v) => keepColorIds.has(v.id))
+    : [];
 
   const colorOptions = productColors.map((v) => ({
     id: v.id,
