@@ -23,6 +23,8 @@ export async function createProduct(formData: FormData): Promise<{ error?: strin
     const metaDescription = (formData.get("metaDescription") as string)?.trim();
     const categoryIds = formData.getAll("categoryIds") as string[];
     const displayAttributes = formData.getAll("displayAttributes") as string[];
+    const selectedColorIds = formData.getAll("selectedColorIds") as string[];
+    const selectedSizeIds = formData.getAll("selectedSizeIds") as string[];
 
     const isActive = formData.getAll("isActive").includes("true");
     const isFeatured = formData.getAll("isFeatured").includes("true");
@@ -100,6 +102,8 @@ export async function createProduct(formData: FormData): Promise<{ error?: strin
         isFeatured,
         weight,
         displayAttributes: displayAttributes.length > 0 ? displayAttributes : ["size", "color"],
+        selectedColorIds,
+        selectedSizeIds,
         metaTitle: metaTitle || null,
         metaDescription: metaDescription || null,
         categories: {
@@ -147,6 +151,8 @@ export async function updateProduct(id: string, formData: FormData): Promise<{ e
     const metaDescription = (formData.get("metaDescription") as string)?.trim();
     const categoryIds = formData.getAll("categoryIds") as string[];
     const displayAttributes = formData.getAll("displayAttributes") as string[];
+    const selectedColorIds = formData.getAll("selectedColorIds") as string[];
+    const selectedSizeIds = formData.getAll("selectedSizeIds") as string[];
 
     const isActive = formData.getAll("isActive").includes("true");
     const isFeatured = formData.getAll("isFeatured").includes("true");
@@ -230,6 +236,8 @@ export async function updateProduct(id: string, formData: FormData): Promise<{ e
         isFeatured,
         weight,
         displayAttributes,
+        selectedColorIds,
+        selectedSizeIds,
         metaTitle: metaTitle || null,
         metaDescription: metaDescription || null,
         categories: {

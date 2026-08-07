@@ -36,6 +36,8 @@ interface ProductData {
   isFeatured: boolean;
   weight: number | null;
   displayAttributes?: string[];
+  selectedColorIds?: string[];
+  selectedSizeIds?: string[];
   metaTitle: string | null;
   metaDescription: string | null;
 }
@@ -45,10 +47,23 @@ interface CategoryOption {
   name: string;
 }
 
+interface ColorOption {
+  id: string;
+  value: string;
+  colorCode: string | null;
+}
+
+interface SizeOption {
+  id: string;
+  value: string;
+}
+
 interface ProductFormProps {
   product?: ProductData;
   selectedCategoryIds?: string[];
   categories?: CategoryOption[];
+  availableColors?: ColorOption[];
+  availableSizes?: SizeOption[];
   action: (formData: FormData) => Promise<{ error?: string } | void>;
   submitLabel: string;
 }
@@ -57,6 +72,8 @@ export default function ProductForm({
   product,
   selectedCategoryIds = [],
   categories = [],
+  availableColors = [],
+  availableSizes = [],
   action,
   submitLabel,
 }: ProductFormProps) {
@@ -66,6 +83,12 @@ export default function ProductForm({
   const [selectedIds, setSelectedIds] = useState<string[]>(selectedCategoryIds);
   const [displayAttrs, setDisplayAttrs] = useState<string[]>(
     product?.displayAttributes ?? ["size", "color"]
+  );
+  const [selectedColors, setSelectedColors] = useState<string[]>(
+    product?.selectedColorIds ?? []
+  );
+  const [selectedSizes, setSelectedSizes] = useState<string[]>(
+    product?.selectedSizeIds ?? []
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -429,55 +452,209 @@ export default function ProductForm({
       </div>
 
       {/* Product Attributes / Selectors to Display */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-800 mb-1">
-          Product Attributes (Selectors on Store Page)
-        </h2>
-        <p className="text-xs text-gray-500 mb-4">
-          Select which attribute options should be displayed for customers on the product page.
-        </p>
+      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-800 mb-1">
+            Product Attributes (Selectors on Store Page)
+          </h2>
+          <p className="text-xs text-gray-500 mb-4">
+            Select which attribute options and specific values should be displayed for customers on the product page.
+          </p>
 
-        <div className="flex flex-wrap gap-6 bg-gray-50 p-4 rounded-lg border border-gray-150">
-          <label className="flex items-center gap-2.5 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              name="displayAttributes"
-              value="size"
-              checked={displayAttrs.includes("size")}
-              onChange={(e) => {
-                if (e.target.checked) {
-                  setDisplayAttrs([...displayAttrs, "size"]);
-                } else {
-                  setDisplayAttrs(displayAttrs.filter((a) => a !== "size"));
-                }
-              }}
-              className="w-4 h-4 rounded border-gray-300 text-[#A0463E] focus:ring-[#A0463E]"
-            />
-            <span className="text-sm font-medium text-gray-800">
-              Size Selector <span className="text-xs text-gray-500 font-normal">(S, M, L, XL, XXL)</span>
-            </span>
-          </label>
+          <div className="flex flex-wrap gap-6 bg-gray-50 p-4 rounded-lg border border-gray-150">
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                name="displayAttributes"
+                value="size"
+                checked={displayAttrs.includes("size")}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setDisplayAttrs([...displayAttrs, "size"]);
+                  } else {
+                    setDisplayAttrs(displayAttrs.filter((a) => a !== "size"));
+                  }
+                }}
+                className="w-4 h-4 rounded border-gray-300 text-[#A0463E] focus:ring-[#A0463E]"
+              />
+              <span className="text-sm font-medium text-gray-800">
+                Size Selector <span className="text-xs text-gray-500 font-normal">(S, M, L, XL, XXL)</span>
+              </span>
+            </label>
 
-          <label className="flex items-center gap-2.5 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              name="displayAttributes"
-              value="color"
-              checked={displayAttrs.includes("color")}
-              onChange={(e) => {
-                if (e.target.checked) {
-                  setDisplayAttrs([...displayAttrs, "color"]);
-                } else {
-                  setDisplayAttrs(displayAttrs.filter((a) => a !== "color"));
-                }
-              }}
-              className="w-4 h-4 rounded border-gray-300 text-[#A0463E] focus:ring-[#A0463E]"
-            />
-            <span className="text-sm font-medium text-gray-800">
-              Color Selector <span className="text-xs text-gray-500 font-normal">(Swatches / Options)</span>
-            </span>
-          </label>
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                name="displayAttributes"
+                value="color"
+                checked={displayAttrs.includes("color")}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setDisplayAttrs([...displayAttrs, "color"]);
+                  } else {
+                    setDisplayAttrs(displayAttrs.filter((a) => a !== "color"));
+                  }
+                }}
+                className="w-4 h-4 rounded border-gray-300 text-[#A0463E] focus:ring-[#A0463E]"
+              />
+              <span className="text-sm font-medium text-gray-800">
+                Color Selector <span className="text-xs text-gray-500 font-normal">(Swatches / Options)</span>
+              </span>
+            </label>
+          </div>
         </div>
+
+        {/* Specific Color Selection */}
+        {displayAttrs.includes("color") && (
+          <div className="border border-gray-200 rounded-xl p-4 bg-gray-50/50 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-800">
+                  Select Product Available Colors ({selectedColors.length} selected)
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Choose specific colors available for this product
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedColors(availableColors.map((c) => c.id))}
+                  className="text-xs text-[#A0463E] hover:underline font-medium"
+                >
+                  Select All
+                </button>
+                <span className="text-gray-300">|</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedColors([])}
+                  className="text-xs text-gray-500 hover:underline"
+                >
+                  Clear All
+                </button>
+              </div>
+            </div>
+
+            {availableColors.length === 0 ? (
+              <p className="text-xs text-gray-500 italic py-2">
+                No store colors found. You can add store colors under Admin → Attributes.
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 max-h-56 overflow-y-auto p-1">
+                {availableColors.map((color) => {
+                  const isSelected = selectedColors.includes(color.id);
+                  return (
+                    <label
+                      key={color.id}
+                      className={`flex items-center gap-2.5 p-2 rounded-lg border cursor-pointer select-none transition-all ${
+                        isSelected
+                          ? "bg-[#A0463E]/10 border-[#A0463E] font-medium"
+                          : "bg-white border-gray-200 hover:bg-gray-100"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => {
+                          if (isSelected) {
+                            setSelectedColors(selectedColors.filter((id) => id !== color.id));
+                          } else {
+                            setSelectedColors([...selectedColors, color.id]);
+                          }
+                        }}
+                        className="w-4 h-4 rounded border-gray-300 text-[#A0463E] focus:ring-[#A0463E]"
+                      />
+                      <span
+                        className="w-4 h-4 rounded-full border border-gray-300 shrink-0 shadow-sm"
+                        style={{ backgroundColor: color.colorCode || "#CCC" }}
+                      />
+                      <span className="text-xs text-gray-800 line-clamp-1">
+                        {color.value}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Specific Size Selection */}
+        {displayAttrs.includes("size") && (
+          <div className="border border-gray-200 rounded-xl p-4 bg-gray-50/50 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-800">
+                  Select Product Available Sizes ({selectedSizes.length} selected)
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Choose specific sizes available for this product
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedSizes(availableSizes.map((s) => s.id))}
+                  className="text-xs text-[#A0463E] hover:underline font-medium"
+                >
+                  Select All
+                </button>
+                <span className="text-gray-300">|</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedSizes([])}
+                  className="text-xs text-gray-500 hover:underline"
+                >
+                  Clear All
+                </button>
+              </div>
+            </div>
+
+            {availableSizes.length === 0 ? (
+              <p className="text-xs text-gray-500 italic py-2">
+                No store sizes found. You can add store sizes under Admin → Attributes.
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1">
+                {availableSizes.map((sz) => {
+                  const isSelected = selectedSizes.includes(sz.id);
+                  return (
+                    <label
+                      key={sz.id}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border cursor-pointer select-none transition-all text-xs ${
+                        isSelected
+                          ? "bg-[#A0463E] text-white border-[#A0463E] font-bold"
+                          : "bg-white border-gray-200 hover:bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => {
+                          if (isSelected) {
+                            setSelectedSizes(selectedSizes.filter((id) => id !== sz.id));
+                          } else {
+                            setSelectedSizes([...selectedSizes, sz.id]);
+                          }
+                        }}
+                        className="w-3.5 h-3.5 rounded border-gray-300 text-[#A0463E] focus:ring-[#A0463E]"
+                      />
+                      <span>{sz.value}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Hidden inputs for Form Action */}
+        {selectedColors.map((id) => (
+          <input key={id} type="hidden" name="selectedColorIds" value={id} />
+        ))}
+        {selectedSizes.map((id) => (
+          <input key={id} type="hidden" name="selectedSizeIds" value={id} />
+        ))}
       </div>
 
       {/* Visibility */}

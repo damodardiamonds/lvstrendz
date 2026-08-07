@@ -1,6 +1,7 @@
 // src/app/(shop)/product/[slug]/page.tsx
 import { notFound } from 'next/navigation';
 import { getProductBySlug } from '@/lib/products';
+import { db } from '@/lib/db';
 import ProductDetailsClient from './ProductDetailsClient';
 
 interface PageProps {
@@ -39,6 +40,20 @@ export default async function ProductPage({ params }: PageProps) {
     notFound();
   }
 
+  const selectedColorValues = product.selectedColorIds.length > 0
+    ? await db.attributeValue.findMany({
+        where: { id: { in: product.selectedColorIds } },
+        select: { id: true, value: true, slug: true, colorCode: true },
+      })
+    : [];
+
+  const selectedSizeValues = product.selectedSizeIds.length > 0
+    ? await db.attributeValue.findMany({
+        where: { id: { in: product.selectedSizeIds } },
+        select: { id: true, value: true, slug: true },
+      })
+    : [];
+
   // Serialize Prisma Decimal objects to prevent Next.js Client Component boundary serialization errors
   const serializedProduct = {
     id: product.id,
@@ -50,6 +65,8 @@ export default async function ProductPage({ params }: PageProps) {
     price: product.price.toString(),
     compareAtPrice: product.compareAtPrice ? product.compareAtPrice.toString() : null,
     displayAttributes: product.displayAttributes || ["size", "color"],
+    selectedColors: selectedColorValues,
+    selectedSizes: selectedSizeValues,
     images: product.images.map((img) => ({
       id: img.id,
       url: img.url,

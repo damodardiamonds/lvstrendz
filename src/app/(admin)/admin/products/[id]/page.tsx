@@ -19,7 +19,7 @@ export default async function EditProductPage({ params, searchParams }: EditProd
   const { id } = await params;
   const { updated } = await searchParams;
 
-  const [product, categories] = await Promise.all([
+  const [product, categories, attributes] = await Promise.all([
     db.product.findUnique({
       where: { id },
       include: {
@@ -32,11 +32,22 @@ export default async function EditProductPage({ params, searchParams }: EditProd
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
+    db.attribute.findMany({
+      include: {
+        values: { orderBy: { sortOrder: "asc" } },
+      },
+    }),
   ]);
 
   if (!product) {
     notFound();
   }
+
+  const colorAttr = attributes.find((a) => a.slug === "color");
+  const sizeAttr = attributes.find((a) => a.slug === "size");
+
+  const availableColors = colorAttr ? colorAttr.values.map((v) => ({ id: v.id, value: v.value, colorCode: v.colorCode })) : [];
+  const availableSizes = sizeAttr ? sizeAttr.values.map((v) => ({ id: v.id, value: v.value })) : [];
 
   // Convert Decimal fields to numbers for the form
   const productData = {
@@ -116,6 +127,8 @@ export default async function EditProductPage({ params, searchParams }: EditProd
         product={productData}
         selectedCategoryIds={selectedCategoryIds}
         categories={categories}
+        availableColors={availableColors}
+        availableSizes={availableSizes}
         action={updateWithId}
         submitLabel="Update Product"
       />

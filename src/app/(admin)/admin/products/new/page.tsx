@@ -10,10 +10,23 @@ export const metadata = {
 };
 
 export default async function NewProductPage() {
-  const categories = await db.category.findMany({
-    orderBy: { name: "asc" },
-    select: { id: true, name: true },
-  });
+  const [categories, attributes] = await Promise.all([
+    db.category.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+    db.attribute.findMany({
+      include: {
+        values: { orderBy: { sortOrder: "asc" } },
+      },
+    }),
+  ]);
+
+  const colorAttr = attributes.find((a) => a.slug === "color");
+  const sizeAttr = attributes.find((a) => a.slug === "size");
+
+  const availableColors = colorAttr ? colorAttr.values.map((v) => ({ id: v.id, value: v.value, colorCode: v.colorCode })) : [];
+  const availableSizes = sizeAttr ? sizeAttr.values.map((v) => ({ id: v.id, value: v.value })) : [];
 
   return (
     <div>
@@ -37,6 +50,8 @@ export default async function NewProductPage() {
       <ProductForm
         action={createProduct}
         categories={categories}
+        availableColors={availableColors}
+        availableSizes={availableSizes}
         submitLabel="Create Product"
       />
     </div>

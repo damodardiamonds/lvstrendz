@@ -46,6 +46,8 @@ interface ProductDetailsProps {
     price: any;
     compareAtPrice: any;
     displayAttributes?: string[];
+    selectedColors?: { id: string; value: string; slug: string; colorCode: string | null }[];
+    selectedSizes?: { id: string; value: string; slug: string }[];
     images: { id: string; url: string; alt: string | null }[];
     variants: Variant[];
   };
@@ -57,47 +59,73 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
   const showSizeSelector = displayAttributes.includes('size');
   const showColorSelector = displayAttributes.includes('color');
 
-  // Extract all unique sizes and colors from the active variants based on enabled displayAttributes
+  // Extract all unique sizes and colors based on store admin explicit selection or variants
   const sizes: { value: string; slug: string }[] = [];
   const colors: { value: string; slug: string; colorCode: string | null }[] = [];
 
   const seenSizes = new Set<string>();
   const seenColors = new Set<string>();
 
-  product.variants.forEach((v) => {
-    v.attributes.forEach((attrAttr) => {
-      const attrVal = attrAttr.attributeValue;
-      const attrName = attrVal.attribute.slug;
-
-      if (showSizeSelector && attrName === 'size') {
-        if (!seenSizes.has(attrVal.slug)) {
-          seenSizes.add(attrVal.slug);
-          sizes.push({ value: attrVal.value, slug: attrVal.slug });
+  if (showSizeSelector) {
+    if (product.selectedSizes && product.selectedSizes.length > 0) {
+      product.selectedSizes.forEach((sz) => {
+        if (!seenSizes.has(sz.slug)) {
+          seenSizes.add(sz.slug);
+          sizes.push({ value: sz.value, slug: sz.slug });
         }
-      } else if (showColorSelector && attrName === 'color') {
-        if (!seenColors.has(attrVal.slug)) {
-          seenColors.add(attrVal.slug);
+      });
+    } else {
+      product.variants.forEach((v) => {
+        v.attributes.forEach((attrAttr) => {
+          const attrVal = attrAttr.attributeValue;
+          if (attrVal.attribute.slug === 'size' && !seenSizes.has(attrVal.slug)) {
+            seenSizes.add(attrVal.slug);
+            sizes.push({ value: attrVal.value, slug: attrVal.slug });
+          }
+        });
+      });
+    }
+
+    if (sizes.length === 0) {
+      sizes.push(
+        { value: 'CS', slug: 'cs' },
+        { value: 'XS', slug: 'x-small' },
+        { value: 'S', slug: 'small' },
+        { value: 'M', slug: 'medium' },
+        { value: 'L', slug: 'large' },
+        { value: 'XL', slug: 'extra-large' },
+        { value: 'XXL', slug: 'xx-large' }
+      );
+    }
+  }
+
+  if (showColorSelector) {
+    if (product.selectedColors && product.selectedColors.length > 0) {
+      product.selectedColors.forEach((col) => {
+        if (!seenColors.has(col.slug)) {
+          seenColors.add(col.slug);
           colors.push({
-            value: attrVal.value,
-            slug: attrVal.slug,
-            colorCode: attrVal.colorCode,
+            value: col.value,
+            slug: col.slug,
+            colorCode: col.colorCode,
           });
         }
-      }
-    });
-  });
-
-  // If size selector is explicitly enabled for this product but no explicit variant sizes were added, show standard sizes
-  if (showSizeSelector && sizes.length === 0) {
-    sizes.push(
-      { value: 'CS', slug: 'cs' },
-      { value: 'XS', slug: 'x-small' },
-      { value: 'S', slug: 'small' },
-      { value: 'M', slug: 'medium' },
-      { value: 'L', slug: 'large' },
-      { value: 'XL', slug: 'extra-large' },
-      { value: 'XXL', slug: 'xx-large' }
-    );
+      });
+    } else {
+      product.variants.forEach((v) => {
+        v.attributes.forEach((attrAttr) => {
+          const attrVal = attrAttr.attributeValue;
+          if (attrVal.attribute.slug === 'color' && !seenColors.has(attrVal.slug)) {
+            seenColors.add(attrVal.slug);
+            colors.push({
+              value: attrVal.value,
+              slug: attrVal.slug,
+              colorCode: attrVal.colorCode,
+            });
+          }
+        });
+      });
+    }
   }
 
   const [selectedSize, setSelectedSize] = useState<string>(showSizeSelector ? (sizes[0]?.value || '') : '');
