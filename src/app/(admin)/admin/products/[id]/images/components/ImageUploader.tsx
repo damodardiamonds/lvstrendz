@@ -129,6 +129,70 @@ export default function ImageUploader({ productId, colors = [], isCloudinaryConf
     );
   };
 
+  // Compress image on client canvas if larger than 1.5MB to avoid Vercel 4.5MB payload limit errors
+  const compressImageIfNeeded = async (file: File): Promise<File> => {
+    if (file.size <= 1.5 * 1024 * 1024) return file;
+
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        const maxDim = 2560;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob && blob.size < file.size) {
+              const compressedFile = new File(
+                [blob],
+                file.name.replace(/\.[^/.]+$/, "") + ".webp",
+                {
+                  type: "image/webp",
+                  lastModified: Date.now(),
+                }
+              );
+              resolve(compressedFile);
+            } else {
+              resolve(file);
+            }
+          },
+          "image/webp",
+          0.85
+        );
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(file);
+      };
+
+      img.src = url;
+    });
+  };
+
   const handleUpload = async () => {
     const pendingItems = uploadQueue.filter((item) => item.status !== "success");
     if (pendingItems.length === 0) return;
@@ -145,9 +209,37 @@ export default function ImageUploader({ productId, colors = [], isCloudinaryConf
     let uploadFailed = false;
     for (let i = 0; i < pendingItems.length; i++) {
       const item = pendingItems[i];
+
+      // Compress large images client-side to prevent Vercel 4.5MB request payload limit crash
+      let fileToUpload = item.file;
+      if (fileToUpload.size > 1.5 * 1024 * 1024) {
+        try {
+          fileToUpload = await compressImageIfNeeded(fileToUpload);
+        } catch {
+          // Fall back to original file if canvas compression fails
+        }
+      }
+
+      // Check if file is still over 4.2 MB after compression
+      if (fileToUpload.size > 4.2 * 1024 * 1024) {
+        uploadFailed = true;
+        setUploadQueue((prev) =>
+          prev.map((q) =>
+            q.id === item.id
+              ? {
+                  ...q,
+                  status: "error",
+                  error: `File size (${(fileToUpload.size / 1024 / 1024).toFixed(2)} MB) exceeds server 4.5 MB request limit. Please upload a smaller image.`,
+                }
+              : q
+          )
+        );
+        continue;
+      }
+
       const formData = new FormData();
       formData.set("storage", storage);
-      formData.append("files", item.file);
+      formData.append("files", fileToUpload);
       formData.append("alts", "");
       formData.append("variantIds", "");
       formData.append("colorIds", item.colorId || "");
