@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Trash2, Star, GripVertical } from "lucide-react";
 import { deleteProductImage, deleteProductImages, updateImageOrder, updateImageVariant, updateImageColor } from "../actions";
 
@@ -35,6 +35,11 @@ export default function ImageGrid({ images, productId, variants, colors = [] }: 
   const [updatingColorImageId, setUpdatingColorImageId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  // Keep orderedImages in sync when images prop changes (e.g. after uploading photos)
+  useEffect(() => {
+    setOrderedImages(images);
+  }, [images]);
 
   const handleDelete = async (imageId: string) => {
     if (!confirm("Delete this image? This cannot be undone.")) return;
@@ -98,6 +103,7 @@ export default function ImageGrid({ images, productId, variants, colors = [] }: 
   };
 
   const handleDragEnd = async () => {
+    if (draggedIndex === null) return;
     setDraggedIndex(null);
     setReordering(true);
     const imageIds = orderedImages.map((img) => img.id);
@@ -170,56 +176,62 @@ export default function ImageGrid({ images, productId, variants, colors = [] }: 
             onDragOver={(e) => handleDragOver(e, index)}
             onDragEnd={handleDragEnd}
             className={`group relative bg-white border rounded-xl overflow-hidden shadow-sm transition-all hover:shadow-md cursor-grab active:cursor-grabbing ${
-              selectedIds.includes(image.id)
+              draggedIndex === index
+                ? "opacity-40 border-dashed border-[#A0463E] scale-[0.98]"
+                : selectedIds.includes(image.id)
                 ? "border-[#A0463E] ring-2 ring-[#A0463E]/20"
                 : "border-gray-200 hover:border-gray-300"
             }`}
           >
-            {/* Checkbox Overlay */}
-            <div className="absolute top-2 left-2 z-10">
-              <input
-                type="checkbox"
-                checked={selectedIds.includes(image.id)}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    setSelectedIds((prev) => [...prev, image.id]);
-                  } else {
-                    setSelectedIds((prev) => prev.filter((id) => id !== image.id));
-                  }
-                }}
-                className="w-4 h-4 rounded border-gray-300 text-[#A0463E] focus:ring-1 focus:ring-[#A0463E] cursor-pointer"
-              />
+            {/* Top Bar with Drag Grip & Checkbox & Main Badge */}
+            <div className="flex items-center justify-between p-2 bg-gray-50 border-b border-gray-100 cursor-grab active:cursor-grabbing select-none">
+              <div className="flex items-center gap-1.5">
+                <GripVertical size={14} className="text-gray-400 group-hover:text-gray-600 transition-colors shrink-0" />
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(image.id)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedIds((prev) => [...prev, image.id]);
+                    } else {
+                      setSelectedIds((prev) => prev.filter((id) => id !== image.id));
+                    }
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-4 h-4 rounded border-gray-300 text-[#A0463E] focus:ring-1 focus:ring-[#A0463E] cursor-pointer"
+                />
+              </div>
+
+              {index === 0 && (
+                <div className="px-1.5 py-0.5 bg-[#A0463E] text-white text-[10px] font-bold rounded flex items-center gap-0.5">
+                  <Star size={10} fill="white" />
+                  MAIN
+                </div>
+              )}
             </div>
 
-            {/* Main Image Badge */}
-            {index === 0 && (
-              <div className="absolute top-2 right-2 z-10 px-1.5 py-0.5 bg-[#A0463E] text-white text-[10px] font-bold rounded flex items-center gap-0.5">
-                <Star size={10} fill="white" />
-                MAIN
-              </div>
-            )}
-
             {/* Image */}
-            <div className="aspect-square bg-gray-100">
+            <div className="aspect-square bg-gray-100 relative">
               <img
                 src={image.url}
                 alt={image.alt || "Product image"}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover pointer-events-none"
               />
-            </div>
 
-            {/* Overlay Actions */}
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDelete(image.id);
-                }}
-                disabled={deletingId === image.id}
-                className="p-2 bg-white rounded-lg hover:bg-red-50 text-red-600 transition-colors disabled:opacity-50"
-              >
-                <Trash2 size={14} />
-              </button>
+              {/* Hover Delete Action */}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-auto">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(image.id);
+                  }}
+                  disabled={deletingId === image.id}
+                  className="p-2 bg-white rounded-lg hover:bg-red-50 text-red-600 transition-colors disabled:opacity-50 shadow-md"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
             </div>
 
             {/* Color Link Selector */}
@@ -228,8 +240,9 @@ export default function ImageGrid({ images, productId, variants, colors = [] }: 
                 <select
                   value={image.colorId || ""}
                   onChange={(e) => handleColorChange(image.id, e.target.value || null)}
+                  onClick={(e) => e.stopPropagation()}
                   disabled={updatingColorImageId === image.id}
-                  className="w-full text-[10px] font-medium bg-white border border-gray-200 rounded px-1 py-0.5 focus:ring-1 focus:ring-[#A0463E] outline-none disabled:opacity-50"
+                  className="w-full text-[10px] font-medium bg-white border border-gray-200 rounded px-1 py-0.5 focus:ring-1 focus:ring-[#A0463E] outline-none disabled:opacity-50 cursor-pointer"
                 >
                   <option value="">All Colors (Default)</option>
                   {colors.map((c) => (
@@ -240,8 +253,6 @@ export default function ImageGrid({ images, productId, variants, colors = [] }: 
                 </select>
               </div>
             )}
-
-
 
             {/* Alt text */}
             {image.alt && (

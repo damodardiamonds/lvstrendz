@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, X, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
+import { Upload, X, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Trash2, GripVertical } from "lucide-react";
 import { uploadProductImages } from "../actions";
 
 interface ColorOption {
@@ -33,6 +33,7 @@ export default function ImageUploader({ productId, colors = [], isCloudinaryConf
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadQueue, setUploadQueue] = useState<UploadItem[]>([]);
+  const [draggedQueueIndex, setDraggedQueueIndex] = useState<number | null>(null);
   const [storage, setStorage] = useState<"cloudinary" | "local">(
     isCloudinaryConfigured ? "cloudinary" : "local"
   );
@@ -40,6 +41,25 @@ export default function ImageUploader({ productId, colors = [], isCloudinaryConf
   const [globalError, setGlobalError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  const handleQueueDragStart = (index: number) => {
+    setDraggedQueueIndex(index);
+  };
+
+  const handleQueueDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedQueueIndex === null || draggedQueueIndex === index) return;
+
+    const newQueue = [...uploadQueue];
+    const [dragged] = newQueue.splice(draggedQueueIndex, 1);
+    newQueue.splice(index, 0, dragged);
+    setUploadQueue(newQueue);
+    setDraggedQueueIndex(index);
+  };
+
+  const handleQueueDragEnd = () => {
+    setDraggedQueueIndex(null);
+  };
 
   // Keep a ref to the queue for unmount cleanup
   const queueRef = useRef<UploadItem[]>([]);
@@ -408,18 +428,27 @@ export default function ImageUploader({ productId, colors = [], isCloudinaryConf
           </div>
 
           <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
-            {uploadQueue.map((item) => (
+            {uploadQueue.map((item, index) => (
               <div
                 key={item.id}
-                className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-3 bg-gray-50 border border-gray-200 rounded-xl transition-all"
+                draggable={!uploading && item.status !== "uploading"}
+                onDragStart={() => handleQueueDragStart(index)}
+                onDragOver={(e) => handleQueueDragOver(e, index)}
+                onDragEnd={handleQueueDragEnd}
+                className={`flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-3 bg-gray-50 border rounded-xl transition-all cursor-grab active:cursor-grabbing ${
+                  draggedQueueIndex === index
+                    ? "opacity-40 border-dashed border-[#A0463E]"
+                    : "border-gray-200 hover:border-gray-300"
+                }`}
               >
                 {/* Info / Preview */}
                 <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <GripVertical size={16} className="text-gray-400 shrink-0" />
                   <div className="relative flex-shrink-0">
                     <img
                       src={item.preview}
                       alt="Preview"
-                      className="w-14 h-14 object-cover rounded-lg border border-gray-200"
+                      className="w-14 h-14 object-cover rounded-lg border border-gray-200 pointer-events-none"
                     />
                     {item.status === "success" && (
                       <div className="absolute -top-1.5 -right-1.5 bg-green-500 text-white rounded-full p-0.5 shadow-sm">

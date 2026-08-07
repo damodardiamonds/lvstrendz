@@ -244,20 +244,25 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
   const thumbsPerPage = isMobile ? 4 : 5;
   const totalThumbPages = Math.max(0, Math.ceil(displayedImages.length / thumbsPerPage) - 1);
 
-  // Automatically update active image when color/size selection changes
-  useEffect(() => {
-    if (selectedVariant && selectedVariant.images && selectedVariant.images.length > 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setActiveImage(selectedVariant.images[0].url);
-    } else if (displayedImages.length > 0) {
-      setActiveImage(displayedImages[0].url);
-    }
-  }, [selectedColor, selectedSize, displayedImages, selectedVariant]);
+  // Automatically update active image when color or size selection explicitly changes
+  const prevColorRef = useRef(selectedColor);
+  const prevSizeRef = useRef(selectedSize);
 
-  // If the active image is no longer in the displayed images list, reset to the first one
   useEffect(() => {
-    if (displayedImages.length > 0 && !displayedImages.some((img) => img.url === activeImage)) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (prevColorRef.current !== selectedColor || prevSizeRef.current !== selectedSize) {
+      prevColorRef.current = selectedColor;
+      prevSizeRef.current = selectedSize;
+      if (selectedVariant && selectedVariant.images && selectedVariant.images.length > 0) {
+        setActiveImage(selectedVariant.images[0].url);
+      } else if (displayedImages.length > 0) {
+        setActiveImage(displayedImages[0].url);
+      }
+    }
+  }, [selectedColor, selectedSize, selectedVariant, displayedImages]);
+
+  // If activeImage is empty or no longer in displayedImages, set to first displayed image
+  useEffect(() => {
+    if (displayedImages.length > 0 && (!activeImage || !displayedImages.some((img) => img.url === activeImage))) {
       setActiveImage(displayedImages[0].url);
     }
   }, [displayedImages, activeImage]);

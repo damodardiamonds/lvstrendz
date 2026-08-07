@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { AlertCircle, Upload, Image as ImageIcon, Trash2, Plus, X } from "lucide-react";
+import { AlertCircle, Upload, Image as ImageIcon, Trash2, Plus, X, GripVertical } from "lucide-react";
 
 function SubmitButton({ label, isSubmitting }: { label: string; isSubmitting?: boolean }) {
   return (
@@ -91,7 +91,27 @@ export default function ProductForm({
     product?.selectedSizeIds ?? []
   );
   const [uploadQueue, setUploadQueue] = useState<{ id: string; file: File; preview: string; alt: string; colorId: string }[]>([]);
+  const [draggedQueueIndex, setDraggedQueueIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleQueueDragStart = (index: number) => {
+    setDraggedQueueIndex(index);
+  };
+
+  const handleQueueDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedQueueIndex === null || draggedQueueIndex === index) return;
+
+    const newQueue = [...uploadQueue];
+    const [dragged] = newQueue.splice(draggedQueueIndex, 1);
+    newQueue.splice(index, 0, dragged);
+    setUploadQueue(newQueue);
+    setDraggedQueueIndex(index);
+  };
+
+  const handleQueueDragEnd = () => {
+    setDraggedQueueIndex(null);
+  };
 
   const handleAddFiles = (files: FileList | File[]) => {
     const newItems: { id: string; file: File; preview: string; alt: string; colorId: string }[] = [];
@@ -729,18 +749,27 @@ export default function ProductForm({
         {uploadQueue.length > 0 && (
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-              Queued Images to Upload ({uploadQueue.length} files)
+              Queued Images to Upload ({uploadQueue.length} files - Drag to reorder)
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1">
               {uploadQueue.map((item, idx) => (
                 <div
                   key={item.id}
-                  className="p-3 bg-gray-50 border border-gray-200 rounded-xl flex items-center gap-3 relative"
+                  draggable
+                  onDragStart={() => handleQueueDragStart(idx)}
+                  onDragOver={(e) => handleQueueDragOver(e, idx)}
+                  onDragEnd={handleQueueDragEnd}
+                  className={`p-3 bg-gray-50 border rounded-xl flex items-center gap-3 relative cursor-grab active:cursor-grabbing transition-all ${
+                    draggedQueueIndex === idx
+                      ? "opacity-40 border-dashed border-[#A0463E]"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
                 >
+                  <GripVertical size={16} className="text-gray-400 shrink-0" />
                   <img
                     src={item.preview}
                     alt="Preview"
-                    className="w-16 h-16 object-cover rounded-lg border border-gray-200 shrink-0"
+                    className="w-16 h-16 object-cover rounded-lg border border-gray-200 shrink-0 pointer-events-none"
                   />
                   <div className="flex-1 min-w-0 space-y-1.5">
                     <p className="text-xs font-semibold text-gray-800 truncate">
