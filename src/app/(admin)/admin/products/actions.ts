@@ -4,6 +4,7 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { uploadProductImages } from "./[id]/images/actions";
 
 // Create product
 export async function createProduct(formData: FormData): Promise<{ error?: string } | void> {
@@ -86,7 +87,7 @@ export async function createProduct(formData: FormData): Promise<{ error?: strin
       }
     }
 
-    await db.product.create({
+    const newProduct = await db.product.create({
       data: {
         name,
         slug: finalSlug,
@@ -113,6 +114,12 @@ export async function createProduct(formData: FormData): Promise<{ error?: strin
         },
       },
     });
+
+    // Process image uploads if present
+    const files = formData.getAll("files") as File[];
+    if (files && files.length > 0 && files[0] && files[0].size > 0) {
+      await uploadProductImages(newProduct.id, formData);
+    }
 
     revalidatePath("/admin/products");
     revalidatePath("/shop");
@@ -256,6 +263,12 @@ export async function updateProduct(id: string, formData: FormData): Promise<{ e
         price,
       },
     });
+
+    // Process image uploads if present
+    const files = formData.getAll("files") as File[];
+    if (files && files.length > 0 && files[0] && files[0].size > 0) {
+      await uploadProductImages(id, formData);
+    }
 
     revalidatePath("/admin/products");
     revalidatePath(`/admin/products/${id}`);

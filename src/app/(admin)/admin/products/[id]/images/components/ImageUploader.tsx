@@ -6,9 +6,16 @@ import { useRouter } from "next/navigation";
 import { Upload, X, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
 import { uploadProductImages } from "../actions";
 
+interface ColorOption {
+  id: string;
+  name: string;
+  colorCode: string | null;
+}
+
 interface ImageUploaderProps {
   productId: string;
   variants: { id: string; attributes: string }[];
+  colors?: ColorOption[];
   isCloudinaryConfigured: boolean;
 }
 
@@ -18,11 +25,12 @@ interface UploadItem {
   preview: string;
   alt: string;
   variantId: string;
+  colorId: string;
   status: "idle" | "uploading" | "success" | "error";
   error?: string;
 }
 
-export default function ImageUploader({ productId, variants, isCloudinaryConfigured }: ImageUploaderProps) {
+export default function ImageUploader({ productId, variants, colors = [], isCloudinaryConfigured }: ImageUploaderProps) {
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadQueue, setUploadQueue] = useState<UploadItem[]>([]);
@@ -67,6 +75,7 @@ export default function ImageUploader({ productId, variants, isCloudinaryConfigu
         preview: URL.createObjectURL(file),
         alt: "",
         variantId: "",
+        colorId: "",
         status: "idle",
       });
     });
@@ -155,6 +164,7 @@ export default function ImageUploader({ productId, variants, isCloudinaryConfigu
       formData.append("files", item.file);
       formData.append("alts", item.alt || "");
       formData.append("variantIds", item.variantId || "");
+      formData.append("colorIds", item.colorId || "");
       
       // Only call revalidatePath/revalidateProductPage on the last file to optimize performance
       const isLast = i === pendingItems.length - 1;

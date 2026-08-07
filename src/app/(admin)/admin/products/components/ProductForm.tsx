@@ -1,9 +1,8 @@
-
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Upload, Image as ImageIcon, Trash2, Plus, X } from "lucide-react";
 
 function SubmitButton({ label, isSubmitting }: { label: string; isSubmitting?: boolean }) {
   return (
@@ -38,6 +37,7 @@ interface ProductData {
   displayAttributes?: string[];
   selectedColorIds?: string[];
   selectedSizeIds?: string[];
+  images?: { id: string; url: string; alt: string | null; colorId?: string | null }[];
   metaTitle: string | null;
   metaDescription: string | null;
 }
@@ -90,6 +90,29 @@ export default function ProductForm({
   const [selectedSizes, setSelectedSizes] = useState<string[]>(
     product?.selectedSizeIds ?? []
   );
+  const [uploadQueue, setUploadQueue] = useState<{ id: string; file: File; preview: string; alt: string; colorId: string }[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAddFiles = (files: FileList | File[]) => {
+    const newItems: { id: string; file: File; preview: string; alt: string; colorId: string }[] = [];
+    Array.from(files).forEach((file) => {
+      newItems.push({
+        id: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
+        file,
+        preview: URL.createObjectURL(file),
+        alt: "",
+        colorId: "",
+      });
+    });
+    setUploadQueue((prev) => [...prev, ...newItems]);
+  };
+
+  const handleRemoveQueuedImage = (id: string) => {
+    const item = uploadQueue.find((q) => q.id === id);
+    if (item) URL.revokeObjectURL(item.preview);
+    setUploadQueue((prev) => prev.filter((q) => q.id !== id));
+  };
+
   const [searchQuery, setSearchQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -655,6 +678,168 @@ export default function ProductForm({
         {selectedSizes.map((id) => (
           <input key={id} type="hidden" name="selectedSizeIds" value={id} />
         ))}
+      </div>
+
+      {/* Product Images & Color Assignment */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-800 mb-1">
+            Product Images & Color Mapping
+          </h2>
+          <p className="text-xs text-gray-500 mb-4">
+            Upload images for this product and assign which color each image belongs to. When a customer clicks a color on the product page, the matching images will be displayed!
+          </p>
+
+          {/* Upload Dropzone */}
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="border-2 border-dashed border-gray-300 hover:border-[#A0463E] hover:bg-gray-50/50 rounded-xl p-6 text-center cursor-pointer transition-colors"
+          >
+            <Upload size={28} className="mx-auto text-gray-400 mb-2" />
+            <p className="text-sm font-semibold text-gray-700">
+              Click to upload product images or drag & drop
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              JPG, PNG, WebP, AVIF • Max 5MB per image • You can select multiple files
+            </p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/avif"
+              multiple
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                  handleAddFiles(e.target.files);
+                }
+              }}
+              className="hidden"
+            />
+          </div>
+        </div>
+
+        {/* Upload Queue List */}
+        {uploadQueue.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+              Queued Images to Upload ({uploadQueue.length} files)
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1">
+              {uploadQueue.map((item, idx) => (
+                <div
+                  key={item.id}
+                  className="p-3 bg-gray-50 border border-gray-200 rounded-xl flex items-center gap-3 relative"
+                >
+                  <img
+                    src={item.preview}
+                    alt="Preview"
+                    className="w-16 h-16 object-cover rounded-lg border border-gray-200 shrink-0"
+                  />
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <p className="text-xs font-semibold text-gray-800 truncate">
+                      {item.file.name}
+                    </p>
+                    <input
+                      type="text"
+                      placeholder="SEO Alt text..."
+                      value={item.alt}
+                      onChange={(e) => {
+                        const newAlt = e.target.value;
+                        setUploadQueue((prev) =>
+                          prev.map((q) => (q.id === item.id ? { ...q, alt: newAlt } : q))
+                        );
+                      }}
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#A0463E]"
+                    />
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-medium text-gray-600 shrink-0">Color:</span>
+                      <select
+                        value={item.colorId}
+                        onChange={(e) => {
+                          const newColorId = e.target.value;
+                          setUploadQueue((prev) =>
+                            prev.map((q) => (q.id === item.id ? { ...q, colorId: newColorId } : q))
+                          );
+                        }}
+                        className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-[#A0463E]"
+                      >
+                        <option value="">All Colors (Default Image)</option>
+                        {availableColors.map((col) => (
+                          <option key={col.id} value={col.id}>
+                            {col.value} ({col.colorCode || "No Hex"})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveQueuedImage(item.id)}
+                    className="p-1 text-gray-400 hover:text-red-600 rounded self-start"
+                    title="Remove image"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+
+                  {/* Hidden inputs to pass Files, alts & colorIds to Server Action */}
+                  <input
+                    type="file"
+                    name="files"
+                    className="hidden"
+                    ref={(inputRef) => {
+                      if (inputRef) {
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(item.file);
+                        inputRef.files = dataTransfer.files;
+                      }
+                    }}
+                  />
+                  <input type="hidden" name="alts" value={item.alt} />
+                  <input type="hidden" name="colorIds" value={item.colorId} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Existing Images preview (if editing) */}
+        {product?.images && product.images.length > 0 && (
+          <div className="pt-4 border-t border-gray-100">
+            <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
+              Existing Product Images ({product.images.length})
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+              {product.images.map((img) => {
+                const assignedColor = availableColors.find((c) => c.id === img.colorId);
+                return (
+                  <div key={img.id} className="relative group bg-gray-50 border border-gray-200 rounded-lg p-2 text-center">
+                    <img
+                      src={img.url}
+                      alt={img.alt || "Product image"}
+                      className="w-full h-24 object-cover rounded-md mb-2 border border-gray-200"
+                    />
+                    <span className="block text-[10px] font-medium text-gray-600 truncate">
+                      {assignedColor ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span
+                            className="w-2.5 h-2.5 rounded-full border border-gray-300 shrink-0"
+                            style={{ backgroundColor: assignedColor.colorCode || "#CCC" }}
+                          />
+                          {assignedColor.value}
+                        </span>
+                      ) : (
+                        "All Colors"
+                      )}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-gray-400 mt-2">
+              Note: To reorder, remove, or change assigned colors of existing images, click &quot;Manage Images&quot; under Product Edit Quick Links.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Visibility */}

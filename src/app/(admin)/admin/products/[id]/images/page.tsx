@@ -14,28 +14,36 @@ interface ImagesPageProps {
 export default async function ImagesPage({ params }: ImagesPageProps) {
   const { id } = await params;
 
-  const product = await db.product.findUnique({
-    where: { id },
-    include: {
-      images: {
-        orderBy: { sortOrder: "asc" },
-      },
-      videos: {
-        orderBy: { sortOrder: "asc" },
-      },
-      variants: {
-        include: {
-          attributes: {
-            include: {
-              attributeValue: {
-                include: { attribute: true },
+  const [product, colorAttr] = await Promise.all([
+    db.product.findUnique({
+      where: { id },
+      include: {
+        images: {
+          orderBy: { sortOrder: "asc" },
+        },
+        videos: {
+          orderBy: { sortOrder: "asc" },
+        },
+        variants: {
+          include: {
+            attributes: {
+              include: {
+                attributeValue: {
+                  include: { attribute: true },
+                },
               },
             },
           },
         },
       },
-    },
-  });
+    }),
+    db.attribute.findFirst({
+      where: { slug: "color" },
+      include: {
+        values: { orderBy: { sortOrder: "asc" } },
+      },
+    }),
+  ]);
 
   if (!product) {
     notFound();
@@ -59,6 +67,8 @@ export default async function ImagesPage({ params }: ImagesPageProps) {
       .join(", ") || "No attributes",
   }));
 
+  const colorOptions = colorAttr ? colorAttr.values.map((v) => ({ id: v.id, name: v.value, colorCode: v.colorCode })) : [];
+
   return (
     <div>
       {/* Header */}
@@ -81,11 +91,12 @@ export default async function ImagesPage({ params }: ImagesPageProps) {
       <ImageUploader 
         productId={id} 
         variants={variantOptions} 
+        colors={colorOptions}
         isCloudinaryConfigured={isCloudinaryConfigured} 
       />
 
       {/* Image Grid */}
-      <ImageGrid images={product.images} productId={id} variants={variantOptions} />
+      <ImageGrid images={product.images} productId={id} variants={variantOptions} colors={colorOptions} />
 
       {/* Video Uploader */}
       <VideoUploader productId={id} videos={product.videos} />

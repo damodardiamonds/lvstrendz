@@ -48,7 +48,7 @@ interface ProductDetailsProps {
     displayAttributes?: string[];
     selectedColors?: { id: string; value: string; slug: string; colorCode: string | null }[];
     selectedSizes?: { id: string; value: string; slug: string }[];
-    images: { id: string; url: string; alt: string | null }[];
+    images: { id: string; url: string; alt: string | null; colorId?: string | null }[];
     variants: Variant[];
   };
 }
@@ -61,7 +61,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
 
   // Extract all unique sizes and colors based on store admin explicit selection or variants
   const sizes: { value: string; slug: string }[] = [];
-  const colors: { value: string; slug: string; colorCode: string | null }[] = [];
+  const colors: { id?: string; value: string; slug: string; colorCode: string | null }[] = [];
 
   const seenSizes = new Set<string>();
   const seenColors = new Set<string>();
@@ -105,6 +105,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
         if (!seenColors.has(col.slug)) {
           seenColors.add(col.slug);
           colors.push({
+            id: col.id,
             value: col.value,
             slug: col.slug,
             colorCode: col.colorCode,
@@ -118,6 +119,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
           if (attrVal.attribute.slug === 'color' && !seenColors.has(attrVal.slug)) {
             seenColors.add(attrVal.slug);
             colors.push({
+              id: attrVal.id,
               value: attrVal.value,
               slug: attrVal.slug,
               colorCode: attrVal.colorCode,
@@ -165,25 +167,33 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
   const displayedImages = useMemo(() => {
     if (!selectedColor) return allImages;
 
-    // Find all variants matching the selected color
+    // Find selected color ID object
+    const selectedColorObj = colors.find((c) => c.value === selectedColor);
+
+    // Gather direct product images assigned to this color ID or general images
+    let colorMatchedImages: { id: string; url: string; alt: string | null; colorId?: string | null }[] = [];
+
+    if (selectedColorObj?.id) {
+      colorMatchedImages = product.images.filter((img) => img.colorId === selectedColorObj.id);
+    }
+
+    // Also gather variant images matching this color name
     const matchingVariants = product.variants.filter((v) => {
       const colorVal = v.attributes.find((a) => a.attributeValue.attribute.slug === 'color')?.attributeValue.value;
       return colorVal === selectedColor;
     });
 
-    // Gather all unique images from matching variants
-    const variantImages: { id: string; url: string; alt: string | null }[] = [];
     matchingVariants.forEach((v) => {
       v.images.forEach((img) => {
-        if (!variantImages.some((i) => i.url === img.url)) {
-          variantImages.push(img);
+        if (!colorMatchedImages.some((i) => i.url === img.url)) {
+          colorMatchedImages.push(img);
         }
       });
     });
 
-    // Fall back to allImages if no variant images are defined for this color
-    return variantImages.length > 0 ? variantImages : allImages;
-  }, [selectedColor, allImages, product.variants]);
+    // If color-specific images exist, show them; otherwise fall back to allImages
+    return colorMatchedImages.length > 0 ? colorMatchedImages : allImages;
+  }, [selectedColor, colors, allImages, product.images, product.variants]);
 
   // Track gallery image selection
   const [activeImage, setActiveImage] = useState<string>(

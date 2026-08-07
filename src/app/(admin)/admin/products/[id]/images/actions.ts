@@ -109,6 +109,7 @@ export async function uploadProductImages(productId: string, formData: FormData)
   const files = formData.getAll("files") as File[];
   const alts = formData.getAll("alts") as string[];
   const variantIds = formData.getAll("variantIds") as string[];
+  const colorIds = formData.getAll("colorIds") as string[];
   const storageOption = formData.get("storage") as string || "local";
 
   if (!files || files.length === 0) {
@@ -130,6 +131,7 @@ export async function uploadProductImages(productId: string, formData: FormData)
     const file = files[i];
     const alt = alts[i] || "";
     const variantId = variantIds[i] || null;
+    const colorId = colorIds[i] || null;
 
     if (!file || file.size === 0) {
       results.push({ error: "Empty file selected" });
@@ -197,6 +199,7 @@ export async function uploadProductImages(productId: string, formData: FormData)
           alt: alt || null,
           sortOrder: currentSortOrder++,
           variantId: variantId || null,
+          colorId: colorId || null,
         },
       });
       results.push({ success: true, filename: file.name });
@@ -288,6 +291,22 @@ export async function updateImageVariant(
   await db.productImage.update({
     where: { id: imageId },
     data: { variantId: variantId || null },
+  });
+
+  revalidatePath(`/admin/products/${productId}/images`);
+  await revalidateProductPage(productId);
+  return { success: true };
+}
+
+// Update image color link
+export async function updateImageColor(
+  imageId: string,
+  productId: string,
+  colorId: string | null
+) {
+  await db.productImage.update({
+    where: { id: imageId },
+    data: { colorId: colorId || null },
   });
 
   revalidatePath(`/admin/products/${productId}/images`);

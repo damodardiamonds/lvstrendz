@@ -71,6 +71,7 @@ export default async function ProductPage({ params }: PageProps) {
       id: img.id,
       url: img.url,
       alt: img.alt,
+      colorId: img.colorId,
     })),
     variants: product.variants.map((variant) => ({
       id: variant.id,
