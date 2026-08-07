@@ -38,6 +38,7 @@ export default function ImageUploader({ productId, variants, colors = [], isClou
     isCloudinaryConfigured ? "cloudinary" : "local"
   );
   const [bulkAlt, setBulkAlt] = useState("");
+  const [bulkColorId, setBulkColorId] = useState("");
   const [bulkVariantId, setBulkVariantId] = useState("");
   const [globalError, setGlobalError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -114,6 +115,7 @@ export default function ImageUploader({ productId, variants, colors = [], isClou
     setUploadQueue([]);
     setGlobalError("");
     setBulkAlt("");
+    setBulkColorId("");
     setBulkVariantId("");
   };
 
@@ -128,6 +130,16 @@ export default function ImageUploader({ productId, variants, colors = [], isClou
       prev.map((item) =>
         item.status === "idle" || item.status === "error"
           ? { ...item, alt: bulkAlt }
+          : item
+      )
+    );
+  };
+
+  const applyBulkColor = () => {
+    setUploadQueue((prev) =>
+      prev.map((item) =>
+        item.status === "idle" || item.status === "error"
+          ? { ...item, colorId: bulkColorId }
           : item
       )
     );
@@ -282,7 +294,7 @@ export default function ImageUploader({ productId, variants, colors = [], isClou
             <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
               Bulk Actions (Apply to all queued items)
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
                   Bulk Alt Text
@@ -304,6 +316,35 @@ export default function ImageUploader({ productId, variants, colors = [], isClou
                   </button>
                 </div>
               </div>
+
+              {colors.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Bulk Color Link
+                  </label>
+                  <div className="flex gap-2">
+                    <select
+                      value={bulkColorId}
+                      onChange={(e) => setBulkColorId(e.target.value)}
+                      className="flex-1 min-w-0 px-3 py-1.5 border border-gray-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-[#A0463E] focus:border-[#A0463E]"
+                    >
+                      <option value="">All Colors (general image)</option>
+                      {colors.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          🎨 {c.name}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={applyBulkColor}
+                      className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-medium rounded-lg transition-colors whitespace-nowrap"
+                    >
+                      Apply to All
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {variants.length > 0 && (
                 <div>
@@ -396,7 +437,7 @@ export default function ImageUploader({ productId, variants, colors = [], isClou
                 </div>
 
                 {/* Form fields */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full md:w-[380px] flex-shrink-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 w-full md:w-[480px] flex-shrink-0">
                   <div>
                     <input
                       type="text"
@@ -413,6 +454,31 @@ export default function ImageUploader({ productId, variants, colors = [], isClou
                       className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-[#A0463E] focus:border-[#A0463E] disabled:bg-gray-100 disabled:text-gray-400"
                     />
                   </div>
+
+                  {colors.length > 0 && (
+                    <div>
+                      <select
+                        value={item.colorId}
+                        disabled={item.status === "uploading" || item.status === "success"}
+                        onChange={(e) => {
+                          setUploadQueue((prev) =>
+                            prev.map((q) =>
+                              q.id === item.id ? { ...q, colorId: e.target.value } : q
+                            )
+                          );
+                        }}
+                        className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-[#A0463E] focus:border-[#A0463E] disabled:bg-gray-100 disabled:text-gray-400"
+                      >
+                        <option value="">All Colors</option>
+                        {colors.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            🎨 {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   {variants.length > 0 && (
                     <div>
                       <select
