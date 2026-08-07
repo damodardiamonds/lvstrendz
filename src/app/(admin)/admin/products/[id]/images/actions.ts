@@ -84,8 +84,12 @@ const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "products");
 async function ensureUploadDir() {
   try {
     await mkdir(UPLOAD_DIR, { recursive: true });
-  } catch {
-    // Directory already exists
+  } catch (err: any) {
+    if (err?.code !== "EEXIST") {
+      throw new Error(
+        "Local file storage cannot write to disk in this deployment environment (e.g. read-only serverless host like Vercel). Please configure Cloudinary environment variables (CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) for cloud image uploads."
+      );
+    }
   }
 }
 
@@ -110,7 +114,7 @@ export async function uploadProductImages(productId: string, formData: FormData)
   const alts = formData.getAll("alts") as string[];
   const variantIds = formData.getAll("variantIds") as string[];
   const colorIds = formData.getAll("colorIds") as string[];
-  const storageOption = formData.get("storage") as string || "local";
+  const storageOption = (formData.get("storage") as string) || (useCloudinary ? "cloudinary" : "local");
 
   if (!files || files.length === 0) {
     return { error: "No files selected" };
@@ -162,32 +166,37 @@ export async function uploadProductImages(productId: string, formData: FormData)
       }
     } else {
       if (storageOption === "cloudinary" && !useCloudinary) {
-        results.push({ error: "Cloudinary is not configured. Please upload locally.", filename: file.name });
+        results.push({ error: "Cloudinary is not configured. Please upload locally or configure Cloudinary environment variables.", filename: file.name });
         continue;
       }
 
-      await ensureUploadDir();
-
-      // Convert local upload to WebP
-      const bytes = await file.arrayBuffer();
-      let webpBuffer: Buffer;
       try {
-        webpBuffer = await sharp(Buffer.from(bytes))
-          .webp({ quality: 80 })
-          .toBuffer();
+        await ensureUploadDir();
+
+        // Convert local upload to WebP
+        const bytes = await file.arrayBuffer();
+        let webpBuffer: Buffer;
+        try {
+          webpBuffer = await sharp(Buffer.from(bytes))
+            .webp({ quality: 80 })
+            .toBuffer();
+        } catch (sharpErr: any) {
+          results.push({ error: `Failed to process image "${file.name}": ${sharpErr.message || sharpErr}`, filename: file.name });
+          continue;
+        }
+
+        // Generate unique filename with .webp extension (appended with file index for uniqueness)
+        const filename = `${productId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${i}.webp`;
+        const filepath = path.join(UPLOAD_DIR, filename);
+
+        // Write WebP buffer to disk
+        await writeFile(filepath, webpBuffer);
+        imageUrl = `/uploads/products/${filename}`;
       } catch (err: any) {
-        console.error(`Local WebP conversion failed for "${file.name}":`, err);
-        results.push({ error: `Failed to convert "${file.name}" to WebP.`, filename: file.name });
+        console.error(`Local image saving failed for "${file.name}":`, err);
+        results.push({ error: err?.message || `Failed to save "${file.name}" to local disk.`, filename: file.name });
         continue;
       }
-
-      // Generate unique filename with .webp extension (appended with file index for uniqueness)
-      const filename = `${productId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${i}.webp`;
-      const filepath = path.join(UPLOAD_DIR, filename);
-
-      // Write WebP buffer to disk
-      await writeFile(filepath, webpBuffer);
-      imageUrl = `/uploads/products/${filename}`;
     }
 
     // Save to database
@@ -214,6 +223,12 @@ export async function uploadProductImages(productId: string, formData: FormData)
     revalidatePath(`/admin/products/${productId}/images`);
     await revalidateProductPage(productId);
   }
+
+  const errors = results.filter((r) => r.error).map((r) => r.error);
+  if (errors.length > 0) {
+    return { error: errors.join("; "), results };
+  }
+
   return { results };
 }
 

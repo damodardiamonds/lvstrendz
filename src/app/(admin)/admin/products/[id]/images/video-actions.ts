@@ -81,8 +81,12 @@ const VIDEO_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "videos")
 async function ensureVideoDir() {
   try {
     await mkdir(VIDEO_UPLOAD_DIR, { recursive: true });
-  } catch {
-    // Directory already exists
+  } catch (err: any) {
+    if (err?.code !== "EEXIST") {
+      throw new Error(
+        "Local file storage cannot write to disk in this deployment environment (e.g. read-only serverless host like Vercel). Please configure Cloudinary environment variables (CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) for video uploads."
+      );
+    }
   }
 }
 
