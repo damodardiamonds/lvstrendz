@@ -60,7 +60,7 @@ export default async function OrderReceivedPage({ searchParams }: PageProps) {
 
   return (
     <main className="bg-white min-h-screen py-16 px-4">
-      {/* Clear cart on success */}
+      {/* Clear cart on success & track Meta Pixel Purchase */}
       {showSuccess && (
         <script
           dangerouslySetInnerHTML={{
@@ -69,8 +69,26 @@ export default async function OrderReceivedPage({ searchParams }: PageProps) {
                 localStorage.removeItem("lvstrendz_cart");
                 localStorage.removeItem("lvstrendz_coupon");
                 window.dispatchEvent(new Event("cartUpdated"));
+
+                if (!sessionStorage.getItem("tracked_order_${order.orderNumber}")) {
+                  sessionStorage.setItem("tracked_order_${order.orderNumber}", "1");
+                  var sendFbq = function() {
+                    if (window.fbq) {
+                      window.fbq('track', 'Purchase', {
+                        content_ids: ${JSON.stringify(order.items.map((i) => i.productId).filter(Boolean))},
+                        num_items: ${order.items.reduce((sum, i) => sum + i.quantity, 0)},
+                        value: ${Number(order.total) || 0},
+                        currency: 'INR',
+                        content_type: 'product'
+                      });
+                    } else {
+                      setTimeout(sendFbq, 300);
+                    }
+                  };
+                  sendFbq();
+                }
               } catch(e) {
-                console.error("Failed to clear cart:", e);
+                console.error("Failed on order success script:", e);
               }
             `
           }}

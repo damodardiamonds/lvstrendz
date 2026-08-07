@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 
 interface ChatMessage {
   id: string;
@@ -22,6 +23,13 @@ function isBusinessOpen(): boolean {
 }
 
 export default function ChatWidget() {
+  const pathname = usePathname();
+
+  // Do not render floating chat widget on admin/backend pages
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
+
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [email, setEmail] = useState('');

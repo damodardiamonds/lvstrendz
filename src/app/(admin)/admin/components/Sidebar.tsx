@@ -9,10 +9,8 @@ import {
   ShoppingCart,
   Palette,
   BarChart3,
-  Settings,
   X,
   Menu,
-  Image as ImageIcon,
   MessageSquare,
   FolderOpen,
   Tag,
@@ -28,8 +26,6 @@ const navItems = [
   { label: "Chat Inbox", href: "/admin/chat", icon: MessageSquare },
   { label: "Attributes", href: "/admin/attributes", icon: Palette },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-  { label: "Media Settings", href: "/admin/media-settings", icon: ImageIcon },
-  { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
 export default function Sidebar() {

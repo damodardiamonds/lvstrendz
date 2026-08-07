@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Heart, ShoppingBag, Check, Truck, RotateCcw, ShieldCheck, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useCurrency } from '@/context/CurrencyContext';
+import { trackViewContent, trackAddToCart } from '@/lib/metaPixel';
 
 // Module-level image cache
 const imageCache: Record<string, HTMLImageElement> = {};
@@ -138,6 +139,15 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
   const [customHip, setCustomHip] = useState('');
   const [customShoulder, setCustomShoulder] = useState('');
   const [customNotes, setCustomNotes] = useState('');
+
+  // Track Meta Pixel ViewContent on mount
+  useEffect(() => {
+    trackViewContent({
+      id: product.id,
+      name: product.name,
+      price: Number(product.price) || 0,
+    });
+  }, [product.id, product.name, product.price]);
 
   // Find the variant that matches selected size and color
   const selectedVariant = product.variants.find((v) => {
@@ -427,6 +437,14 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
     
     // Dispatch custom event to notify header cart icon of updates
     window.dispatchEvent(new Event('cartUpdated'));
+
+    // Track Meta Pixel AddToCart
+    trackAddToCart({
+      id: product.id,
+      name: product.name,
+      price: Number(activePrice) || 0,
+      quantity,
+    });
     
     toast.success(`${product.name} added to cart successfully!`, {
       style: {

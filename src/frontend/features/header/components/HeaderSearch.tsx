@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Search, Loader2 } from "lucide-react";
 import { useCurrency } from "@/context/CurrencyContext";
+import { trackSearch } from "@/lib/metaPixel";
 
 type ProductResult = {
   id: string;
@@ -38,14 +39,14 @@ export default function HeaderSearch() {
 
   // Debounced search logic
   useEffect(() => {
-    if (!query.trim()) {
-      setResults([]);
+    const trimmed = query.trim();
+    if (!trimmed) {
       return;
     }
 
     const delayDebounceFn = setTimeout(() => {
       setLoading(true);
-      fetch(`/api/search?q=${encodeURIComponent(query.trim())}`)
+      fetch(`/api/search?q=${encodeURIComponent(trimmed)}`)
         .then((res) => res.json())
         .then((data) => {
           setResults(data.products || []);
@@ -80,6 +81,7 @@ export default function HeaderSearch() {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
+      trackSearch(query.trim());
       router.push(`/shop?search=${encodeURIComponent(query.trim())}`);
       setIsOpen(false);
     }
@@ -87,6 +89,7 @@ export default function HeaderSearch() {
 
   const handleTrendingClick = (term: string) => {
     setQuery(term);
+    trackSearch(term);
     router.push(`/shop?search=${encodeURIComponent(term)}`);
     setIsOpen(false);
   };
@@ -111,7 +114,11 @@ export default function HeaderSearch() {
             type="text"
             value={query}
             onChange={(e) => {
-              setQuery(e.target.value);
+              const val = e.target.value;
+              setQuery(val);
+              if (!val.trim()) {
+                setResults([]);
+              }
               setIsOpen(true);
             }}
             onFocus={() => setIsOpen(true)}

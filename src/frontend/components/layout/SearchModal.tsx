@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { trackSearch } from "@/lib/metaPixel";
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -38,6 +39,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
+      trackSearch(query.trim());
       router.push(`/shop?search=${encodeURIComponent(query.trim())}`);
       onClose();
       setQuery("");

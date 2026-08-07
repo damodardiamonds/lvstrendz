@@ -7,7 +7,7 @@ import {
   Package,
   ShoppingCart,
   MessageSquare,
-  ImageIcon,
+  BarChart3,
 } from "lucide-react";
 
 const mobileNavItems = [
@@ -15,7 +15,7 @@ const mobileNavItems = [
   { label: "Products", href: "/admin/products", icon: Package },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { label: "Chat", href: "/admin/chat", icon: MessageSquare },
-  { label: "Media", href: "/admin/media-settings", icon: ImageIcon },
+  { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
 ];
 
 export default function MobileAdminBottomNav() {

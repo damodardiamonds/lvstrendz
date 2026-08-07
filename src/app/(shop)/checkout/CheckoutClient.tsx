@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCurrency } from "@/context/CurrencyContext";
 import toast from "react-hot-toast";
+import { trackInitiateCheckout } from "@/lib/metaPixel";
 import {
   CreditCard,
   Lock,
@@ -68,6 +69,10 @@ export default function CheckoutClient() {
     try {
       const cart = JSON.parse(localStorage.getItem("lvstrendz_cart") || "[]");
       setItems(cart);
+      if (cart.length > 0) {
+        const initialSubtotal = cart.reduce((t: number, i: any) => t + Number(i.price) * i.quantity, 0);
+        trackInitiateCheckout({ items: cart, value: initialSubtotal });
+      }
 
       const coupon = localStorage.getItem("lvstrendz_coupon");
       if (coupon) {
