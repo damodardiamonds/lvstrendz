@@ -6,13 +6,24 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { uploadProductImages } from "./[id]/images/actions";
 
+function cleanDescriptionText(str: string | null | undefined): string | null {
+  if (!str) return null;
+  let cleaned = str
+    .replace(/\\n/g, "\n")
+    .replace(/\\r/g, "")
+    .replace(/\s*data-path-to-node="[^"]*"/gi, "")
+    .replace(/<p>\s*<\/p>/gi, "")
+    .replace(/<p>\s*[\r\n]+\s*<\/p>/gi, "");
+  return cleaned.trim() || null;
+}
+
 // Create product
 export async function createProduct(formData: FormData): Promise<{ error?: string } | void> {
   try {
     const name = (formData.get("name") as string)?.trim();
     const slug = (formData.get("slug") as string)?.trim();
-    const description = (formData.get("description") as string)?.trim();
-    const shortDescription = (formData.get("shortDescription") as string)?.trim();
+    const description = cleanDescriptionText(formData.get("description") as string);
+    const shortDescription = cleanDescriptionText(formData.get("shortDescription") as string);
     const sku = (formData.get("sku") as string)?.trim();
     const priceRaw = formData.get("price") as string;
     const compareAtPriceRaw = formData.get("compareAtPrice") as string;
@@ -148,8 +159,8 @@ export async function updateProduct(id: string, formData: FormData): Promise<{ e
   try {
     const name = (formData.get("name") as string)?.trim();
     const slug = (formData.get("slug") as string)?.trim();
-    const description = (formData.get("description") as string)?.trim();
-    const shortDescription = (formData.get("shortDescription") as string)?.trim();
+    const description = cleanDescriptionText(formData.get("description") as string);
+    const shortDescription = cleanDescriptionText(formData.get("shortDescription") as string);
     const sku = (formData.get("sku") as string)?.trim();
     const priceRaw = formData.get("price") as string;
     const compareAtPriceRaw = formData.get("compareAtPrice") as string;

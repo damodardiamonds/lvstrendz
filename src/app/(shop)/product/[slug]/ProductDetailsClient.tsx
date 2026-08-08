@@ -628,7 +628,12 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
           {product.shortDescription && (
             <div 
               className="text-gray-600 text-sm leading-relaxed mb-6"
-              dangerouslySetInnerHTML={{ __html: product.shortDescription }}
+              dangerouslySetInnerHTML={{
+                __html: product.shortDescription
+                  .replace(/\\n/g, '\n')
+                  .replace(/\\r/g, '')
+                  .replace(/<p>\s*<\/p>/gi, '')
+              }}
             />
           )}
 
@@ -844,7 +849,23 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
               </h3>
               <div 
                 className="prose prose-sm text-gray-700 leading-relaxed max-w-none text-xs space-y-4 font-normal"
-                dangerouslySetInnerHTML={{ __html: product.description }}
+                dangerouslySetInnerHTML={{
+                  __html: (() => {
+                    let cleaned = product.description
+                      .replace(/\\n/g, '\n')
+                      .replace(/\\r/g, '')
+                      .replace(/\s*data-path-to-node="[^"]*"/gi, '')
+                      .replace(/<p>\s*<\/p>/gi, '')
+                      .replace(/<p>\s*[\r\n]+\s*<\/p>/gi, '');
+                    if (!/<[a-z][\s\S]*>/i.test(cleaned)) {
+                      cleaned = cleaned
+                        .split(/\n\s*\n/)
+                        .map((p) => `<p>${p.replace(/\n/g, '<br />')}</p>`)
+                        .join('');
+                    }
+                    return cleaned;
+                  })(),
+                }}
               />
             </div>
           )}
