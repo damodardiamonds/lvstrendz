@@ -98,6 +98,17 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
         { value: 'XXL', slug: 'xx-large' }
       );
     }
+
+    // Ensure CS (Custom Size) is ALWAYS the first option in the sizes row
+    const csIndex = sizes.findIndex(
+      (s) => s.value.toUpperCase() === 'CS' || s.value.toLowerCase() === 'custom size' || s.slug.toLowerCase() === 'cs'
+    );
+    if (csIndex > 0) {
+      const [csItem] = sizes.splice(csIndex, 1);
+      sizes.unshift(csItem);
+    } else if (csIndex === -1) {
+      sizes.unshift({ value: 'CS', slug: 'cs' });
+    }
   }
 
   if (showColorSelector) {
@@ -131,7 +142,10 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
     }
   }
 
-  const [selectedSize, setSelectedSize] = useState<string>(showSizeSelector ? (sizes[0]?.value || '') : '');
+  const initialSize = showSizeSelector
+    ? (sizes.find((s) => s.value !== 'CS' && s.value !== 'Custom Size')?.value || sizes[0]?.value || '')
+    : '';
+  const [selectedSize, setSelectedSize] = useState<string>(initialSize);
   const [selectedColor, setSelectedColor] = useState<string>(showColorSelector ? (colors[0]?.value || '') : '');
   const [quantity, setQuantity] = useState(1);
   const [customBust, setCustomBust] = useState('');
@@ -584,12 +598,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
             {product.name}
           </h1>
 
-          {/* Sku */}
-          {(selectedVariant?.sku || product.sku) && (
-            <p className="text-xs text-gray-400 tracking-wider mb-4 uppercase">
-              SKU: {selectedVariant?.sku || product.sku}
-            </p>
-          )}
+
 
           {/* Pricing */}
           <div className="flex items-center gap-4 mb-6 border-b border-gray-100 pb-6">

@@ -24,11 +24,9 @@ export default function ProductLoading() {
 
           {/* Product Details Skeleton (Right 5 Cols) */}
           <div className="lg:col-span-5 space-y-6">
-            {/* Title & SKU */}
+            {/* Title */}
             <div className="space-y-2">
-              <div className="h-4 bg-gray-200 rounded w-24"></div>
               <div className="h-8 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/3"></div>
             </div>
 
             {/* Price Skeleton */}

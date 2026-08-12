@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { AlertCircle, Upload, Image as ImageIcon, Trash2, Plus, X, GripVertical } from "lucide-react";
+import { AlertCircle, CheckCircle, Upload, Image as ImageIcon, Trash2, Plus, X, GripVertical } from "lucide-react";
 
 function SubmitButton({ label, isSubmitting }: { label: string; isSubmitting?: boolean }) {
   return (
@@ -144,6 +144,7 @@ export default function ProductForm({
   const [searchQuery, setSearchQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const handleToggleCategory = (id: string) => {
     setSelectedIds((prev) =>
@@ -173,15 +174,17 @@ export default function ProductForm({
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+    setSuccessMsg(null);
     setIsSubmitting(true);
 
     try {
       const formData = new FormData(e.currentTarget);
       const res = await action(formData);
-      if (res && res.error) {
-        setError(res.error);
-        setIsSubmitting(false);
-        window.scrollTo({ top: 0, behavior: "smooth" });
+      if (res && (res as any).error) {
+        setError((res as any).error);
+      } else {
+        setSuccessMsg((res as any)?.message || "Product updated successfully!");
+        setUploadQueue([]);
       }
     } catch (err: any) {
       if (err?.message?.includes("NEXT_REDIRECT") || err?.digest?.startsWith("NEXT_REDIRECT")) {
@@ -189,6 +192,7 @@ export default function ProductForm({
       }
       console.error("Product action error:", err);
       setError(err?.message || "An unexpected error occurred. Please try again.");
+    } finally {
       setIsSubmitting(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -196,6 +200,22 @@ export default function ProductForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
+      {successMsg && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 flex items-center gap-3 shadow-sm">
+          <CheckCircle size={20} className="shrink-0 text-emerald-600" />
+          <div className="flex-1">
+            <p className="font-semibold text-sm">Product updated successfully!</p>
+            <p className="text-xs text-emerald-600 mt-0.5">{successMsg}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSuccessMsg(null)}
+            className="text-emerald-700 hover:text-emerald-900 font-bold text-lg leading-none"
+          >
+            ×
+          </button>
+        </div>
+      )}
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 flex items-center gap-3 shadow-sm">
           <AlertCircle size={20} className="shrink-0 text-red-500" />

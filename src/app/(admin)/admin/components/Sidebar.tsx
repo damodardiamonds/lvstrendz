@@ -14,12 +14,14 @@ import {
   MessageSquare,
   FolderOpen,
   Tag,
+  Boxes,
 } from "lucide-react";
 import { useState } from "react";
 
 const navItems = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Products", href: "/admin/products", icon: Package },
+  { label: "Inventory", href: "/admin/inventory", icon: Boxes },
   { label: "Categories", href: "/admin/categories", icon: FolderOpen },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { label: "Discounts & Timer", href: "/admin/discounts", icon: Tag },

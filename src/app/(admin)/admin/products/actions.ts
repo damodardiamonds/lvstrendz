@@ -146,7 +146,7 @@ export async function createProduct(formData: FormData): Promise<{ error?: strin
 }
 
 // Update product
-export async function updateProduct(id: string, formData: FormData): Promise<{ error?: string } | void> {
+export async function updateProduct(id: string, formData: FormData): Promise<{ error?: string; success?: boolean; message?: string }> {
   const existingProduct = await db.product.findUnique({
     where: { id },
     select: { slug: true },
@@ -297,12 +297,11 @@ export async function updateProduct(id: string, formData: FormData): Promise<{ e
     if (finalSlug) {
       revalidatePath(`/product/${finalSlug}`);
     }
+    return { success: true, message: "Product updated successfully! All changes have been saved and applied across the store." };
   } catch (err: any) {
     console.error("Failed to update product:", err);
     return { error: err?.message || "An unexpected database error occurred while updating product." };
   }
-
-  redirect(`/admin/products/${id}?updated=true`);
 }
 
 // Delete product

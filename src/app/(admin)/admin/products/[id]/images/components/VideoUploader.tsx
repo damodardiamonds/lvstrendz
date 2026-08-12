@@ -2,7 +2,8 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Video, Upload, Trash2, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Video, Upload, Trash2, X, CheckCircle } from "lucide-react";
 import { uploadProductVideo, deleteProductVideo } from "../video-actions";
 
 interface ProductVideo {
@@ -20,14 +21,17 @@ interface VideoUploaderProps {
 export default function VideoUploader({ productId, videos }: VideoUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const handleFile = (file: File) => {
     setError("");
+    setSuccess("");
     const allowedTypes = ["video/mp4", "video/webm"];
     if (!allowedTypes.includes(file.type)) {
       setError("Only MP4 and WebM videos are allowed");
@@ -45,28 +49,45 @@ export default function VideoUploader({ productId, videos }: VideoUploaderProps)
     if (!selectedFile) return;
     setUploading(true);
     setError("");
+    setSuccess("");
 
-    const formData = new FormData();
-    formData.set("file", selectedFile);
-    formData.set("title", title);
+    try {
+      const formData = new FormData();
+      formData.set("file", selectedFile);
+      formData.set("title", title);
 
-    const result = await uploadProductVideo(productId, formData);
+      const result = await uploadProductVideo(productId, formData);
 
-    if (result.error) {
-      setError(result.error);
-    } else {
-      setSelectedFile(null);
-      setPreview(null);
-      setTitle("");
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setSelectedFile(null);
+        setPreview(null);
+        setTitle("");
+        setSuccess("Video uploaded successfully!");
+        router.refresh();
+      }
+    } catch (err: any) {
+      setError(err?.message || "Video upload failed. Please try again.");
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   };
 
   const handleDelete = async (videoId: string) => {
     if (!confirm("Delete this video? This cannot be undone.")) return;
     setDeletingId(videoId);
-    await deleteProductVideo(videoId, productId);
-    setDeletingId(null);
+    setError("");
+    setSuccess("");
+    try {
+      await deleteProductVideo(videoId, productId);
+      setSuccess("Video deleted successfully.");
+      router.refresh();
+    } catch (err: any) {
+      setError(err?.message || "Failed to delete video.");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const clearSelection = () => {
@@ -74,6 +95,7 @@ export default function VideoUploader({ productId, videos }: VideoUploaderProps)
     setPreview(null);
     setTitle("");
     setError("");
+    setSuccess("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -90,6 +112,13 @@ export default function VideoUploader({ productId, videos }: VideoUploaderProps)
           {videos.length}/2 videos uploaded
         </span>
       </div>
+
+      {success && (
+        <div className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-sm p-3 rounded-lg mb-4 flex items-center gap-2">
+          <CheckCircle size={18} className="text-emerald-600 shrink-0" />
+          <span>{success}</span>
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">

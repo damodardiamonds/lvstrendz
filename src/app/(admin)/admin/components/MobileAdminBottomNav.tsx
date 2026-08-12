@@ -8,11 +8,13 @@ import {
   ShoppingCart,
   MessageSquare,
   BarChart3,
+  Boxes,
 } from "lucide-react";
 
 const mobileNavItems = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Products", href: "/admin/products", icon: Package },
+  { label: "Inventory", href: "/admin/inventory", icon: Boxes },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { label: "Chat", href: "/admin/chat", icon: MessageSquare },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
