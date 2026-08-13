@@ -1,0 +1,68 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { getAdminUser } from "@/lib/session";
+import { revalidatePath } from "next/cache";
+
+const SETTING_KEY = "announcement_bar";
+
+export async function GET() {
+  const admin = await getAdminUser();
+  if (!admin) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const setting = await db.siteSetting.findUnique({
+      where: { key: SETTING_KEY },
+    });
+
+    let data = {
+      isActive: true,
+      text: "Flat 20% OFF! Use Code:",
+      couponCode: "FLAT20",
+      showCoupon: true,
+      buttonText: "Shop Now",
+      buttonLink: "/shop",
+      bgColor: "#A0463E",
+      textColor: "#FFFFFF",
+    };
+
+    if (setting && setting.value) {
+      try {
+        const parsed = JSON.parse(setting.value);
+        data = { ...data, ...parsed };
+      } catch (e) {
+        console.error("Failed to parse announcement_bar setting JSON", e);
+      }
+    }
+
+    return NextResponse.json({ success: true, settings: data });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const admin = await getAdminUser();
+  if (!admin) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const body = await req.json();
+    const valueStr = JSON.stringify(body);
+
+    const setting = await db.siteSetting.upsert({
+      where: { key: SETTING_KEY },
+      update: { value: valueStr },
+      create: { key: SETTING_KEY, value: valueStr, type: "json" },
+    });
+
+    revalidatePath("/");
+    revalidatePath("/shop");
+
+    return NextResponse.json({ success: true, setting });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
