@@ -14,7 +14,9 @@ export function shareGiftCardWhatsApp({
 }) {
   const formattedValue = value.toLocaleString("en-IN");
   const sender = senderName ? senderName : "a friend";
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://lvstrendz.vercel.app";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes("localhost")
+    ? process.env.NEXT_PUBLIC_APP_URL
+    : "https://lvstrendz.com";
 
   const text =
     `🎁 *You've received a ₹${formattedValue} Gift Card from ${sender}!*\n\n` +
