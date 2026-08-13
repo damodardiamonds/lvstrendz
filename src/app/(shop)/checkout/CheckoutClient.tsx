@@ -195,6 +195,10 @@ export default function CheckoutClient() {
 
   let giftCardDiscount = 0;
   if (appliedGiftCard) {
+    // Rakshabandhan Offer Rule: Gift Card redemptions cannot be combined with direct promo coupons
+    if (appliedCoupon?.code === "RAKHI500" || appliedCoupon?.nonStackable) {
+      discount = 0;
+    }
     const remainingAfterCoupon = Math.max(0, subtotal - discount);
     giftCardDiscount = Math.min(remainingAfterCoupon, Number(appliedGiftCard.balance));
   }
