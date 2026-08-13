@@ -1,5 +1,5 @@
 
-import { Package, ShoppingCart, IndianRupee, AlertTriangle } from "lucide-react";
+import { Package, ShoppingCart, IndianRupee, AlertTriangle, Gift } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import StatCard from "./components/StatCard";
@@ -90,7 +90,7 @@ export default async function AdminDashboard() {
         <h2 className="text-lg font-semibold text-gray-800 mb-4">
           Quick Actions
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link
             href="/admin/products/new"
             className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:border-[#A0463E] hover:bg-[#A0463E]/5 transition-all group"
@@ -113,6 +113,18 @@ export default async function AdminDashboard() {
             />
             <span className="text-sm font-medium text-gray-700 group-hover:text-[#A0463E]">
               View Orders
+            </span>
+          </Link>
+          <Link
+            href="/admin/gift-cards"
+            className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:border-[#A0463E] hover:bg-[#A0463E]/5 transition-all group"
+          >
+            <Gift
+              size={20}
+              className="text-gray-400 group-hover:text-[#A0463E]"
+            />
+            <span className="text-sm font-medium text-gray-700 group-hover:text-[#A0463E]">
+              Gift Card Offers
             </span>
           </Link>
           <Link

@@ -15,6 +15,7 @@ import {
   FolderOpen,
   Tag,
   Boxes,
+  Gift,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -25,6 +26,7 @@ const navItems = [
   { label: "Categories", href: "/admin/categories", icon: FolderOpen },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { label: "Discounts & Timer", href: "/admin/discounts", icon: Tag },
+  { label: "Gift Cards", href: "/admin/gift-cards", icon: Gift },
   { label: "Chat Inbox", href: "/admin/chat", icon: MessageSquare },
   { label: "Attributes", href: "/admin/attributes", icon: Palette },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
