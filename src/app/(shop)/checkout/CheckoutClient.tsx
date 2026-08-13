@@ -587,7 +587,7 @@ export default function CheckoutClient() {
                           <span className="text-black font-extrabold">{item.name}</span>
                           {item.size || item.color ? (
                             <span className="block text-[10px] text-gray-400 font-bold uppercase mt-0.5">
-                              {item.size ? `Size: ${item.size}` : ""}
+                              {item.size ? `Size: ${item.size === 'CS' ? 'Custom Size' : item.size}` : ""}
                               {item.size && item.color ? " | " : ""}
                               {item.color ? `Color: ${item.color}` : ""}
                             </span>

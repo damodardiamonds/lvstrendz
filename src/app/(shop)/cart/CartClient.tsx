@@ -237,7 +237,7 @@ export default function CartClient() {
                           <div className="uppercase font-bold tracking-wider mt-1 text-[11px] text-gray-500">
                             {item.size && (
                               <span>
-                                Size: <span className="text-black font-extrabold">{item.size}</span>
+                                Size: <span className="text-black font-extrabold">{item.size === 'Custom Size' || item.size === 'CS' ? 'CS' : item.size}</span>
                               </span>
                             )}
                             {item.size && item.color && <span className="mx-2 text-gray-300">|</span>}
@@ -382,7 +382,7 @@ export default function CartClient() {
                     <div className="uppercase font-bold tracking-wider mt-1 text-[11px] text-gray-500">
                       {item.size && (
                         <span>
-                          Size: <span className="text-black font-extrabold">{item.size}</span>
+                          Size: <span className="text-black font-extrabold">{item.size === 'Custom Size' || item.size === 'CS' ? 'CS' : item.size}</span>
                         </span>
                       )}
                       {item.size && item.color && <span className="mx-2 text-gray-300">|</span>}
