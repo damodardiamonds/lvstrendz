@@ -1,8 +1,9 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Edit, Eye, EyeOff, Zap, Search, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import { toggleProductStatus } from "../actions";
 import DeleteButton from "./DeleteButton";
@@ -32,6 +33,7 @@ interface Product {
 interface ProductTableProps {
   products: Product[];
   allCategories?: CategoryOption[];
+  initialPage?: number;
 }
 
 const ITEMS_PER_PAGE = 15;
@@ -39,13 +41,36 @@ const ITEMS_PER_PAGE = 15;
 export default function ProductTable({
   products,
   allCategories = [],
+  initialPage = 1,
 }: ProductTableProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "draft">("all");
   const [stockFilter, setStockFilter] = useState<"all" | "instock" | "out" | "low">("all");
-  const [currentPage, setCurrentPage] = useState(1);
+
+  const urlPage = parseInt(searchParams.get("page") || `${initialPage}`, 10) || 1;
+  const [currentPage, setCurrentPage] = useState(urlPage);
+
+  useEffect(() => {
+    if (urlPage !== currentPage) {
+      setCurrentPage(urlPage);
+    }
+  }, [urlPage]);
+
+  const changePage = (newPage: number) => {
+    setCurrentPage(newPage);
+    const params = new URLSearchParams(searchParams.toString());
+    if (newPage > 1) {
+      params.set("page", newPage.toString());
+    } else {
+      params.delete("page");
+    }
+    const query = params.toString();
+    router.push(`/admin/products${query ? `?${query}` : ""}`, { scroll: false });
+  };
 
   // Filter products based on search, category, status, and stock
   const filteredProducts = useMemo(() => {
@@ -90,22 +115,22 @@ export default function ProductTable({
 
   const handleSearchChange = (val: string) => {
     setSearchQuery(val);
-    setCurrentPage(1);
+    changePage(1);
   };
 
   const handleCategoryChange = (val: string) => {
     setSelectedCategory(val);
-    setCurrentPage(1);
+    changePage(1);
   };
 
   const handleStatusChange = (val: "all" | "active" | "draft") => {
     setStatusFilter(val);
-    setCurrentPage(1);
+    changePage(1);
   };
 
   const handleStockChange = (val: "all" | "instock" | "out" | "low") => {
     setStockFilter(val);
-    setCurrentPage(1);
+    changePage(1);
   };
 
   return (
@@ -318,7 +343,7 @@ export default function ProductTable({
                             Quick Edit
                           </button>
                           <Link
-                            href={`/admin/products/${product.id}`}
+                            href={`/admin/products/${product.id}${currentPage > 1 ? `?page=${currentPage}` : ""}`}
                             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#A0463E] transition-colors"
                             title="Full Edit"
                           >
@@ -353,7 +378,7 @@ export default function ProductTable({
             {totalPages > 1 && (
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  onClick={() => changePage(Math.max(currentPage - 1, 1))}
                   disabled={currentPage === 1}
                   className="p-1.5 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
                 >
@@ -363,7 +388,7 @@ export default function ProductTable({
                   Page {currentPage} of {totalPages}
                 </span>
                 <button
-                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                  onClick={() => changePage(Math.min(currentPage + 1, totalPages))}
                   disabled={currentPage === totalPages}
                   className="p-1.5 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
                 >

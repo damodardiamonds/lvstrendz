@@ -9,10 +9,13 @@ import VideoUploader from "./components/VideoUploader";
 
 interface ImagesPageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ page?: string }>;
 }
 
-export default async function ImagesPage({ params }: ImagesPageProps) {
+export default async function ImagesPage({ params, searchParams }: ImagesPageProps) {
   const { id } = await params;
+  const { page } = (await searchParams) || {};
+  const backHref = `/admin/products/${id}${page ? `?page=${page}` : ""}`;
 
   const [product, colorAttr] = await Promise.all([
     db.product.findUnique({
@@ -94,7 +97,7 @@ export default async function ImagesPage({ params }: ImagesPageProps) {
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <Link
-          href={`/admin/products/${id}`}
+          href={backHref}
           className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
         >
           <ArrowLeft size={20} className="text-gray-600" />

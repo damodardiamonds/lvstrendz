@@ -287,22 +287,16 @@ function ProductInventoryCard({
       });
     }
 
-    // Always make sure CS (Custom Size) is the FIRST size option if present or in store sizes
-    const csIndex = sizes.findIndex(
-      (s) => s.value.toUpperCase() === "CS" || s.value.toLowerCase() === "custom size"
+    // Filter out CS if present
+    sizes = sizes.filter(
+      (s) => s.value.toUpperCase() !== "CS" && s.value.toLowerCase() !== "custom size"
     );
-    if (csIndex > 0) {
-      const [cs] = sizes.splice(csIndex, 1);
-      sizes.unshift(cs);
-    } else if (csIndex === -1) {
-      const csFromStore = allSizes.find(
-        (s) => s.value.toUpperCase() === "CS" || s.value.toLowerCase() === "custom size"
+
+    // If sizes list is empty, default to all non-CS sizes from store
+    if (sizes.length === 0) {
+      sizes = allSizes.filter(
+        (s) => s.value.toUpperCase() !== "CS" && s.value.toLowerCase() !== "custom size"
       );
-      if (csFromStore) {
-        sizes.unshift(csFromStore);
-      } else {
-        sizes.unshift({ id: "cs_default_id", value: "CS" });
-      }
     }
 
     return sizes;
@@ -543,9 +537,7 @@ function ProductInventoryCard({
                         {productSizes.map((sz) => (
                           <th
                             key={sz.id}
-                            className={`p-3 font-bold text-center border-l border-gray-200 min-w-[70px] ${
-                              sz.value.toUpperCase() === "CS" ? "bg-amber-50 text-amber-900" : "text-gray-800"
-                            }`}
+                            className="p-3 font-bold text-center border-l border-gray-200 min-w-[70px] text-gray-800"
                           >
                             {sz.value}
                           </th>
@@ -642,11 +634,7 @@ function ProductInventoryCard({
                     return (
                       <div
                         key={sz.id}
-                        className={`p-3 border rounded-xl flex flex-col items-center gap-1.5 ${
-                          sz.value.toUpperCase() === "CS"
-                            ? "bg-amber-50/60 border-amber-200"
-                            : "bg-gray-50 border-gray-200"
-                        }`}
+                        className="p-3 border rounded-xl flex flex-col items-center gap-1.5 bg-gray-50 border-gray-200"
                       >
                         <span className="text-xs font-bold text-gray-800">{sz.value}</span>
                         <input

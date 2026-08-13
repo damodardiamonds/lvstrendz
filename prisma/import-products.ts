@@ -189,7 +189,7 @@ async function main() {
   console.log(`  ✅ ${allColors.size} colors created`);
 
   // Create size values
-  const sizes = ["XS", "S", "M", "L", "XL", "XXL", "CS"];
+  const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
   const sizeValueMap: Record<string, string> = {};
   for (let i = 0; i < sizes.length; i++) {
     const size = sizes[i];

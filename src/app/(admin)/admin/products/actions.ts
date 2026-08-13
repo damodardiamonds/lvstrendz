@@ -142,7 +142,9 @@ export async function createProduct(formData: FormData): Promise<{ error?: strin
     return { error: err?.message || "An unexpected database error occurred while creating product." };
   }
 
-  redirect("/admin/products");
+  const returnPage = (formData.get("returnPage") as string)?.trim();
+  const redirectTarget = returnPage && returnPage !== "1" ? `/admin/products?page=${returnPage}` : "/admin/products";
+  redirect(redirectTarget);
 }
 
 // Update product

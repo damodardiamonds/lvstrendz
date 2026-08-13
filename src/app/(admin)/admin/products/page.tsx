@@ -39,7 +39,14 @@ async function getProducts() {
   });
 }
 
-export default async function ProductsPage() {
+interface ProductsPageProps {
+  searchParams: Promise<{ page?: string }>;
+}
+
+export default async function ProductsPage({ searchParams }: ProductsPageProps) {
+  const { page: rawPage } = (await searchParams) || {};
+  const initialPage = Math.max(1, parseInt(rawPage || "1", 10) || 1);
+
   const [products, allCategories] = await Promise.all([
     getProducts(),
     db.category.findMany({
@@ -47,6 +54,8 @@ export default async function ProductsPage() {
       orderBy: { name: "asc" },
     }),
   ]);
+
+  const addProductHref = initialPage > 1 ? `/admin/products/new?page=${initialPage}` : "/admin/products/new";
 
   return (
     <div>
@@ -59,7 +68,7 @@ export default async function ProductsPage() {
           </p>
         </div>
         <Link
-          href="/admin/products/new"
+          href={addProductHref}
           className="flex items-center gap-2 px-4 py-2.5 bg-[#A0463E] text-white text-sm font-medium rounded-lg hover:bg-[#8a3b34] transition-colors"
         >
           <Plus size={18} />
@@ -69,7 +78,7 @@ export default async function ProductsPage() {
 
       {/* Products Table */}
       {products.length > 0 ? (
-        <ProductTable products={products} allCategories={allCategories} />
+        <ProductTable products={products} allCategories={allCategories} initialPage={initialPage} />
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
           <Package size={48} className="mx-auto text-gray-300 mb-4" />
@@ -78,7 +87,7 @@ export default async function ProductsPage() {
             Get started by adding your first product.
           </p>
           <Link
-            href="/admin/products/new"
+            href={addProductHref}
             className="inline-flex items-center gap-2 px-4 py-2 bg-[#A0463E] text-white text-sm font-medium rounded-lg hover:bg-[#8a3b34]"
           >
             <Plus size={16} />

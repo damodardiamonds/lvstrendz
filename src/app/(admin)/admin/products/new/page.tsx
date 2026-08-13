@@ -9,7 +9,14 @@ export const metadata = {
   title: "Add Product | Admin - LV's Trendz",
 };
 
-export default async function NewProductPage() {
+interface NewProductPageProps {
+  searchParams: Promise<{ page?: string }>;
+}
+
+export default async function NewProductPage({ searchParams }: NewProductPageProps) {
+  const { page } = (await searchParams) || {};
+  const backHref = page && page !== "1" ? `/admin/products?page=${page}` : "/admin/products";
+
   const [categories, attributes] = await Promise.all([
     db.category.findMany({
       orderBy: { name: "asc" },
@@ -33,7 +40,7 @@ export default async function NewProductPage() {
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <Link
-          href="/admin/products"
+          href={backHref}
           className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
         >
           <ArrowLeft size={20} className="text-gray-600" />
@@ -53,6 +60,8 @@ export default async function NewProductPage() {
         availableColors={availableColors}
         availableSizes={availableSizes}
         submitLabel="Create Product"
+        cancelHref={backHref}
+        returnPage={page}
       />
     </div>
   );

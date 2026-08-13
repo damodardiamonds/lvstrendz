@@ -44,6 +44,7 @@ interface ProductDetailsProps {
     description: string | null;
     shortDescription: string | null;
     sku: string | null;
+    weight?: number | null;
     price: any;
     compareAtPrice: any;
     displayAttributes?: string[];
@@ -89,25 +90,13 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
 
     if (sizes.length === 0) {
       sizes.push(
-        { value: 'CS', slug: 'cs' },
-        { value: 'XS', slug: 'x-small' },
-        { value: 'S', slug: 'small' },
-        { value: 'M', slug: 'medium' },
-        { value: 'L', slug: 'large' },
-        { value: 'XL', slug: 'extra-large' },
-        { value: 'XXL', slug: 'xx-large' }
+        { value: 'XS', slug: 'xs' },
+        { value: 'S', slug: 's' },
+        { value: 'M', slug: 'm' },
+        { value: 'L', slug: 'l' },
+        { value: 'XL', slug: 'xl' },
+        { value: 'XXL', slug: 'xxl' }
       );
-    }
-
-    // Ensure CS (Custom Size) is ALWAYS the first option in the sizes row
-    const csIndex = sizes.findIndex(
-      (s) => s.value.toUpperCase() === 'CS' || s.value.toLowerCase() === 'custom size' || s.slug.toLowerCase() === 'cs'
-    );
-    if (csIndex > 0) {
-      const [csItem] = sizes.splice(csIndex, 1);
-      sizes.unshift(csItem);
-    } else if (csIndex === -1) {
-      sizes.unshift({ value: 'CS', slug: 'cs' });
     }
   }
 
@@ -143,7 +132,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
   }
 
   const initialSize = showSizeSelector
-    ? (sizes.find((s) => s.value !== 'CS' && s.value !== 'Custom Size')?.value || sizes[0]?.value || '')
+    ? (sizes[0]?.value || 'XS')
     : '';
   const [selectedSize, setSelectedSize] = useState<string>(initialSize);
   const [selectedColor, setSelectedColor] = useState<string>(showColorSelector ? (colors[0]?.value || '') : '');
@@ -397,21 +386,8 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
   const handleAddToCart = () => {
     if (isOutOfStock) return;
 
-    // Validation for custom tailoring
-    if (selectedSize === 'CS' || selectedSize === 'Custom Size') {
-      if (!customBust.trim() || !customWaist.trim() || !customHip.trim() || !customShoulder.trim()) {
-        toast.error("Please fill in required measurements (Bust, Waist, Hip, Shoulder) for Custom Size tailoring.", {
-          style: {
-            background: '#3D1515',
-            color: '#fff',
-          },
-        });
-        return;
-      }
-    }
-
     // Load existing cart items
-    let cart = [];
+    let cart: any[] = [];
     try {
       cart = JSON.parse(localStorage.getItem('lvstrendz_cart') || '[]');
     } catch (e) {
@@ -426,16 +402,9 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
       sku: selectedVariant?.sku || product.sku,
       price: activePrice,
       quantity,
-      size: selectedSize === 'CS' ? 'Custom Size' : selectedSize || null,
+      size: selectedSize || null,
       color: selectedColor || null,
       image: activeImage,
-      customMeasurements: (selectedSize === 'CS' || selectedSize === 'Custom Size') ? {
-        bust: customBust.trim(),
-        waist: customWaist.trim(),
-        hip: customHip.trim(),
-        shoulder: customShoulder.trim(),
-        notes: customNotes.trim()
-      } : null
     };
 
     // Check if duplicate item exists
@@ -443,7 +412,8 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
       (item: any) =>
         item.productId === cartItem.productId &&
         item.variantId === cartItem.variantId &&
-        JSON.stringify(item.customMeasurements) === JSON.stringify(cartItem.customMeasurements)
+        item.size === cartItem.size &&
+        item.color === cartItem.color
     );
 
     if (existingIdx !== -1) {
@@ -619,9 +589,9 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
             </span>
           </div>
 
-          {/* Size Guide Link */}
-          {showSizeSelector && (
-            <div className="mb-4">
+          {/* Size Guide Link & Weight */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            {showSizeSelector && (
               <a
                 href="https://res.cloudinary.com/n5umtsub/image/upload/v1785663384/lvstrendz/brand/site-identity.jpg"
                 target="_blank"
@@ -630,8 +600,19 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
               >
                 📏 Size Guide
               </a>
-            </div>
-          )}
+            )}
+
+            {typeof product.weight === 'number' && product.weight > 0 && (
+              <div className="inline-flex items-center gap-1.5 text-xs bg-gray-50 px-2.5 py-1 rounded-md border border-gray-200">
+                <span className="font-bold text-gray-900 uppercase tracking-wider text-[10px]">Weight:</span>
+                <span className="font-extrabold text-[#A0463E]">
+                  {product.weight >= 1000
+                    ? `${(product.weight / 1000).toFixed(2).replace(/\.00$/, '')} kg (${product.weight} g)`
+                    : `${product.weight} g`}
+                </span>
+              </div>
+            )}
+          </div>
 
           {/* Short description */}
           {product.shortDescription && (
@@ -695,99 +676,10 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
                             : 'bg-white border-gray-300 text-gray-800 hover:border-black'
                         }`}
                       >
-                        {size.value === 'CS' || size.slug === 'cs' ? 'CS' : size.value}
+                        {size.value}
                       </button>
                     ))}
                   </div>
-                </div>
-                
-                {/* Custom Size Toggle Link */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedSize('CS')}
-                  className="flex items-center gap-1.5 text-xs font-extrabold text-[#111] hover:text-[#A0463E] border-none bg-transparent cursor-pointer whitespace-nowrap self-start md:self-auto"
-                >
-                  <span>Custom Size</span>
-                  <img src="https://res.cloudinary.com/n5umtsub/image/upload/v1785663381/lvstrendz/icons/sewing-machine.webp" alt="Sewing Machine" className="w-5 h-5 object-contain" />
-                </button>
-              </div>
-            )}
-
-            {/* Custom Measurements Fields */}
-            {(selectedSize === 'CS' || selectedSize === 'Custom Size') && (
-              <div className="mt-4 p-4 border border-dashed border-gray-300 rounded-lg bg-gray-50/50 space-y-3">
-                <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
-                  <div className="w-6 h-6 bg-[#A0463E]/10 rounded-full flex items-center justify-center text-[#A0463E] p-1 shrink-0">
-                    <img src="https://res.cloudinary.com/n5umtsub/image/upload/v1785663381/lvstrendz/icons/sewing-machine.webp" alt="Sewing Machine" className="w-4 h-4 object-contain" />
-                  </div>
-                  <h4 className="text-xs uppercase tracking-wider font-bold text-black">
-                    Custom Tailoring Specifications
-                  </h4>
-                </div>
-                <p className="text-[10px] text-gray-500 leading-normal">
-                  Provide your measurements below in inches. Custom tailoring adds 5–8 business days to tailoring and processing.
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-extrabold uppercase tracking-wider text-gray-600 mb-1">
-                      Bust (inch) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={customBust}
-                      onChange={(e) => setCustomBust(e.target.value)}
-                      placeholder="Bust (inch)"
-                      className="w-full px-3 py-2 border border-gray-205 rounded text-xs bg-white focus:outline-none focus:border-[#A0463E]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold uppercase tracking-wider text-gray-600 mb-1">
-                      Waist (inch) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={customWaist}
-                      onChange={(e) => setCustomWaist(e.target.value)}
-                      placeholder="Waist (inch)"
-                      className="w-full px-3 py-2 border border-gray-205 rounded text-xs bg-white focus:outline-none focus:border-[#A0463E]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold uppercase tracking-wider text-gray-600 mb-1">
-                      Hip (inch) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={customHip}
-                      onChange={(e) => setCustomHip(e.target.value)}
-                      placeholder="Hip (inch)"
-                      className="w-full px-3 py-2 border border-gray-205 rounded text-xs bg-white focus:outline-none focus:border-[#A0463E]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold uppercase tracking-wider text-gray-600 mb-1">
-                      Shoulder (inch) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={customShoulder}
-                      onChange={(e) => setCustomShoulder(e.target.value)}
-                      placeholder="Shoulder (inch)"
-                      className="w-full px-3 py-2 border border-gray-205 rounded text-xs bg-white focus:outline-none focus:border-[#A0463E]"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-gray-600 mb-1">
-                    Special Note (optional)
-                  </label>
-                  <textarea
-                    value={customNotes}
-                    onChange={(e) => setCustomNotes(e.target.value)}
-                    placeholder="Special Note (optional)"
-                    rows={2}
-                    className="w-full px-3 py-2 border border-gray-205 rounded text-xs bg-white focus:outline-none focus:border-[#A0463E] resize-none"
-                  />
                 </div>
               </div>
             )}
@@ -851,16 +743,27 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
           </div>
 
           {/* Long Description (Collapse/Expand style or standard) */}
-          {product.description && (
+          {(product.description || (typeof product.weight === 'number' && product.weight > 0)) && (
             <div className="border-t border-gray-100 pt-6 mt-2">
               <h3 className="text-xs uppercase tracking-wider font-semibold text-black mb-4">
                 Product Specifications
               </h3>
+
+              {typeof product.weight === 'number' && product.weight > 0 && (
+                <div className="flex items-center gap-3 text-xs py-2 px-3 bg-gray-50/80 rounded-lg border border-gray-100 mb-4 max-w-xs">
+                  <span className="font-bold text-black uppercase tracking-wider text-[10px]">Item Weight:</span>
+                  <span className="text-gray-900 font-bold">
+                    {product.weight >= 1000
+                      ? `${(product.weight / 1000).toFixed(2).replace(/\.00$/, '')} kg (${product.weight} g)`
+                      : `${product.weight} g`}
+                  </span>
+                </div>
+              )}
               <div 
                 className="prose prose-sm text-gray-700 leading-relaxed max-w-none text-xs space-y-4 font-normal"
                 dangerouslySetInnerHTML={{
                   __html: (() => {
-                    let cleaned = product.description
+                    let cleaned = (product.description || '')
                       .replace(/\\n/g, '\n')
                       .replace(/\\r/g, '')
                       .replace(/\s*data-path-to-node="[^"]*"/gi, '')

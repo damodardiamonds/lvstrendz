@@ -36,8 +36,9 @@ async function uploadToCloudinary(file: File, folder: string): Promise<string> {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder: `lvstrendz/${folder}`,
-        resource_type: "auto",
+        resource_type: "video", // Explicitly required for video files
         public_id: uniquePublicId,
+        chunk_size: 6000000,
       },
       (error, result) => {
         if (error) {

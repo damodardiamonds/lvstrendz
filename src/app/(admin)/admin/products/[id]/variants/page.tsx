@@ -9,10 +9,13 @@ import AttributeManager from "@/app/(admin)/admin/attributes/components/Attribut
 
 interface VariantsPageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ page?: string }>;
 }
 
-export default async function VariantsPage({ params }: VariantsPageProps) {
+export default async function VariantsPage({ params, searchParams }: VariantsPageProps) {
   const { id } = await params;
+  const { page } = (await searchParams) || {};
+  const backHref = `/admin/products/${id}${page ? `?page=${page}` : ""}`;
 
   const product = await db.product.findUnique({
     where: { id },
@@ -53,7 +56,7 @@ export default async function VariantsPage({ params }: VariantsPageProps) {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
-          href={`/admin/products/${id}`}
+          href={backHref}
           className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
         >
           <ArrowLeft size={20} className="text-gray-600" />

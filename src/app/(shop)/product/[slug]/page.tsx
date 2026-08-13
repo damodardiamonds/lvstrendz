@@ -62,6 +62,7 @@ export default async function ProductPage({ params }: PageProps) {
     description: product.description,
     shortDescription: product.shortDescription,
     sku: product.sku,
+    weight: product.weight ? Number(product.weight) : null,
     price: product.price.toString(),
     compareAtPrice: product.compareAtPrice ? product.compareAtPrice.toString() : null,
     displayAttributes: product.displayAttributes || ["size", "color"],

@@ -4,7 +4,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Video, Upload, Trash2, X, CheckCircle } from "lucide-react";
-import { uploadProductVideo, deleteProductVideo } from "../video-actions";
+import { deleteProductVideo } from "../video-actions";
 
 interface ProductVideo {
   id: string;
@@ -56,10 +56,15 @@ export default function VideoUploader({ productId, videos }: VideoUploaderProps)
       formData.set("file", selectedFile);
       formData.set("title", title);
 
-      const result = await uploadProductVideo(productId, formData);
+      const res = await fetch(`/api/admin/products/${productId}/video`, {
+        method: "POST",
+        body: formData,
+      });
 
-      if (result.error) {
-        setError(result.error);
+      const result = await res.json();
+
+      if (!res.ok || result.error) {
+        setError(result.error || "Video upload failed. Please try again.");
       } else {
         setSelectedFile(null);
         setPreview(null);

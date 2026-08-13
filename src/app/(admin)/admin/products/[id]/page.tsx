@@ -12,12 +12,14 @@ export const metadata = {
 
 interface EditProductPageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ updated?: string }>;
+  searchParams: Promise<{ updated?: string; page?: string }>;
 }
 
 export default async function EditProductPage({ params, searchParams }: EditProductPageProps) {
   const { id } = await params;
-  const { updated } = await searchParams;
+  const { updated, page } = (await searchParams) || {};
+
+  const backHref = page && page !== "1" ? `/admin/products?page=${page}` : "/admin/products";
 
   const [product, categories, attributes] = await Promise.all([
     db.product.findUnique({
@@ -79,7 +81,7 @@ export default async function EditProductPage({ params, searchParams }: EditProd
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <Link
-          href="/admin/products"
+          href={backHref}
           className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
         >
           <ArrowLeft size={20} className="text-gray-600" />
@@ -100,7 +102,7 @@ export default async function EditProductPage({ params, searchParams }: EditProd
             </p>
           </div>
           <Link
-            href={`/admin/products/${id}/variants`}
+            href={`/admin/products/${id}/variants${page ? `?page=${page}` : ""}`}
             className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
           >
             Manage
@@ -114,7 +116,7 @@ export default async function EditProductPage({ params, searchParams }: EditProd
             </p>
           </div>
           <Link
-            href={`/admin/products/${id}/images`}
+            href={`/admin/products/${id}/images${page ? `?page=${page}` : ""}`}
             className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
           >
             Manage
@@ -131,6 +133,7 @@ export default async function EditProductPage({ params, searchParams }: EditProd
         availableSizes={availableSizes}
         action={updateWithId}
         submitLabel="Update Product"
+        cancelHref={backHref}
       />
     </div>
   );

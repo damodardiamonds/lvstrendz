@@ -66,6 +66,8 @@ interface ProductFormProps {
   availableSizes?: SizeOption[];
   action: (formData: FormData) => Promise<{ error?: string } | void>;
   submitLabel: string;
+  cancelHref?: string;
+  returnPage?: string;
 }
 
 export default function ProductForm({
@@ -76,6 +78,8 @@ export default function ProductForm({
   availableSizes = [],
   action,
   submitLabel,
+  cancelHref = "/admin/products",
+  returnPage,
 }: ProductFormProps) {
   const [name, setName] = useState(product?.name || "");
   const [slug, setSlug] = useState(product?.slug || "");
@@ -938,11 +942,13 @@ export default function ProductForm({
         </div>
       </div>
 
+      {returnPage && <input type="hidden" name="returnPage" value={returnPage} />}
+
       {/* Submit */}
       <div className="flex items-center gap-4">
         <SubmitButton label={submitLabel} isSubmitting={isSubmitting} />
         <Link
-          href="/admin/products"
+          href={cancelHref}
           className="px-6 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
         >
           Cancel
