@@ -351,11 +351,11 @@ export default function DiscountsAndTimerPage() {
       const res = await fetch("/api/admin/gift-cards", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: card.id, isActive: !card.isActive }),
+        body: JSON.stringify({ id: card.id, balance: card.isRedeemed ? card.value : 0 }),
       });
       const data = await res.json();
       if (data.success) {
-        toast.success(`Gift Card ${!card.isActive ? "activated" : "deactivated"}`);
+        toast.success(`Gift Card status updated`);
         fetchGiftCards();
       } else {
         toast.error(data.error);
@@ -685,17 +685,16 @@ export default function DiscountsAndTimerPage() {
                   <thead className="bg-gray-50 text-gray-600 font-semibold border-b border-gray-100">
                     <tr>
                       <th className="py-3 px-4">Gift Card Code</th>
-                      <th className="py-3 px-4">Initial Value</th>
+                      <th className="py-3 px-4">Face Value</th>
                       <th className="py-3 px-4">Current Balance</th>
-                      <th className="py-3 px-4">Expiry Date</th>
+                      <th className="py-3 px-4">Purchased By</th>
                       <th className="py-3 px-4">Status</th>
                       <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {filteredGiftCards.map((card) => {
-                      const isExpired = card.expiresAt && new Date(card.expiresAt) < new Date();
-                      const isDepleted = Number(card.balance) <= 0;
+                      const isDepleted = Number(card.balance) <= 0 || card.isRedeemed;
                       return (
                         <tr key={card.id} className="hover:bg-gray-50/80 transition">
                           <td className="py-3.5 px-4 font-mono font-bold text-gray-900">
@@ -717,36 +716,30 @@ export default function DiscountsAndTimerPage() {
                             </div>
                           </td>
                           <td className="py-3.5 px-4 font-semibold text-gray-700">
-                            ₹{Number(card.initialValue).toFixed(2)}
+                            ₹{Number(card.value).toFixed(2)}
                           </td>
                           <td className="py-3.5 px-4 font-bold text-emerald-700">
                             ₹{Number(card.balance).toFixed(2)}
                           </td>
                           <td className="py-3.5 px-4 text-gray-600">
-                            {card.expiresAt ? (
-                              <span className={isExpired ? "text-red-600 font-semibold" : ""}>
-                                {new Date(card.expiresAt).toLocaleDateString()}
-                              </span>
-                            ) : (
-                              "No Expiry"
-                            )}
+                            {card.purchasedBy || "N/A"}
                           </td>
                           <td className="py-3.5 px-4">
                             <button
                               onClick={() => handleToggleGiftCardActive(card)}
                               className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition ${
-                                card.isActive && !isExpired && !isDepleted
+                                !isDepleted
                                   ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
                                   : "bg-gray-100 text-gray-500 border border-gray-200 hover:bg-gray-200"
                               }`}
                             >
-                              {card.isActive && !isExpired && !isDepleted ? (
+                              {!isDepleted ? (
                                 <>
                                   <CheckCircle2 size={12} /> Active
                                 </>
                               ) : (
                                 <>
-                                  <XCircle size={12} /> {isDepleted ? "Used" : "Inactive"}
+                                  <XCircle size={12} /> Redeemed
                                 </>
                               )}
                             </button>
@@ -1169,16 +1162,16 @@ export default function DiscountsAndTimerPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">
-                    Initial Value (₹) *
+                    Face Value (₹) *
                   </label>
                   <input
                     type="number"
-                    step="0.01"
+                    step="1"
                     required
                     placeholder="e.g. 1000"
-                    value={giftCardForm.initialValue}
+                    value={giftCardForm.value}
                     onChange={(e) =>
-                      setGiftCardForm({ ...giftCardForm, initialValue: e.target.value })
+                      setGiftCardForm({ ...giftCardForm, value: e.target.value })
                     }
                     className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#A0463E]"
                   />
@@ -1190,8 +1183,8 @@ export default function DiscountsAndTimerPage() {
                   </label>
                   <input
                     type="number"
-                    step="0.01"
-                    placeholder="Same as initial if new"
+                    step="1"
+                    placeholder="Same as face value if new"
                     value={giftCardForm.balance}
                     onChange={(e) =>
                       setGiftCardForm({ ...giftCardForm, balance: e.target.value })
@@ -1203,31 +1196,17 @@ export default function DiscountsAndTimerPage() {
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">
-                  Expiration Date
+                  Purchased By (Email)
                 </label>
                 <input
-                  type="datetime-local"
-                  value={giftCardForm.expiresAt}
+                  type="email"
+                  value={giftCardForm.purchasedBy}
                   onChange={(e) =>
-                    setGiftCardForm({ ...giftCardForm, expiresAt: e.target.value })
+                    setGiftCardForm({ ...giftCardForm, purchasedBy: e.target.value })
                   }
+                  placeholder="admin@lvstrendz.com"
                   className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#A0463E]"
                 />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="giftCardActive"
-                  checked={giftCardForm.isActive}
-                  onChange={(e) =>
-                    setGiftCardForm({ ...giftCardForm, isActive: e.target.checked })
-                  }
-                  className="w-4 h-4 text-[#A0463E] focus:ring-[#A0463E] rounded"
-                />
-                <label htmlFor="giftCardActive" className="text-sm text-gray-700 font-medium">
-                  Active immediately
-                </label>
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">

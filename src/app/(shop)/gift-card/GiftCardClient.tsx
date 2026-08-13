@@ -1,46 +1,87 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCurrency } from "@/context/CurrencyContext";
 import toast from "react-hot-toast";
 import {
   Gift,
   User,
   Mail,
-  MessageSquare,
+  Phone,
   Sparkles,
   CheckCircle,
-  Copy,
   CreditCard,
   Lock,
   ShieldCheck,
   Loader2,
+  Clock,
+  Flame,
+  AlertCircle,
+  ChevronRight,
   ArrowRight,
-  RefreshCw,
-  Heart,
 } from "lucide-react";
 
+interface GiftCardOffer {
+  id: string;
+  name: string;
+  faceValue: number;
+  sellingPrice: number;
+  isActive: boolean;
+  startDate: string;
+  endDate: string;
+  maxPurchases: number | null;
+  totalSold: number;
+  perUserLimit: number;
+  description: string | null;
+}
+
 export default function GiftCardClient() {
+  const router = useRouter();
   const { format } = useCurrency();
 
-  // Mode: "myself" | "gift"
+  // Offers State
+  const [offers, setOffers] = useState<GiftCardOffer[]>([]);
+  const [selectedOffer, setSelectedOffer] = useState<GiftCardOffer | null>(null);
+  const [loadingOffers, setLoadingOffers] = useState(true);
+
+  // Purchase Mode: "myself" | "gift"
   const [purchaseMode, setPurchaseMode] = useState<"myself" | "gift">("myself");
 
-  // Form inputs
+  // Form Inputs
   const [buyerEmail, setBuyerEmail] = useState("");
   const [senderName, setSenderName] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [recipientEmail, setRecipientEmail] = useState("");
+  const [recipientPhone, setRecipientPhone] = useState("");
   const [personalMessage, setPersonalMessage] = useState("");
 
-  // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [createdCard, setCreatedCard] = useState<any | null>(null);
-  const [copied, setCopied] = useState(false);
+
+  // Fetch active offers
+  useEffect(() => {
+    async function loadActiveOffers() {
+      setLoadingOffers(true);
+      try {
+        const res = await fetch("/api/gift-cards/active-offers");
+        const data = await res.json();
+        if (data.success && data.offers && data.offers.length > 0) {
+          setOffers(data.offers);
+          setSelectedOffer(data.offers[0]); // Select first offer by default
+        } else {
+          setOffers([]);
+        }
+      } catch (e) {
+        console.error("Error loading active gift card offers:", e);
+        setOffers([]);
+      } finally {
+        setLoadingOffers(false);
+      }
+    }
+    loadActiveOffers();
+  }, []);
 
   const validateForm = () => {
     const errs: Record<string, string> = {};
@@ -56,6 +97,9 @@ export default function GiftCardClient() {
       if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
         errs.recipientEmail = "Please enter a valid recipient email address.";
       }
+      if (recipientEmail.trim().toLowerCase() === buyerEmail.trim().toLowerCase()) {
+        errs.recipientEmail = "Recipient email cannot be your own. Select 'Buy for myself' instead.";
+      }
       if (personalMessage.length > 200) {
         errs.personalMessage = "Message cannot exceed 200 characters.";
       }
@@ -67,26 +111,33 @@ export default function GiftCardClient() {
 
   const handlePurchase = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedOffer) {
+      toast.error("Please select a gift card offer.");
+      return;
+    }
+
     if (!validateForm()) {
-      toast.error("Please fill in all required fields correctly.", {
+      toast.error("Please correct errors in the form before proceeding.", {
         style: { background: "#3D1515", color: "#fff" },
       });
       return;
     }
 
     setIsSubmitting(true);
-    toast.loading("Processing payment & generating gift card...", { id: "gc-process" });
+    toast.loading("Processing PayGlocal payment...", { id: "gc-process" });
 
     try {
-      // 1. In production, this can initiate PayGlocal payment gateway for ₹500
-      // For immediate purchase API integration:
       const payload = {
+        offerId: selectedOffer.id,
+        email: buyerEmail.trim(),
         purchasedBy: buyerEmail.trim(),
         senderName: senderName.trim() || undefined,
         isGift: purchaseMode === "gift",
         recipientName: purchaseMode === "gift" ? recipientName.trim() : undefined,
         recipientEmail: purchaseMode === "gift" ? recipientEmail.trim() : undefined,
+        recipientPhone: purchaseMode === "gift" && recipientPhone ? recipientPhone.trim() : undefined,
         personalMessage: purchaseMode === "gift" ? personalMessage.trim() : undefined,
+        sharedVia: purchaseMode === "gift" ? "email" : "copy",
       };
 
       const res = await fetch("/api/gift-cards/purchase", {
@@ -97,13 +148,24 @@ export default function GiftCardClient() {
 
       const data = await res.json();
 
-      if (res.ok && data.success) {
-        toast.success("Gift Card generated and emailed successfully!", {
+      if (res.ok && data.success && data.giftCard) {
+        toast.success("Gift Card generated successfully!", {
           id: "gc-process",
-          duration: 4000,
+          duration: 3000,
           style: { background: "#1a4223", color: "#fff" },
         });
-        setCreatedCard(data.giftCard);
+
+        const gc = data.giftCard;
+        const query = new URLSearchParams({
+          code: gc.code,
+          value: String(gc.value),
+          senderName: gc.senderName || senderName || "",
+          recipientName: gc.recipientName || "",
+          recipientEmail: gc.recipientEmail || "",
+          recipientPhone: gc.recipientPhone || "",
+        }).toString();
+
+        router.push(`/gift-card/success?${query}`);
       } else {
         throw new Error(data.error || "Failed to generate gift card");
       }
@@ -118,28 +180,17 @@ export default function GiftCardClient() {
     }
   };
 
-  const handleCopyCode = () => {
-    if (createdCard?.code) {
-      navigator.clipboard.writeText(createdCard.code);
-      setCopied(true);
-      toast.success("Gift card code copied to clipboard!");
-      setTimeout(() => setCopied(false), 3000);
-    }
-  };
-
-  const resetForm = () => {
-    setCreatedCard(null);
-    setBuyerEmail("");
-    setSenderName("");
-    setRecipientName("");
-    setRecipientEmail("");
-    setPersonalMessage("");
-    setErrors({});
+  // Helper calculation for days remaining
+  const getDaysRemaining = (endDateStr: string) => {
+    const end = new Date(endDateStr).getTime();
+    const now = Date.now();
+    const diffDays = Math.ceil((end - now) / (1000 * 3600 * 24));
+    return Math.max(0, diffDays);
   };
 
   return (
     <main className="bg-white min-h-screen pb-20">
-      {/* Header section */}
+      {/* Header Banner */}
       <section className="bg-gray-50 py-10 border-b border-gray-100 mb-12">
         <div className="max-w-[1470px] mx-auto px-4 md:px-[45px]">
           <div className="text-xs uppercase tracking-wider text-gray-500 mb-2">
@@ -147,202 +198,177 @@ export default function GiftCardClient() {
             <span className="mx-2">/</span>
             <Link href="/shop" className="hover:text-black">Shop</Link>
             <span className="mx-2">/</span>
-            <span className="text-gray-800 font-semibold">Gift Card</span>
+            <span className="text-gray-800 font-semibold">Gift Card Offers</span>
           </div>
           <h1 className="text-2xl md:text-4xl font-extrabold text-black uppercase tracking-wide flex items-center gap-3">
-            LV&apos;s Trendz Digital Gift Card
+            LV&apos;s Trendz Digital Gift Cards
             <span className="text-xs font-bold text-[#A0463E] bg-red-50 px-3 py-1 rounded-full border border-red-100 uppercase tracking-widest normal-case">
-              50% OFF Limited Offer
+              Limited Edition Offers
             </span>
           </h1>
         </div>
       </section>
 
-      {/* Main Container */}
       <div className="max-w-[1470px] mx-auto px-4 md:px-[45px]">
-        {createdCard ? (
-          /* ================= SUCCESS STATE ================= */
-          <div className="max-w-2xl mx-auto bg-white border border-gray-150 rounded-3xl p-8 md:p-12 shadow-xl text-center space-y-8 animate-fadeIn">
-            <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 mx-auto border-4 border-emerald-100">
-              <CheckCircle size={44} />
+        {loadingOffers ? (
+          <div className="flex flex-col items-center justify-center py-20 bg-gray-50 rounded-3xl border border-gray-100 space-y-3">
+            <Loader2 size={36} className="animate-spin text-[#A0463E]" />
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+              Checking available gift card offers...
+            </p>
+          </div>
+        ) : offers.length === 0 ? (
+          /* Empty State when no active offers */
+          <div className="max-w-xl mx-auto bg-gray-50 border border-gray-200 rounded-3xl p-12 text-center space-y-6 my-10 shadow-xs">
+            <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center text-[#A0463E] mx-auto">
+              <Gift size={40} />
             </div>
-
-            <div>
-              <span className="text-xs font-extrabold uppercase tracking-widest text-[#A0463E] bg-red-50 px-3 py-1 rounded-full border border-red-100">
-                Payment Successful
-              </span>
-              <h2 className="text-2xl md:text-3xl font-black text-gray-900 mt-3 mb-2 uppercase tracking-wide">
-                {createdCard.isGift ? "Gift Card Sent!" : "Your Gift Card is Ready!"}
+            <div className="space-y-2">
+              <h2 className="text-xl md:text-2xl font-black text-gray-900 uppercase tracking-wide">
+                No Gift Card Offers Available Right Now 🎁
               </h2>
-              <p className="text-sm text-gray-500 max-w-md mx-auto">
-                {createdCard.isGift
-                  ? `We've emailed the ₹1,000 gift card directly to ${createdCard.recipientEmail} with your personal message!`
-                  : `We've emailed your ₹1,000 gift card code to ${createdCard.purchasedBy}.`}
+              <p className="text-xs text-gray-500 leading-relaxed font-medium">
+                Our promotional gift card offers are currently sold out or ended. Please check back soon or explore our luxury fashion collection!
               </p>
             </div>
-
-            {/* Render Card Visual */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#18181b] via-[#27272a] to-[#3f3f46] p-8 text-white shadow-2xl border border-gray-700 text-left space-y-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-xl font-black tracking-widest uppercase text-white">LVS TRENDZ</h3>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-widest">Digital Luxury Gift Card</p>
-                </div>
-                <span className="bg-[#A0463E] text-white font-extrabold text-xs px-3 py-1 rounded-full uppercase tracking-wider shadow">
-                  ₹1,000 VALUE
-                </span>
-              </div>
-
-              <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 text-center space-y-1">
-                <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
-                  Gift Card Code
-                </p>
-                <div className="text-2xl md:text-3xl font-black font-mono text-[#fb7185] tracking-widest">
-                  {createdCard.code}
-                </div>
-              </div>
-
-              <div className="flex justify-between items-end text-xs text-gray-300 pt-2 border-t border-white/10">
-                <div>
-                  <span className="text-[9px] uppercase tracking-wider text-gray-400 block">Balance</span>
-                  <span className="font-bold text-emerald-400">₹1,000</span>
-                </div>
-                {createdCard.recipientName && (
-                  <div className="text-right">
-                    <span className="text-[9px] uppercase tracking-wider text-gray-400 block">For</span>
-                    <span className="font-bold text-white">{createdCard.recipientName}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-2">
-              <button
-                onClick={handleCopyCode}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#A0463E] hover:bg-black text-white text-xs font-extrabold uppercase tracking-widest py-3.5 px-8 rounded-xl transition-all shadow-md"
-              >
-                {copied ? <CheckCircle size={16} /> : <Copy size={16} />}
-                {copied ? "Code Copied!" : "Copy Code"}
-              </button>
-
-              <Link
-                href="/shop"
-                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white text-xs font-extrabold uppercase tracking-widest py-3.5 px-8 rounded-xl transition-all shadow-sm"
-              >
-                Start Shopping <ArrowRight size={16} />
-              </Link>
-            </div>
-
-            <button
-              onClick={resetForm}
-              className="text-xs font-bold text-gray-500 hover:text-black uppercase tracking-wider underline block mx-auto pt-2"
+            <Link
+              href="/shop"
+              className="bg-[#A0463E] hover:bg-black text-white text-xs font-extrabold uppercase tracking-widest py-4 px-8 rounded-xl transition-all inline-flex items-center gap-2 shadow-sm"
             >
-              Buy Another Gift Card
-            </button>
+              Explore Shop Collection <ArrowRight size={16} />
+            </Link>
           </div>
         ) : (
-          /* ================= PRODUCT DISPLAY & FORM ================= */
+          /* Active Offers Grid & Checkout Form */
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
             
-            {/* Left Column: Visual Card Showcase (5 columns) */}
+            {/* Left Column: Offers Showcase & Selectors (5 columns) */}
             <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-8">
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#18181b] via-[#27272a] to-[#09090b] p-8 md:p-10 text-white shadow-2xl border border-gray-800 space-y-10 group">
-                
-                {/* Background decorative glowing orb */}
-                <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full bg-[#A0463E]/20 blur-3xl pointer-events-none group-hover:bg-[#A0463E]/30 transition-all duration-700" />
+              <div className="space-y-3">
+                <h3 className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">
+                  1. Choose Your Gift Card Offer
+                </h3>
 
-                {/* Top header */}
-                <div className="flex justify-between items-start relative z-10">
-                  <div>
-                    <h2 className="text-2xl font-black tracking-widest uppercase text-white">LVS TRENDZ</h2>
-                    <p className="text-[11px] text-gray-400 uppercase tracking-widest">COUTURE GIFT CARD</p>
-                  </div>
-                  <span className="bg-gradient-to-r from-[#A0463E] to-[#7A312B] text-white font-black text-xs px-3.5 py-1.5 rounded-full uppercase tracking-wider shadow-lg border border-red-400/30">
-                    ₹1,000 VALUE
-                  </span>
-                </div>
+                <div className="space-y-4">
+                  {offers.map((offer) => {
+                    const isSelected = selectedOffer?.id === offer.id;
+                    const remainingStock = offer.maxPurchases !== null ? offer.maxPurchases - offer.totalSold : null;
+                    const isLowStock = remainingStock !== null && remainingStock <= Math.max(5, Math.ceil(offer.maxPurchases! * 0.2));
+                    const daysLeft = getDaysRemaining(offer.endDate);
 
-                {/* Center graphic chip */}
-                <div className="relative z-10 flex items-center justify-between">
-                  <div className="w-12 h-9 rounded-md bg-gradient-to-tr from-amber-200 via-amber-400 to-yellow-600 opacity-90 border border-amber-300 shadow-inner flex items-center justify-center">
-                    <div className="w-8 h-5 border border-amber-800/40 rounded-xs" />
-                  </div>
-                  <Sparkles size={28} className="text-[#A0463E] animate-pulse" />
-                </div>
+                    return (
+                      <div
+                        key={offer.id}
+                        onClick={() => setSelectedOffer(offer)}
+                        className={`cursor-pointer rounded-2xl p-6 transition-all border-2 relative overflow-hidden ${
+                          isSelected
+                            ? "bg-gradient-to-br from-[#18181b] via-[#27272a] to-[#09090b] text-white border-[#A0463E] shadow-xl"
+                            : "bg-white text-gray-900 border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        {/* Selected Radio Indicator */}
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                              isSelected ? "border-[#A0463E] bg-[#A0463E]" : "border-gray-400"
+                            }`}>
+                              {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                            </div>
+                            <h4 className={`text-base font-extrabold tracking-wide uppercase ${isSelected ? "text-white" : "text-gray-900"}`}>
+                              {offer.name}
+                            </h4>
+                          </div>
 
-                {/* Bottom detail */}
-                <div className="relative z-10 space-y-2 border-t border-white/10 pt-4">
-                  <div className="flex justify-between items-end">
-                    <div>
-                      <p className="text-[10px] text-gray-400 uppercase tracking-widest">BUY PRICE</p>
-                      <p className="text-3xl font-black text-white">₹500</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] text-gray-400 uppercase tracking-widest">MRP VALUE</p>
-                      <p className="text-lg font-bold text-gray-400 line-through">₹1,000</p>
-                    </div>
-                  </div>
-                  <p className="text-[11px] text-emerald-400 font-semibold pt-1 flex items-center gap-1">
-                    <CheckCircle size={14} /> Never Expires • Usable on any order
-                  </p>
+                          {/* Low Stock Indicator */}
+                          {isLowStock && (
+                            <span className="bg-red-500 text-white text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
+                              <Flame size={10} /> Only {remainingStock} left!
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Description */}
+                        {offer.description && (
+                          <p className={`text-xs mb-4 font-medium ${isSelected ? "text-gray-300" : "text-gray-500"}`}>
+                            {offer.description}
+                          </p>
+                        )}
+
+                        {/* Price Breakdown */}
+                        <div className="flex items-baseline justify-between pt-2 border-t border-gray-200/20">
+                          <div>
+                            <span className={`text-[10px] uppercase tracking-wider font-bold block ${isSelected ? "text-gray-400" : "text-gray-400"}`}>
+                              YOU PAY
+                            </span>
+                            <span className={`text-2xl font-black ${isSelected ? "text-[#fb7185]" : "text-[#A0463E]"}`}>
+                              ₹{offer.sellingPrice.toLocaleString("en-IN")}
+                            </span>
+                          </div>
+
+                          <div className="text-right">
+                            <span className={`text-[10px] uppercase tracking-wider font-bold block ${isSelected ? "text-gray-400" : "text-gray-400"}`}>
+                              GET VALUE
+                            </span>
+                            <span className={`text-lg font-bold line-through ${isSelected ? "text-gray-400" : "text-gray-400"}`}>
+                              ₹{offer.faceValue.toLocaleString("en-IN")}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Offer Countdown & Limit Badges */}
+                        <div className={`mt-3 pt-2 border-t flex flex-wrap justify-between items-center text-[10px] font-bold ${
+                          isSelected ? "border-white/10 text-gray-300" : "border-gray-100 text-gray-500"
+                        }`}>
+                          <span className="flex items-center gap-1 text-emerald-400">
+                            <Clock size={12} /> {daysLeft > 0 ? `Ends in ${daysLeft} days` : "Expires today"}
+                          </span>
+                          <span>Max {offer.perUserLimit} per user</span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Benefits feature list */}
-              <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 space-y-4">
-                <h3 className="text-xs font-extrabold text-black uppercase tracking-wider">
-                  Why Choose LV&apos;s Trendz Gift Card?
-                </h3>
-                <ul className="space-y-3 text-xs text-gray-600 font-medium">
-                  <li className="flex items-start gap-2.5">
-                    <span className="w-5 h-5 rounded-full bg-[#A0463E]/10 text-[#A0463E] flex items-center justify-center shrink-0 mt-0.5 font-bold">✓</span>
-                    <span><strong>50% Instant Discount:</strong> Pay ₹500 today and get ₹1,000 worth of shopping credits.</span>
+              {/* Guarantees Box */}
+              <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5 space-y-3 text-xs text-gray-600 font-medium">
+                <h4 className="font-extrabold text-black uppercase tracking-wider text-[11px]">
+                  Gift Card Benefits
+                </h4>
+                <ul className="space-y-2">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle size={14} className="text-[#A0463E]" /> Direct Email & WhatsApp delivery
                   </li>
-                  <li className="flex items-start gap-2.5">
-                    <span className="w-5 h-5 rounded-full bg-[#A0463E]/10 text-[#A0463E] flex items-center justify-center shrink-0 mt-0.5 font-bold">✓</span>
-                    <span><strong>Instant Digital Email Delivery:</strong> Directly emailed to you or your gift recipient.</span>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle size={14} className="text-[#A0463E]" /> Partial redemption supported at checkout
                   </li>
-                  <li className="flex items-start gap-2.5">
-                    <span className="w-5 h-5 rounded-full bg-[#A0463E]/10 text-[#A0463E] flex items-center justify-center shrink-0 mt-0.5 font-bold">✓</span>
-                    <span><strong>Partial Redemption Supported:</strong> Use ₹600 today and keep ₹400 for your next purchase!</span>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle size={14} className="text-[#A0463E]" /> Valid on all luxury apparel & couture
                   </li>
                 </ul>
               </div>
             </div>
 
-            {/* Right Column: Form & Purchase Controls (7 columns) */}
+            {/* Right Column: Buyer / Recipient Form (7 columns) */}
             <div className="lg:col-span-7 space-y-8">
               
-              {/* Offer Badge & Pricing */}
-              <div className="border-b border-gray-150 pb-6 space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="bg-[#A0463E] text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded">
-                    EXCLUSIVE DEAL
-                  </span>
-                  <span className="text-xs text-emerald-700 font-extrabold bg-emerald-50 px-2.5 py-1 rounded border border-emerald-100">
-                    Instant 50% Savings
-                  </span>
-                </div>
-
-                <h2 className="text-2xl md:text-3xl font-black text-black uppercase tracking-wide">
-                  ₹1,000 Gift Card
+              <div className="border-b border-gray-150 pb-6 space-y-2">
+                <h2 className="text-xs font-extrabold text-[#A0463E] uppercase tracking-wider">
+                  2. Select Delivery Mode & Complete Purchase
                 </h2>
-
-                <div className="flex items-baseline gap-3">
-                  <span className="text-3xl md:text-4xl font-black text-[#A0463E]">
-                    ₹500
-                  </span>
-                  <span className="text-xl font-bold text-gray-400 line-through">
-                    ₹1,000
-                  </span>
-                  <span className="text-xs font-extrabold text-emerald-600">
-                    (You Save ₹500)
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500 leading-relaxed font-medium">
-                  Treat yourself or send a thoughtful fashion gift to family and friends. Redeemable at checkout on all apparel and accessories across LV&apos;s Trendz.
-                </p>
+                {selectedOffer && (
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-3xl font-black text-black">
+                      ₹{selectedOffer.sellingPrice.toLocaleString("en-IN")}
+                    </span>
+                    <span className="text-xl font-bold text-gray-400 line-through">
+                      ₹{selectedOffer.faceValue.toLocaleString("en-IN")}
+                    </span>
+                    <span className="text-xs font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-100">
+                      Save ₹{(selectedOffer.faceValue - selectedOffer.sellingPrice).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <form onSubmit={handlePurchase} className="space-y-6">
@@ -387,7 +413,7 @@ export default function GiftCardClient() {
                   </div>
                 </div>
 
-                {/* Purchase Fields */}
+                {/* Form Fields Container */}
                 <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-2xs space-y-4">
                   
                   {/* Buyer Email */}
@@ -403,7 +429,7 @@ export default function GiftCardClient() {
                         value={buyerEmail}
                         onChange={(e) => setBuyerEmail(e.target.value)}
                         placeholder="you@example.com"
-                        className={`w-full pl-10 pr-4 py-3 rounded-xl border text-sm font-semibold focus:ring-2 focus:ring-[#A0463E] focus:border-transparent outline-none transition ${
+                        className={`w-full pl-10 pr-4 py-3 rounded-xl border text-sm font-semibold focus:ring-2 focus:ring-[#A0463E] outline-none transition ${
                           errors.buyerEmail ? "border-red-500" : "border-gray-200"
                         }`}
                       />
@@ -412,11 +438,11 @@ export default function GiftCardClient() {
                       <p className="text-red-500 text-xs font-bold mt-1">{errors.buyerEmail}</p>
                     )}
                     <p className="text-[11px] text-gray-400 mt-1">
-                      Payment receipt & transaction details will be sent here.
+                      Order receipt and tracking confirmation will be sent here.
                     </p>
                   </div>
 
-                  {/* Sender Name (Optional) */}
+                  {/* Sender Name */}
                   <div>
                     <label htmlFor="senderName" className="block text-xs font-extrabold text-gray-800 uppercase tracking-wider mb-2">
                       Your Name (Sender Name) <span className="text-gray-400 font-normal">(Optional)</span>
@@ -427,16 +453,16 @@ export default function GiftCardClient() {
                       value={senderName}
                       onChange={(e) => setSenderName(e.target.value)}
                       placeholder="e.g. Alex"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-semibold focus:ring-2 focus:ring-[#A0463E] focus:border-transparent outline-none transition"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-semibold focus:ring-2 focus:ring-[#A0463E] outline-none transition"
                     />
                   </div>
 
-                  {/* Additional Recipient Fields when "Send as a Gift" is active */}
+                  {/* Recipient Fields when "Send as a Gift" */}
                   {purchaseMode === "gift" && (
                     <div className="pt-4 border-t border-gray-150 space-y-4 animate-fadeIn">
                       <div className="flex items-center gap-2 text-xs font-extrabold text-[#A0463E] uppercase tracking-wider">
                         <Gift size={16} />
-                        Recipient Details
+                        Recipient Information
                       </div>
 
                       {/* Recipient Name */}
@@ -450,7 +476,7 @@ export default function GiftCardClient() {
                           value={recipientName}
                           onChange={(e) => setRecipientName(e.target.value)}
                           placeholder="e.g. Priya Sharma"
-                          className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold focus:ring-2 focus:ring-[#A0463E] focus:border-transparent outline-none transition ${
+                          className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold focus:ring-2 focus:ring-[#A0463E] outline-none transition ${
                             errors.recipientName ? "border-red-500" : "border-gray-200"
                           }`}
                         />
@@ -472,7 +498,7 @@ export default function GiftCardClient() {
                             value={recipientEmail}
                             onChange={(e) => setRecipientEmail(e.target.value)}
                             placeholder="recipient@example.com"
-                            className={`w-full pl-10 pr-4 py-3 rounded-xl border text-sm font-semibold focus:ring-2 focus:ring-[#A0463E] focus:border-transparent outline-none transition ${
+                            className={`w-full pl-10 pr-4 py-3 rounded-xl border text-sm font-semibold focus:ring-2 focus:ring-[#A0463E] outline-none transition ${
                               errors.recipientEmail ? "border-red-500" : "border-gray-200"
                             }`}
                           />
@@ -480,16 +506,31 @@ export default function GiftCardClient() {
                         {errors.recipientEmail && (
                           <p className="text-red-500 text-xs font-bold mt-1">{errors.recipientEmail}</p>
                         )}
-                        <p className="text-[11px] text-gray-400 mt-1">
-                          We will email the ₹1,000 gift card code directly to this address.
-                        </p>
+                      </div>
+
+                      {/* Recipient Phone (Optional for WhatsApp) */}
+                      <div>
+                        <label htmlFor="recipientPhone" className="block text-xs font-extrabold text-gray-800 uppercase tracking-wider mb-2">
+                          Recipient Mobile / WhatsApp <span className="text-gray-400 font-normal">(Optional for WhatsApp Share)</span>
+                        </label>
+                        <div className="relative">
+                          <Phone size={16} className="absolute left-3.5 top-3.5 text-gray-400" />
+                          <input
+                            type="tel"
+                            id="recipientPhone"
+                            value={recipientPhone}
+                            onChange={(e) => setRecipientPhone(e.target.value)}
+                            placeholder="e.g. 9876543210"
+                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm font-semibold focus:ring-2 focus:ring-[#A0463E] outline-none transition"
+                          />
+                        </div>
                       </div>
 
                       {/* Personal Message */}
                       <div>
                         <div className="flex justify-between items-center mb-2">
                           <label htmlFor="personalMessage" className="block text-xs font-extrabold text-gray-800 uppercase tracking-wider">
-                            Personal Message <span className="text-gray-400 font-normal">(Optional)</span>
+                            Personal Gift Message <span className="text-gray-400 font-normal">(Optional)</span>
                           </label>
                           <span className={`text-[10px] font-bold ${personalMessage.length > 200 ? "text-red-500" : "text-gray-400"}`}>
                             {personalMessage.length}/200
@@ -502,7 +543,7 @@ export default function GiftCardClient() {
                           value={personalMessage}
                           onChange={(e) => setPersonalMessage(e.target.value)}
                           placeholder="e.g. Happy Birthday! Enjoy shopping for your favorite couture 🎉"
-                          className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-semibold focus:ring-2 focus:ring-[#A0463E] focus:border-transparent outline-none transition"
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-semibold focus:ring-2 focus:ring-[#A0463E] outline-none transition"
                         />
                       </div>
                     </div>
@@ -510,11 +551,11 @@ export default function GiftCardClient() {
 
                 </div>
 
-                {/* Checkout trigger button */}
+                {/* Checkout Button */}
                 <div className="space-y-3">
                   <button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !selectedOffer}
                     className="w-full flex items-center justify-center gap-2 bg-[#A0463E] hover:bg-black disabled:bg-[#A0463E]/70 text-white text-xs font-extrabold uppercase tracking-widest py-4 px-6 rounded-xl transition-all shadow-md focus:outline-none focus:ring-2 focus:ring-[#A0463E] focus:ring-offset-2"
                   >
                     {isSubmitting ? (
@@ -525,7 +566,7 @@ export default function GiftCardClient() {
                     ) : (
                       <>
                         <CreditCard size={18} />
-                        BUY NOW FOR ₹500 (GET ₹1,000 CREDIT)
+                        BUY GIFT CARD — ₹{selectedOffer?.sellingPrice.toLocaleString("en-IN")}
                       </>
                     )}
                   </button>
@@ -536,7 +577,7 @@ export default function GiftCardClient() {
                     </span>
                     <span>•</span>
                     <span className="flex items-center gap-1">
-                      <ShieldCheck size={12} className="text-emerald-600" /> Instant Email Delivery
+                      <ShieldCheck size={12} className="text-emerald-600" /> Instant Email & WhatsApp
                     </span>
                   </div>
                 </div>

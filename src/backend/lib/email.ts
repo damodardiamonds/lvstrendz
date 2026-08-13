@@ -437,3 +437,97 @@ export async function sendGiftCardEmail(options: GiftCardEmailOptions) {
     return { success: false, error: err?.message || err };
   }
 }
+
+/**
+ * Sends a buyer confirmation email when a gift card is sent as a gift to a recipient.
+ */
+export async function sendGiftCardBuyerConfirmationEmail(options: {
+  buyerEmail: string;
+  recipientName: string;
+  recipientEmail: string;
+  code: string;
+  value: number;
+}) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return { success: false, reason: "missing_api_key" };
+
+  const resend = new Resend(apiKey);
+  const fromSender = process.env.RESEND_FROM_EMAIL || "LVS Trendz <orders@lvstrendz.com>";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://lvstrendz.vercel.app";
+  const { buyerEmail, recipientName, recipientEmail, code, value } = options;
+  const formattedValue = formatINR(value);
+
+  const subject = `Gift Card sent to ${recipientName} successfully! 🎉`;
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>${subject}</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f5; margin: 0; padding: 24px 12px; color: #18181b;">
+        <div style="max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e4e4e7; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08);">
+          <div style="background-color: #A0463E; padding: 28px 24px; text-align: center;">
+            <h1 style="color: #ffffff; font-size: 20px; font-weight: 900; letter-spacing: 2px; margin: 0; text-transform: uppercase;">
+              LVS TRENDZ
+            </h1>
+            <p style="color: #fecdd3; font-size: 11px; margin-top: 4px; margin-bottom: 0; text-transform: uppercase; letter-spacing: 1px;">
+              Gift Card Order Receipt
+            </p>
+          </div>
+          <div style="padding: 32px 24px;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <span style="font-size: 36px;">🎁</span>
+              <h2 style="font-size: 18px; font-weight: 800; color: #18181b; margin: 8px 0;">
+                Your Gift Has Been Delivered!
+              </h2>
+              <p style="font-size: 13px; color: #52525b; margin: 0;">
+                We've emailed your <strong>${formattedValue}</strong> Gift Card to <strong style="color: #A0463E;">${recipientName}</strong> (${recipientEmail}).
+              </p>
+            </div>
+
+            <div style="background-color: #fafafa; border: 1px solid #e4e4e7; border-radius: 10px; padding: 18px; margin-bottom: 24px;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <tr>
+                  <td style="color: #71717a; padding-bottom: 6px;">Gift Card Code:</td>
+                  <td style="text-align: right; font-weight: 800; font-family: monospace; color: #A0463E; padding-bottom: 6px;">${code}</td>
+                </tr>
+                <tr>
+                  <td style="color: #71717a; padding-bottom: 6px;">Face Value:</td>
+                  <td style="text-align: right; font-weight: 700; color: #18181b; padding-bottom: 6px;">${formattedValue}</td>
+                </tr>
+                <tr>
+                  <td style="color: #71717a;">Recipient:</td>
+                  <td style="text-align: right; font-weight: 700; color: #18181b;">${recipientName} (${recipientEmail})</td>
+                </tr>
+              </table>
+            </div>
+
+            <div style="text-align: center;">
+              <a href="${appUrl}" style="background-color: #18181b; color: #ffffff; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block;">
+                Visit LV's Trendz
+              </a>
+            </div>
+          </div>
+          <div style="background-color: #fafafa; border-top: 1px solid #e4e4e7; padding: 16px; text-align: center; font-size: 11px; color: #a1a1aa;">
+            © ${new Date().getFullYear()} LVS Trendz. All rights reserved.
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: fromSender,
+      to: [buyerEmail],
+      subject,
+      html: htmlContent,
+    });
+    return { success: !error, emailId: data?.id, error };
+  } catch (err: any) {
+    console.error("[email] Error in sendGiftCardBuyerConfirmationEmail:", err);
+    return { success: false, error: err?.message || err };
+  }
+}
