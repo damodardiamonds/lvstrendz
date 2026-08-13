@@ -306,10 +306,10 @@ export default function GiftCardClient() {
                           </div>
 
                           <div className="text-right">
-                            <span className={`text-[10px] uppercase tracking-wider font-bold block ${isSelected ? "text-gray-400" : "text-gray-400"}`}>
+                            <span className={`text-[10px] uppercase tracking-wider font-bold block ${isSelected ? "text-gray-300" : "text-gray-500"}`}>
                               GET VALUE
                             </span>
-                            <span className={`text-lg font-bold line-through ${isSelected ? "text-gray-400" : "text-gray-400"}`}>
+                            <span className={`text-xl font-extrabold ${isSelected ? "text-emerald-400" : "text-emerald-600"}`}>
                               ₹{offer.faceValue.toLocaleString("en-IN")}
                             </span>
                           </div>
@@ -357,16 +357,28 @@ export default function GiftCardClient() {
                   2. Select Delivery Mode & Complete Purchase
                 </h2>
                 {selectedOffer && (
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-3xl font-black text-black">
-                      ₹{selectedOffer.sellingPrice.toLocaleString("en-IN")}
-                    </span>
-                    <span className="text-xl font-bold text-gray-400 line-through">
-                      ₹{selectedOffer.faceValue.toLocaleString("en-IN")}
-                    </span>
-                    <span className="text-xs font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-100">
-                      Save ₹{(selectedOffer.faceValue - selectedOffer.sellingPrice).toLocaleString("en-IN")}
-                    </span>
+                  <div className="flex flex-wrap items-center gap-3 pt-2">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xs uppercase font-extrabold text-gray-500">You Pay:</span>
+                      <span className="text-3xl font-black text-black">
+                        ₹{selectedOffer.sellingPrice.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+
+                    <span className="text-gray-400 font-bold text-sm">→</span>
+
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xs uppercase font-extrabold text-gray-500">Get Credit:</span>
+                      <span className="text-2xl font-black text-emerald-600">
+                        ₹{selectedOffer.faceValue.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+
+                    {selectedOffer.faceValue > selectedOffer.sellingPrice && (
+                      <span className="text-xs font-extrabold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                        Save ₹{(selectedOffer.faceValue - selectedOffer.sellingPrice).toLocaleString("en-IN")}!
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
