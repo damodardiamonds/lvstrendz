@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Image from 'next/image';
-import { Heart, ShoppingBag, Check, Truck, RotateCcw, ShieldCheck, Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Heart, ShoppingBag, Check, Truck, RotateCcw, ShieldCheck, Star, ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useCurrency } from '@/context/CurrencyContext';
 import { trackViewContent, trackAddToCart } from '@/lib/metaPixel';
@@ -37,6 +37,15 @@ interface Variant {
   images: { id: string; url: string; alt: string | null }[];
 }
 
+interface MediaItem {
+  id: string;
+  url: string;
+  type: 'image' | 'video';
+  alt?: string | null;
+  title?: string | null;
+  colorId?: string | null;
+}
+
 interface ProductDetailsProps {
   product: {
     id: string;
@@ -51,6 +60,7 @@ interface ProductDetailsProps {
     selectedColors?: { id: string; value: string; slug: string; colorCode: string | null }[];
     selectedSizes?: { id: string; value: string; slug: string }[];
     images: { id: string; url: string; alt: string | null; colorId?: string | null }[];
+    videos?: { id: string; url: string; title?: string | null }[];
     variants: Variant[];
   };
 }
@@ -175,31 +185,65 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
     return sizeMatches && colorMatches;
   });
 
-  // Aggregate all unique image URLs (parent + variant images) to show in thumbnails
-  const allImages = useMemo(() => {
-    const images = [...product.images];
+  // Aggregate all unique media items (parent images + variant images + product videos) to show in thumbnails
+  const allMedia = useMemo(() => {
+    const items: MediaItem[] = product.images.map((img) => ({
+      id: img.id,
+      url: img.url,
+      type: 'image' as const,
+      alt: img.alt,
+      colorId: img.colorId,
+    }));
+
     product.variants.forEach((v) => {
       v.images.forEach((img) => {
-        if (!images.some((i) => i.url === img.url)) {
-          images.push(img);
+        if (!items.some((i) => i.url === img.url)) {
+          items.push({
+            id: img.id,
+            url: img.url,
+            type: 'image' as const,
+            alt: img.alt,
+          });
         }
       });
     });
-    return images;
-  }, [product.images, product.variants]);
 
-  // Filter images to show in the gallery based on the selected color
+    if (product.videos && product.videos.length > 0) {
+      product.videos.forEach((vid) => {
+        if (!items.some((i) => i.url === vid.url)) {
+          items.push({
+            id: vid.id,
+            url: vid.url,
+            type: 'video' as const,
+            title: vid.title,
+          });
+        }
+      });
+    }
+
+    return items;
+  }, [product.images, product.variants, product.videos]);
+
+  // Filter media items to show in the gallery based on the selected color
   const displayedImages = useMemo(() => {
-    if (!selectedColor) return allImages;
+    if (!selectedColor) return allMedia;
 
     // Find selected color ID object
     const selectedColorObj = colors.find((c) => c.value === selectedColor);
 
     // Gather direct product images assigned to this color ID or general images
-    let colorMatchedImages: { id: string; url: string; alt: string | null; colorId?: string | null }[] = [];
+    let colorMatchedMedia: MediaItem[] = [];
 
     if (selectedColorObj?.id) {
-      colorMatchedImages = product.images.filter((img) => img.colorId === selectedColorObj.id);
+      colorMatchedMedia = product.images
+        .filter((img) => img.colorId === selectedColorObj.id)
+        .map((img) => ({
+          id: img.id,
+          url: img.url,
+          type: 'image' as const,
+          alt: img.alt,
+          colorId: img.colorId,
+        }));
     }
 
     // Also gather variant images matching this color name
@@ -210,20 +254,43 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
 
     matchingVariants.forEach((v) => {
       v.images.forEach((img) => {
-        if (!colorMatchedImages.some((i) => i.url === img.url)) {
-          colorMatchedImages.push(img);
+        if (!colorMatchedMedia.some((i) => i.url === img.url)) {
+          colorMatchedMedia.push({
+            id: img.id,
+            url: img.url,
+            type: 'image' as const,
+            alt: img.alt,
+          });
         }
       });
     });
 
-    // If color-specific images exist, show them; otherwise fall back to allImages
-    return colorMatchedImages.length > 0 ? colorMatchedImages : allImages;
-  }, [selectedColor, colors, allImages, product.images, product.variants]);
+    // Always include product videos in gallery
+    if (product.videos && product.videos.length > 0) {
+      product.videos.forEach((vid) => {
+        if (!colorMatchedMedia.some((i) => i.url === vid.url)) {
+          colorMatchedMedia.push({
+            id: vid.id,
+            url: vid.url,
+            type: 'video' as const,
+            title: vid.title,
+          });
+        }
+      });
+    }
+
+    // If color-specific images exist, show them; otherwise fall back to allMedia
+    return colorMatchedMedia.length > 0 ? colorMatchedMedia : allMedia;
+  }, [selectedColor, colors, allMedia, product.images, product.variants, product.videos]);
 
   // Track gallery image selection
   const [activeImage, setActiveImage] = useState<string>(
     displayedImages[0]?.url || 'https://res.cloudinary.com/n5umtsub/image/upload/v1784202406/lvstrendz/products/6-1784202406137-v51zlx.webp'
   );
+
+  const activeMediaItem = useMemo(() => {
+    return displayedImages.find((m) => m.url === activeImage) || displayedImages[0];
+  }, [displayedImages, activeImage]);
 
   const thumbnailContainerRef = useRef<HTMLDivElement>(null);
   const [thumbPage, setThumbPage] = useState(0);
@@ -504,14 +571,26 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
             onTouchEnd={handleTouchEnd}
             className="relative aspect-[3/4] md:aspect-[4/5] w-full bg-[#f8f8f8] overflow-hidden border border-gray-100 group"
           >
-            <Image
-              src={activeImage}
-              alt={product.name}
-              fill
-              priority
-              className="object-cover object-center cursor-default transition-opacity duration-150"
-              sizes="(max-width: 1024px) 100vw, 60vw"
-            />
+            {activeMediaItem?.type === 'video' ? (
+              <video
+                src={activeMediaItem.url}
+                className="w-full h-full object-cover bg-black"
+                controls
+                autoPlay
+                loop
+                muted
+                playsInline
+              />
+            ) : (
+              <Image
+                src={activeImage}
+                alt={product.name}
+                fill
+                priority
+                className="object-cover object-center cursor-default transition-opacity duration-150"
+                sizes="(max-width: 1024px) 100vw, 60vw"
+              />
+            )}
             {discountPercent > 0 && (
               <span className="absolute top-4 left-4 bg-[#A0463E] text-white font-bold uppercase tracking-wide text-xs px-3 py-1.5 z-10">
                 {discountPercent}% Off
@@ -564,19 +643,35 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
                   <button
                     key={img.id}
                     onClick={() => setActiveImage(img.url)}
-                    className={`relative flex-shrink-0 w-[calc((100%-18px)/4)] md:w-[calc((100%-32px)/5)] aspect-[4/5] bg-gray-50 overflow-hidden border-2 rounded-md transition-all duration-200 cursor-pointer ${
+                    className={`relative flex-shrink-0 w-[calc((100%-18px)/4)] md:w-[calc((100%-32px)/5)] aspect-[4/5] bg-gray-900 overflow-hidden border-2 rounded-md transition-all duration-200 cursor-pointer ${
                       activeImage === img.url
                         ? 'border-[#333] shadow-[0_0_0_1px_#333]'
                         : 'border-transparent hover:border-[#999]'
                     }`}
                   >
-                    <Image
-                      src={img.url}
-                      alt={img.alt || product.name}
-                      fill
-                      className="object-cover object-center cursor-default transition-opacity duration-150"
-                      sizes="80px"
-                    />
+                    {img.type === 'video' ? (
+                      <div className="relative w-full h-full bg-black flex items-center justify-center">
+                        <video
+                          src={img.url}
+                          className="w-full h-full object-cover opacity-80"
+                          muted
+                          preload="metadata"
+                        />
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                          <div className="w-7 h-7 rounded-full bg-[#A0463E] flex items-center justify-center shadow-md">
+                            <Play size={14} className="text-white fill-white ml-0.5" />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <Image
+                        src={img.url}
+                        alt={img.alt || product.name}
+                        fill
+                        className="object-cover object-center cursor-default transition-opacity duration-150"
+                        sizes="80px"
+                      />
+                    )}
                   </button>
                 ))}
               </div>

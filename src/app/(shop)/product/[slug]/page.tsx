@@ -74,6 +74,11 @@ export default async function ProductPage({ params }: PageProps) {
       alt: img.alt,
       colorId: img.colorId,
     })),
+    videos: (product.videos || []).map((vid) => ({
+      id: vid.id,
+      url: vid.url,
+      title: vid.title,
+    })),
     variants: product.variants.map((variant) => ({
       id: variant.id,
       sku: variant.sku,
