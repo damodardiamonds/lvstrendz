@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Menu,
   Heart,
@@ -45,6 +46,12 @@ const navLinks = [
     ],
   },
   {
+    label: "GIFT CARD",
+    href: "/gift-card",
+    hasDropdown: false,
+    dropdownItems: [],
+  },
+  {
     label: "CUSTOMER CARE",
     href: "/help-center",
     hasDropdown: true,
@@ -70,6 +77,7 @@ const navLinks = [
 ];
 
 export default function Header() {
+  const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mobileOpenLink, setMobileOpenLink] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(true);
@@ -223,40 +231,44 @@ export default function Header() {
         <div className="mx-auto max-w-[1440px] px-6">
           <nav className="flex h-12 items-center justify-center">
             <ul className="flex items-center gap-10">
-              {navLinks.map((link, index) => (
-                <li key={link.label} className="relative flex h-12 items-center group">
-                  <Link
-                    href={link.href}
-                    className={`flex items-center gap-1 text-[13px] font-medium tracking-[0.08em] transition-colors hover:text-[#A0463E] ${
-                      index === 0 ? "text-[#A0463E]" : "text-gray-800"
-                    }`}
-                  >
-                    {link.label}
-                    {link.hasDropdown && (
-                      <ChevronDown size={14} strokeWidth={1.5} />
+              {navLinks.map((link) => {
+                const isActive = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
+
+                return (
+                  <li key={link.label} className="relative flex h-12 items-center group">
+                    <Link
+                      href={link.href}
+                      className={`flex items-center gap-1 text-[13px] font-medium tracking-[0.08em] transition-colors hover:text-[#A0463E] ${
+                        isActive ? "text-[#A0463E] font-bold" : "text-gray-800"
+                      }`}
+                    >
+                      {link.label}
+                      {link.hasDropdown && (
+                        <ChevronDown size={14} strokeWidth={1.5} />
+                      )}
+                    </Link>
+
+                    {/* Desktop Hover Dropdown Menu */}
+                    {link.hasDropdown && link.dropdownItems.length > 0 && (
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 w-52 bg-white border border-gray-100 shadow-lg rounded-b-lg py-2.5 hidden group-hover:block z-50 transition-all duration-300">
+                        {link.dropdownItems.map((item) => (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            className="block px-5 py-2 text-xs font-semibold uppercase text-gray-700 hover:bg-gray-50 hover:text-[#A0463E] transition-colors"
+                          >
+                            {item.label}
+                          </Link>
+                        ))}
+                      </div>
                     )}
-                  </Link>
 
-                  {/* Desktop Hover Dropdown Menu */}
-                  {link.hasDropdown && link.dropdownItems.length > 0 && (
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-52 bg-white border border-gray-100 shadow-lg rounded-b-lg py-2.5 hidden group-hover:block z-50 transition-all duration-300">
-                      {link.dropdownItems.map((item) => (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          className="block px-5 py-2 text-xs font-semibold uppercase text-gray-700 hover:bg-gray-50 hover:text-[#A0463E] transition-colors"
-                        >
-                          {item.label}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-
-                  {index === 0 && (
-                    <span className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-[#A0463E]" />
-                  )}
-                </li>
-              ))}
+                    {isActive && (
+                      <span className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-[#A0463E]" />
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </nav>
         </div>
