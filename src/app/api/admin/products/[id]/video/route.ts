@@ -84,6 +84,33 @@ export async function POST(
       );
     }
 
+    const contentType = req.headers.get("content-type") || "";
+
+    // Handle direct Cloudinary URL save via JSON
+    if (contentType.includes("application/json")) {
+      const body = await req.json();
+      const { url, title } = body;
+
+      if (!url) {
+        return NextResponse.json(
+          { error: "Video URL is required" },
+          { status: 400 }
+        );
+      }
+
+      const newVideo = await db.productVideo.create({
+        data: {
+          productId,
+          url,
+          title: title || null,
+          sortOrder: existingCount,
+        },
+      });
+
+      revalidatePath(`/admin/products/${productId}/images`);
+      return NextResponse.json({ success: true, video: newVideo });
+    }
+
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     const title = (formData.get("title") as string) || "";

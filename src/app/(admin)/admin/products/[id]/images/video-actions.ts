@@ -91,6 +91,33 @@ async function ensureVideoDir() {
   }
 }
 
+// Save product video URL after direct Cloudinary upload
+export async function saveProductVideoUrl(productId: string, url: string, title?: string) {
+  const existingCount = await db.productVideo.count({
+    where: { productId },
+  });
+
+  if (existingCount >= 2) {
+    return { error: "Maximum 2 videos per product. Delete one to upload a new one." };
+  }
+
+  if (!url) {
+    return { error: "Video URL is required" };
+  }
+
+  const newVideo = await db.productVideo.create({
+    data: {
+      productId,
+      url,
+      title: title || null,
+      sortOrder: existingCount,
+    },
+  });
+
+  revalidatePath(`/admin/products/${productId}/images`);
+  return { success: true, video: newVideo };
+}
+
 // Upload product video (max 2 per product)
 export async function uploadProductVideo(productId: string, formData: FormData) {
   // Check existing video count

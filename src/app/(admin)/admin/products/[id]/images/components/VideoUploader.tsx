@@ -1,10 +1,9 @@
-
 "use client";
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Video, Upload, Trash2, X, CheckCircle } from "lucide-react";
-import { deleteProductVideo, uploadProductVideo } from "../video-actions";
+import { Video, Upload, Trash2, X, CheckCircle, Loader2 } from "lucide-react";
+import { deleteProductVideo, saveProductVideoUrl } from "../video-actions";
 
 interface ProductVideo {
   id: string;
@@ -20,6 +19,8 @@ interface VideoUploaderProps {
 
 export default function VideoUploader({ productId, videos }: VideoUploaderProps) {
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [statusMessage, setStatusMessage] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -34,11 +35,11 @@ export default function VideoUploader({ productId, videos }: VideoUploaderProps)
     setSuccess("");
     const allowedTypes = ["video/mp4", "video/webm"];
     if (!allowedTypes.includes(file.type)) {
-      setError("Only MP4 and WebM videos are allowed");
+      setError("Only MP4 and WebM videos are allowed.");
       return;
     }
     if (file.size > 50 * 1024 * 1024) {
-      setError("Video size must be less than 50MB");
+      setError("Video size must be under 50MB.");
       return;
     }
     setSelectedFile(file);
@@ -48,50 +49,126 @@ export default function VideoUploader({ productId, videos }: VideoUploaderProps)
   const handleUpload = async () => {
     if (!selectedFile) return;
     setUploading(true);
+    setUploadProgress(0);
+    setStatusMessage("Preparing upload...");
     setError("");
     setSuccess("");
 
     try {
-      const formData = new FormData();
-      formData.set("file", selectedFile);
-      formData.set("title", title);
+      // Step 1: Request signed upload credentials from server
+      let signatureData: {
+        signature: string;
+        timestamp: number;
+        apiKey: string;
+        cloudName: string;
+        folder: string;
+      } | null = null;
 
-      const res = await fetch(`/api/admin/products/${productId}/video`, {
-        method: "POST",
-        body: formData,
-      });
-
-      let data: any = {};
       try {
-        data = await res.json();
-      } catch {
-        if (res.status === 413 || !res.ok) {
-          throw new Error(
-            "Video file size is too large for the server limit. Please select a video under 50MB."
-          );
+        const sigRes = await fetch("/api/admin/cloudinary-signature");
+        if (sigRes.ok) {
+          signatureData = await sigRes.json();
         }
-        throw new Error("Video upload failed. Server returned an invalid response.");
+      } catch (err) {
+        console.warn("Could not fetch Cloudinary upload signature:", err);
       }
 
-      if (!res.ok || data.error) {
-        let errMsg = data.error || "Video upload failed. Please try again.";
-        if (
-          errMsg.includes("not valid JSON") ||
-          errMsg.includes("Request En") ||
-          errMsg.includes("413") ||
-          errMsg.includes("Unexpected token")
-        ) {
-          errMsg =
-            "Video file size is too large for the server limit. Please select a video under 50MB.";
-        }
-        setError(errMsg);
+      let videoUrl = "";
+
+      if (signatureData && signatureData.cloudName && signatureData.signature) {
+        // Step 2A: Direct browser-to-Cloudinary upload (bypasses Next.js 4.5MB payload limits)
+        setStatusMessage("Uploading video directly to Cloudinary...");
+        videoUrl = await new Promise<string>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open(
+            "POST",
+            `https://api.cloudinary.com/v1_1/${signatureData!.cloudName}/video/upload`
+          );
+
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+              const percent = Math.round((e.loaded / e.total) * 100);
+              setUploadProgress(percent);
+            }
+          };
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                const res = JSON.parse(xhr.responseText);
+                if (res.secure_url) {
+                  resolve(res.secure_url);
+                } else {
+                  reject(new Error("Cloudinary did not return a valid secure URL."));
+                }
+              } catch {
+                reject(new Error("Invalid response from Cloudinary."));
+              }
+            } else {
+              try {
+                const res = JSON.parse(xhr.responseText);
+                reject(new Error(res.error?.message || "Cloudinary upload failed."));
+              } catch {
+                reject(new Error(`Cloudinary upload failed with status ${xhr.status}`));
+              }
+            }
+          };
+
+          xhr.onerror = () => reject(new Error("Network error during Cloudinary video upload."));
+
+          const formData = new FormData();
+          formData.append("file", selectedFile);
+          formData.append("api_key", signatureData!.apiKey);
+          formData.append("timestamp", signatureData!.timestamp.toString());
+          formData.append("signature", signatureData!.signature);
+          formData.append("folder", signatureData!.folder);
+
+          xhr.send(formData);
+        });
       } else {
-        setSelectedFile(null);
-        setPreview(null);
-        setTitle("");
-        setSuccess("Video uploaded successfully!");
-        router.refresh();
+        // Step 2B: Fallback to Next.js API server endpoint if Cloudinary signature unavailable
+        setStatusMessage("Uploading via server route...");
+        const formData = new FormData();
+        formData.set("file", selectedFile);
+        formData.set("title", title);
+
+        const res = await fetch(`/api/admin/products/${productId}/video`, {
+          method: "POST",
+          body: formData,
+        });
+
+        let data: any = {};
+        try {
+          data = await res.json();
+        } catch {
+          if (res.status === 413 || !res.ok) {
+            throw new Error(
+              "Video file size is too large for the server limit. Please configure Cloudinary or select a smaller file."
+            );
+          }
+          throw new Error("Video upload failed. Server returned an invalid response.");
+        }
+
+        if (!res.ok || data.error) {
+          throw new Error(data.error || "Video upload failed. Please try again.");
+        }
+        videoUrl = data.video?.url;
       }
+
+      // Step 3: Save video URL in database
+      if (signatureData && videoUrl) {
+        setStatusMessage("Saving video record...");
+        const saveResult = await saveProductVideoUrl(productId, videoUrl, title);
+        if (saveResult?.error) {
+          throw new Error(saveResult.error);
+        }
+      }
+
+      setSelectedFile(null);
+      setPreview(null);
+      setTitle("");
+      setSuccess("Video uploaded successfully to Cloudinary!");
+      router.refresh();
     } catch (err: any) {
       let errMsg = err?.message || "Video upload failed. Please try again.";
       if (
@@ -101,11 +178,13 @@ export default function VideoUploader({ productId, videos }: VideoUploaderProps)
         errMsg.includes("Unexpected token")
       ) {
         errMsg =
-          "Video file size is too large for the server limit. Please select a video under 50MB.";
+          "Video file size is too large for the server limit. Direct Cloudinary upload will bypass this limit.";
       }
       setError(errMsg);
     } finally {
       setUploading(false);
+      setUploadProgress(0);
+      setStatusMessage("");
     }
   };
 
@@ -205,7 +284,7 @@ export default function VideoUploader({ productId, videos }: VideoUploaderProps)
                 Click to upload a video
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                MP4 or WebM • Max 50MB
+                MP4 or WebM • Max 50MB (Uploaded directly to Cloudinary)
               </p>
               <input
                 ref={fileInputRef}
@@ -227,12 +306,14 @@ export default function VideoUploader({ productId, videos }: VideoUploaderProps)
                   controls
                   preload="metadata"
                 />
-                <button
-                  onClick={clearSelection}
-                  className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
-                >
-                  <X size={14} />
-                </button>
+                {!uploading && (
+                  <button
+                    onClick={clearSelection}
+                    className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
               </div>
 
               <div>
@@ -242,18 +323,44 @@ export default function VideoUploader({ productId, videos }: VideoUploaderProps)
                 <input
                   type="text"
                   value={title}
+                  disabled={uploading}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Product showcase, How to style..."
-                  className="w-full sm:w-1/2 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#A0463E] focus:border-transparent outline-none"
+                  className="w-full sm:w-1/2 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#A0463E] focus:border-transparent outline-none disabled:bg-gray-100"
                 />
               </div>
+
+              {uploading && (
+                <div className="w-full sm:w-1/2 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs text-gray-600 font-medium">
+                    <span className="flex items-center gap-1.5">
+                      <Loader2 size={14} className="animate-spin text-[#A0463E]" />
+                      {statusMessage}
+                    </span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-[#A0463E] h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
 
               <button
                 onClick={handleUpload}
                 disabled={uploading}
-                className="px-4 py-2.5 bg-[#A0463E] text-white text-sm font-medium rounded-lg hover:bg-[#8a3b34] transition-colors disabled:opacity-50"
+                className="px-4 py-2.5 bg-[#A0463E] text-white text-sm font-medium rounded-lg hover:bg-[#8a3b34] transition-colors disabled:opacity-50 flex items-center gap-2"
               >
-                {uploading ? "Uploading..." : "Upload Video"}
+                {uploading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Uploading Video...</span>
+                  </>
+                ) : (
+                  "Upload Video"
+                )}
               </button>
             </div>
           )}
@@ -268,4 +375,3 @@ export default function VideoUploader({ productId, videos }: VideoUploaderProps)
     </div>
   );
 }
-
