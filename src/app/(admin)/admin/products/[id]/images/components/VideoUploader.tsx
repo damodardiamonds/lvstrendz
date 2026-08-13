@@ -4,7 +4,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Video, Upload, Trash2, X, CheckCircle } from "lucide-react";
-import { deleteProductVideo } from "../video-actions";
+import { deleteProductVideo, uploadProductVideo } from "../video-actions";
 
 interface ProductVideo {
   id: string;
@@ -61,10 +61,30 @@ export default function VideoUploader({ productId, videos }: VideoUploaderProps)
         body: formData,
       });
 
-      const result = await res.json();
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        if (res.status === 413 || !res.ok) {
+          throw new Error(
+            "Video file size is too large for the server limit. Please select a video under 50MB."
+          );
+        }
+        throw new Error("Video upload failed. Server returned an invalid response.");
+      }
 
-      if (!res.ok || result.error) {
-        setError(result.error || "Video upload failed. Please try again.");
+      if (!res.ok || data.error) {
+        let errMsg = data.error || "Video upload failed. Please try again.";
+        if (
+          errMsg.includes("not valid JSON") ||
+          errMsg.includes("Request En") ||
+          errMsg.includes("413") ||
+          errMsg.includes("Unexpected token")
+        ) {
+          errMsg =
+            "Video file size is too large for the server limit. Please select a video under 50MB.";
+        }
+        setError(errMsg);
       } else {
         setSelectedFile(null);
         setPreview(null);
@@ -73,7 +93,17 @@ export default function VideoUploader({ productId, videos }: VideoUploaderProps)
         router.refresh();
       }
     } catch (err: any) {
-      setError(err?.message || "Video upload failed. Please try again.");
+      let errMsg = err?.message || "Video upload failed. Please try again.";
+      if (
+        errMsg.includes("not valid JSON") ||
+        errMsg.includes("Request En") ||
+        errMsg.includes("413") ||
+        errMsg.includes("Unexpected token")
+      ) {
+        errMsg =
+          "Video file size is too large for the server limit. Please select a video under 50MB.";
+      }
+      setError(errMsg);
     } finally {
       setUploading(false);
     }

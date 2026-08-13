@@ -127,7 +127,18 @@ export async function uploadProductVideo(productId: string, formData: FormData) 
       videoUrl = await uploadToCloudinary(file, "videos");
     } catch (err: any) {
       console.error("Cloudinary video upload failed:", err);
-      return { error: `Cloudinary video upload failed: ${err.message || err}` };
+      const rawMsg = err?.message || String(err);
+      if (
+        rawMsg.includes("not valid JSON") ||
+        rawMsg.includes("Request En") ||
+        rawMsg.includes("413")
+      ) {
+        return {
+          error:
+            "Video file size is too large for the server limit. Please select a video under 50MB.",
+        };
+      }
+      return { error: `Cloudinary video upload failed: ${rawMsg}` };
     }
   } else {
     await ensureVideoDir();
