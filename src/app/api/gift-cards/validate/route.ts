@@ -13,10 +13,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const cleanCode = code.trim();
+
     const giftCard = await db.giftCard.findFirst({
       where: {
         code: {
-          equals: code.trim(),
+          equals: cleanCode,
           mode: "insensitive",
         },
       },
@@ -29,25 +31,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!giftCard.isActive) {
-      return NextResponse.json(
-        { error: "This gift card is inactive" },
-        { status: 400 }
-      );
-    }
-
     const balance = Number(giftCard.balance);
-    if (balance <= 0) {
+    if (balance <= 0 || giftCard.isRedeemed) {
       return NextResponse.json(
         { error: "This gift card has zero balance remaining" },
-        { status: 400 }
-      );
-    }
-
-    const now = new Date();
-    if (giftCard.expiresAt && giftCard.expiresAt < now) {
-      return NextResponse.json(
-        { error: "This gift card has expired" },
         { status: 400 }
       );
     }
@@ -57,8 +44,10 @@ export async function POST(request: NextRequest) {
       giftCard: {
         id: giftCard.id,
         code: giftCard.code,
-        initialValue: Number(giftCard.initialValue),
+        value: Number(giftCard.value),
         balance: balance,
+        isGift: giftCard.isGift,
+        senderName: giftCard.senderName,
       },
     });
   } catch (error) {

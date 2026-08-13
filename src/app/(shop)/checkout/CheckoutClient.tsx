@@ -24,6 +24,9 @@ import {
   Landmark,
   Globe,
   ShieldCheck,
+  Gift,
+  Tag,
+  X,
 } from "lucide-react";
 
 export default function CheckoutClient() {
@@ -62,6 +65,72 @@ export default function CheckoutClient() {
 
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Gift Card State & Handlers
+  const [giftCardInput, setGiftCardInput] = useState("");
+  const [isValidatingGiftCard, setIsValidatingGiftCard] = useState(false);
+  const [showGiftCardForm, setShowGiftCardForm] = useState(false);
+
+  const handleApplyGiftCard = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!giftCardInput.trim()) {
+      toast.error("Please enter a gift card code.");
+      return;
+    }
+
+    if (appliedGiftCard && appliedGiftCard.code.toUpperCase() === giftCardInput.trim().toUpperCase()) {
+      toast.error("This gift card code is already applied.");
+      return;
+    }
+
+    const hasGiftCardProductInCart = items.some(item =>
+      item.name?.toLowerCase().includes("gift card") || item.productId === "gift-card"
+    );
+    if (hasGiftCardProductInCart) {
+      toast.error("Gift cards cannot be used to purchase another gift card.");
+      return;
+    }
+
+    setIsValidatingGiftCard(true);
+
+    try {
+      const res = await fetch("/api/gift-cards/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: giftCardInput.trim() }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        const card = data.giftCard;
+        setAppliedGiftCard(card);
+        localStorage.setItem("lvstrendz_giftcard", JSON.stringify(card));
+        const remainingAfterCoupon = Math.max(0, subtotal - discount);
+        const expectedDeduction = Math.min(remainingAfterCoupon, card.balance);
+        toast.success(`₹${expectedDeduction} gift card discount applied!`, {
+          style: { background: "#1a4223", color: "#fff" },
+        });
+        setGiftCardInput("");
+        setShowGiftCardForm(false);
+      } else {
+        toast.error(data.error || "Invalid gift card code.", {
+          style: { background: "#3D1515", color: "#fff" },
+        });
+      }
+    } catch (err: any) {
+      console.error("Gift card validation error:", err);
+      toast.error("Failed to validate gift card code.");
+    } finally {
+      setIsValidatingGiftCard(false);
+    }
+  };
+
+  const handleRemoveGiftCard = () => {
+    setAppliedGiftCard(null);
+    localStorage.removeItem("lvstrendz_giftcard");
+    toast.success("Gift card removed.");
+  };
 
   // Load cart, coupon, and gift card
   useEffect(() => {
@@ -204,12 +273,14 @@ export default function CheckoutClient() {
           },
         })),
         couponCode: appliedCoupon?.code || null,
+        giftCardCode: appliedGiftCard?.code || null,
+        giftCardDiscount: giftCardDiscount,
         subtotal,
         discount,
         shipping: shippingCost,
         total: grandTotal,
-        paymentMethod,
-        paymentId: "PENDING",
+        paymentMethod: grandTotal === 0 ? "Gift Card" : paymentMethod,
+        paymentId: grandTotal === 0 ? `GC-${appliedGiftCard?.code || Date.now()}` : "PENDING",
       };
 
       const res = await fetch("/api/orders", {
@@ -223,6 +294,18 @@ export default function CheckoutClient() {
       const data = await res.json();
 
       if (res.ok && data.success) {
+        // If grandTotal is 0 (Gift Card covers full amount), skip payment gateway
+        if (grandTotal === 0) {
+          toast.success("Order confirmed! Full amount paid with Gift Card.", {
+            duration: 3000,
+            style: { background: "#1a4223", color: "#fff" },
+          });
+          localStorage.removeItem("lvstrendz_cart");
+          localStorage.removeItem("lvstrendz_giftcard");
+          window.location.href = `/checkout/order-received?orderNumber=${data.orderNumber}&clearCart=true`;
+          return;
+        }
+
         // Always initiate Hosted Gateway
         toast.loading("Initiating secure payment gateway...", { id: "pg-init" });
 
@@ -608,8 +691,83 @@ export default function CheckoutClient() {
                     ))}
                   </div>
 
+                  {/* Gift Card Input & Applied Card Box */}
+                  <div className="border-t border-[#F0EBE0] pt-3 pb-1">
+                    {appliedGiftCard ? (
+                      <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-3 flex justify-between items-center text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center text-amber-800 shrink-0">
+                            <Gift size={14} />
+                          </div>
+                          <div>
+                            <p className="font-extrabold text-gray-900 flex items-center gap-1.5">
+                              Gift Card: <span className="font-mono text-[#A0463E] uppercase">{appliedGiftCard.code}</span>
+                            </p>
+                            <p className="text-[10px] text-amber-800 font-semibold">
+                              ₹{giftCardDiscount} will be deducted (Balance: ₹{appliedGiftCard.balance})
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRemoveGiftCard}
+                          className="text-gray-400 hover:text-red-600 p-1 rounded transition-colors"
+                          title="Remove Gift Card"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {!showGiftCardForm ? (
+                          <button
+                            type="button"
+                            onClick={() => setShowGiftCardForm(true)}
+                            className="text-xs font-extrabold text-[#A0463E] hover:text-black flex items-center gap-1.5 transition-colors"
+                          >
+                            <Gift size={14} />
+                            Have a Gift Card?
+                          </button>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <label className="text-[11px] font-extrabold text-gray-700 uppercase tracking-wider flex items-center gap-1">
+                                <Gift size={12} className="text-[#A0463E]" />
+                                Enter Gift Card Code
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => setShowGiftCardForm(false)}
+                                className="text-[10px] text-gray-400 hover:text-black font-bold"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={giftCardInput}
+                                onChange={(e) => setGiftCardInput(e.target.value)}
+                                placeholder="e.g. LVS-A8K2M4NP"
+                                className="w-full px-3 py-2 text-xs font-mono font-bold uppercase rounded-lg border border-gray-300 focus:ring-1 focus:ring-[#A0463E] outline-none"
+                              />
+                              <button
+                                type="button"
+                                onClick={handleApplyGiftCard}
+                                disabled={isValidatingGiftCard}
+                                className="bg-[#A0463E] hover:bg-black text-white text-xs font-extrabold px-4 py-2 rounded-lg transition-colors shrink-0 uppercase tracking-wider"
+                              >
+                                {isValidatingGiftCard ? "Validating..." : "Apply"}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Calculations */}
-                  <div className="border-t border-[#F0EBE0] pt-4.5 space-y-3 text-xs">
+                  <div className="border-t border-[#F0EBE0] pt-4 space-y-3 text-xs">
                     <div className="flex justify-between items-center text-gray-600 font-medium">
                       <span>Subtotal</span>
                       <span className="font-extrabold text-black">{format(subtotal)}</span>
@@ -625,9 +783,10 @@ export default function CheckoutClient() {
                     )}
 
                     {appliedGiftCard && giftCardDiscount > 0 && (
-                      <div className="flex justify-between items-center text-amber-700 font-semibold">
-                        <span>
-                          Gift Card ({appliedGiftCard.code})
+                      <div className="flex justify-between items-center text-[#A0463E] font-extrabold bg-red-50/60 p-2 rounded-lg border border-red-100">
+                        <span className="flex items-center gap-1">
+                          <Gift size={13} />
+                          Gift Card Discount ({appliedGiftCard.code})
                         </span>
                         <span>-{format(giftCardDiscount)}</span>
                       </div>
@@ -650,7 +809,7 @@ export default function CheckoutClient() {
                     </div>
 
                     <div className="flex justify-between items-center text-sm font-black text-black pt-2">
-                      <span>Total</span>
+                      <span>Amount to Pay</span>
                       <span className="text-lg text-[#A0463E] font-black">{format(grandTotal)}</span>
                     </div>
                   </div>

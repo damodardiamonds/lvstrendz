@@ -29,11 +29,11 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { code, initialValue, balance, isActive, expiresAt } = body;
+    const { code, value, balance, purchasedBy } = body;
 
-    if (!code || initialValue === undefined) {
+    if (!code) {
       return NextResponse.json(
-        { error: "Code and initial value are required" },
+        { error: "Code is required" },
         { status: 400 }
       );
     }
@@ -52,16 +52,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const initVal = Number(initialValue);
-    const balVal = balance !== undefined && balance !== null ? Number(balance) : initVal;
+    const val = Number(value || 1000);
+    const balVal = balance !== undefined && balance !== null ? Number(balance) : val;
 
     const giftCard = await db.giftCard.create({
       data: {
         code: cleanCode,
-        initialValue: initVal,
+        value: val,
         balance: balVal,
-        isActive: isActive ?? true,
-        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        purchasedBy: purchasedBy || admin.email || "Admin",
+        purchasedAt: new Date(),
+        isRedeemed: balVal === 0,
       },
     });
 
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PUT: Update an existing gift card or toggle status
+// PUT: Update an existing gift card
 export async function PUT(req: NextRequest) {
   const admin = await getAdminUser();
   if (!admin) {
@@ -80,7 +81,7 @@ export async function PUT(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { id, code, initialValue, balance, isActive, expiresAt } = body;
+    const { id, code, value, balance } = body;
 
     if (!id) {
       return NextResponse.json({ error: "Gift card ID is required" }, { status: 400 });
@@ -88,10 +89,12 @@ export async function PUT(req: NextRequest) {
 
     const updateData: any = {};
     if (code !== undefined) updateData.code = code.trim().toUpperCase();
-    if (initialValue !== undefined) updateData.initialValue = Number(initialValue);
-    if (balance !== undefined) updateData.balance = Number(balance);
-    if (isActive !== undefined) updateData.isActive = Boolean(isActive);
-    if (expiresAt !== undefined) updateData.expiresAt = expiresAt ? new Date(expiresAt) : null;
+    if (value !== undefined) updateData.value = Number(value);
+    if (balance !== undefined) {
+      const bal = Number(balance);
+      updateData.balance = bal;
+      updateData.isRedeemed = bal === 0;
+    }
 
     const giftCard = await db.giftCard.update({
       where: { id },

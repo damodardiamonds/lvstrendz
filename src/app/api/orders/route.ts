@@ -19,6 +19,8 @@ export async function POST(request: NextRequest) {
       country = "India",
       items,
       couponCode,
+      giftCardCode,
+      giftCardDiscount = 0,
       subtotal,
       discount,
       shipping,
@@ -88,10 +90,10 @@ export async function POST(request: NextRequest) {
 
     // Auto-apply active eligible coupon server-side if client didn't specify a coupon
     let finalCouponCode = couponCode || null;
-    let finalDiscount = Number(discount || 0);
+    let finalDiscount = Number(discount || 0) + Number(giftCardDiscount || 0);
     let finalTotal = Number(total);
 
-    if (!finalCouponCode && finalDiscount === 0) {
+    if (!finalCouponCode && Number(discount || 0) === 0) {
       const now = new Date();
       const activeCoupon = await db.coupon.findFirst({
         where: {
@@ -117,28 +119,34 @@ export async function POST(request: NextRequest) {
           if (activeCoupon.maxDiscount && calculatedDiscount > Number(activeCoupon.maxDiscount)) {
             calculatedDiscount = Number(activeCoupon.maxDiscount);
           }
-          finalDiscount = calculatedDiscount;
+          finalDiscount = calculatedDiscount + Number(giftCardDiscount || 0);
           finalTotal = Math.max(0, subVal - finalDiscount + Number(shipping || 0));
         }
       }
     }
 
-    // 4. Create Order & Items (Initial status is UNPAID until payment completes)
+    // Determine initial payment status: If total is 0 (fully covered by gift card), mark as PAID and CONFIRMED
+    const isZeroTotal = finalTotal <= 0;
+    const initialStatus = isZeroTotal ? "CONFIRMED" : "PENDING";
+    const initialPaymentStatus = isZeroTotal ? "PAID" : "UNPAID";
+    const finalPaymentMethod = isZeroTotal ? "Gift Card" : paymentMethod;
+
+    // 4. Create Order & Items
     const order = await db.order.create({
       data: {
         orderNumber,
         userId: user.id,
         addressId: address.id,
-        status: "PENDING",
-        paymentStatus: "UNPAID",
-        paymentMethod,
-        paymentId: paymentId || `PAY-${Date.now()}`,
+        status: initialStatus,
+        paymentStatus: initialPaymentStatus,
+        paymentMethod: finalPaymentMethod,
+        paymentId: isZeroTotal ? `GC-${giftCardCode || Date.now()}` : (paymentId || `PAY-${Date.now()}`),
         subtotal: Number(subtotal),
         discount: finalDiscount,
         shipping: Number(shipping || 0),
         total: finalTotal,
         couponCode: finalCouponCode,
-        notes: notes || null,
+        notes: giftCardCode ? `${notes ? notes + " | " : ""}Gift Card Applied: ${giftCardCode}` : (notes || null),
         shippingAddress: {
           name: `${firstName.trim()} ${lastName.trim()}`,
           phone: phone.trim(),
@@ -162,6 +170,34 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Redeem gift card balance if code was applied
+    if (giftCardCode && Number(giftCardDiscount) > 0) {
+      try {
+        const gc = await db.giftCard.findFirst({
+          where: { code: { equals: giftCardCode.trim(), mode: "insensitive" } },
+        });
+
+        if (gc) {
+          const currentBal = Number(gc.balance);
+          const deduct = Math.min(currentBal, Number(giftCardDiscount));
+          const newBal = currentBal - deduct;
+          await db.giftCard.update({
+            where: { id: gc.id },
+            data: {
+              balance: newBal,
+              isRedeemed: newBal === 0,
+              redeemedBy: user.id,
+              redeemedAt: new Date(),
+              orderId: order.id,
+            },
+          });
+          console.log(`[orders] Redeemed ${deduct} from gift card ${gc.code} for order ${order.orderNumber}`);
+        }
+      } catch (gcErr) {
+        console.error("[orders] Error redeeming gift card:", gcErr);
+      }
+    }
 
     // 5. Stock and Coupon Processing (only if paid immediately)
     if (order.paymentStatus === "PAID") {

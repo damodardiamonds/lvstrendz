@@ -40,10 +40,13 @@ interface Coupon {
 interface GiftCard {
   id: string;
   code: string;
-  initialValue: number;
+  value: number;
   balance: number;
-  isActive: boolean;
-  expiresAt: string | null;
+  purchasedBy?: string;
+  isRedeemed?: boolean;
+  isGift?: boolean;
+  recipientName?: string;
+  recipientEmail?: string;
   createdAt: string;
 }
 
@@ -86,10 +89,9 @@ export default function DiscountsAndTimerPage() {
   const [editingGiftCard, setEditingGiftCard] = useState<GiftCard | null>(null);
   const [giftCardForm, setGiftCardForm] = useState({
     code: "",
-    initialValue: "",
+    value: "",
     balance: "",
-    isActive: true,
-    expiresAt: "",
+    purchasedBy: "",
   });
 
   // Timer Settings State
@@ -293,19 +295,17 @@ export default function DiscountsAndTimerPage() {
       setEditingGiftCard(card);
       setGiftCardForm({
         code: card.code,
-        initialValue: String(card.initialValue),
+        value: String(card.value),
         balance: String(card.balance),
-        isActive: card.isActive,
-        expiresAt: card.expiresAt ? new Date(card.expiresAt).toISOString().slice(0, 16) : "",
+        purchasedBy: card.purchasedBy || "",
       });
     } else {
       setEditingGiftCard(null);
       setGiftCardForm({
-        code: `GIFT-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
-        initialValue: "",
-        balance: "",
-        isActive: true,
-        expiresAt: "",
+        code: `LVS-${Math.random().toString(36).substring(2, 6).toUpperCase()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+        value: "1000",
+        balance: "1000",
+        purchasedBy: "admin@lvstrendz.com",
       });
     }
     setIsGiftCardModalOpen(true);
@@ -313,8 +313,8 @@ export default function DiscountsAndTimerPage() {
 
   const handleSaveGiftCard = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!giftCardForm.code || !giftCardForm.initialValue) {
-      toast.error("Please fill in Code and Initial Value");
+    if (!giftCardForm.code || !giftCardForm.value) {
+      toast.error("Please fill in Code and Value");
       return;
     }
 
@@ -322,10 +322,9 @@ export default function DiscountsAndTimerPage() {
       const payload = {
         ...(editingGiftCard ? { id: editingGiftCard.id } : {}),
         code: giftCardForm.code,
-        initialValue: giftCardForm.initialValue,
-        balance: giftCardForm.balance !== "" ? giftCardForm.balance : giftCardForm.initialValue,
-        isActive: giftCardForm.isActive,
-        expiresAt: giftCardForm.expiresAt || null,
+        value: giftCardForm.value,
+        balance: giftCardForm.balance !== "" ? giftCardForm.balance : giftCardForm.value,
+        purchasedBy: giftCardForm.purchasedBy || "Admin",
       };
 
       const res = await fetch("/api/admin/gift-cards", {

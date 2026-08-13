@@ -248,3 +248,192 @@ export async function sendOrderConfirmationEmail(orderId: string) {
     return { success: false, error: err?.message || err };
   }
 }
+
+export interface GiftCardEmailOptions {
+  recipientEmail: string;
+  code: string;
+  value?: number;
+  isGift?: boolean;
+  senderName?: string;
+  recipientName?: string;
+  personalMessage?: string;
+  purchasedBy?: string;
+}
+
+/**
+ * Sends a styled Gift Card email using Resend.
+ */
+export async function sendGiftCardEmail(options: GiftCardEmailOptions) {
+  const apiKey = process.env.RESEND_API_KEY;
+
+  if (!apiKey) {
+    console.warn(
+      "[email] ⚠️ RESEND_API_KEY is not configured in .env. Skipping gift card email dispatch."
+    );
+    return { success: false, reason: "missing_api_key" };
+  }
+
+  const resend = new Resend(apiKey);
+  const fromSender = process.env.RESEND_FROM_EMAIL || "LVS Trendz <orders@lvstrendz.com>";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://lvstrendz.vercel.app";
+  const {
+    recipientEmail,
+    code,
+    value = 1000,
+    isGift = false,
+    senderName,
+    recipientName,
+    personalMessage,
+    purchasedBy,
+  } = options;
+
+  const formattedValue = formatINR(value);
+  const subject = isGift
+    ? `🎁 You received a ${formattedValue} LVS Trendz Gift Card from ${senderName || "a friend"}!`
+    : `✨ Your ${formattedValue} LVS Trendz Gift Card is Here!`;
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>${subject}</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f5; margin: 0; padding: 24px 12px; color: #18181b;">
+        <div style="max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e4e4e7; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08);">
+          
+          <!-- Header Banner -->
+          <div style="background-color: #A0463E; padding: 32px 24px; text-align: center; background-image: linear-gradient(135deg, #A0463E 0%, #7A312B 100%);">
+            <h1 style="color: #ffffff; font-size: 22px; font-weight: 900; letter-spacing: 3px; margin: 0; text-transform: uppercase;">
+              LVS TRENDZ
+            </h1>
+            <p style="color: #fecdd3; font-size: 11px; margin-top: 6px; margin-bottom: 0; text-transform: uppercase; letter-spacing: 2px;">
+              Luxury Fashion & Couture
+            </p>
+          </div>
+
+          <!-- Main Body -->
+          <div style="padding: 36px 28px;">
+            
+            ${
+              isGift
+                ? `
+              <div style="text-align: center; margin-bottom: 24px;">
+                <span style="font-size: 40px; line-height: 1;">🎁</span>
+                <h2 style="font-size: 20px; font-weight: 800; color: #18181b; margin: 12px 0 6px 0;">
+                  A Special Gift For ${recipientName ? recipientName : "You"}!
+                </h2>
+                <p style="font-size: 14px; color: #52525b; margin: 0;">
+                  <strong style="color: #A0463E;">${senderName || "Someone special"}</strong> has sent you an exclusive LVS Trendz digital gift card.
+                </p>
+              </div>
+
+              ${
+                personalMessage
+                  ? `
+                <div style="background-color: #fff1f2; border-left: 4px solid #A0463E; border-radius: 0 8px 8px 0; padding: 16px; margin-bottom: 28px;">
+                  <p style="font-size: 11px; font-weight: 700; color: #A0463E; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 6px 0;">
+                    Personal Message
+                  </p>
+                  <p style="font-size: 14px; color: #3f3f46; font-style: italic; margin: 0; line-height: 1.5;">
+                    "${personalMessage}"
+                  </p>
+                </div>
+                `
+                  : ""
+              }
+              `
+                : `
+              <div style="text-align: center; margin-bottom: 24px;">
+                <span style="font-size: 40px; line-height: 1;">✨</span>
+                <h2 style="font-size: 20px; font-weight: 800; color: #18181b; margin: 12px 0 6px 0;">
+                  Your Gift Card is Ready!
+                </h2>
+                <p style="font-size: 14px; color: #52525b; margin: 0;">
+                  Thank you for your purchase. Here is your official LVS Trendz gift card code.
+                </p>
+              </div>
+              `
+            }
+
+            <!-- Gift Card Display Card -->
+            <div style="background: linear-gradient(135deg, #18181b 0%, #27272a 100%); border-radius: 14px; padding: 28px 24px; text-align: center; color: #ffffff; margin-bottom: 28px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); border: 1px solid #3f3f46;">
+              <p style="font-size: 11px; font-weight: 700; color: #fb7185; text-transform: uppercase; letter-spacing: 2px; margin: 0 0 8px 0;">
+                GIFT CARD VALUE
+              </p>
+              <h3 style="font-size: 36px; font-weight: 900; color: #ffffff; margin: 0 0 20px 0; letter-spacing: -1px;">
+                ${formattedValue}
+              </h3>
+
+              <div style="background: #ffffff; border-radius: 10px; padding: 14px 20px; display: inline-block; width: 85%; margin: 0 auto; border: 2px dashed #A0463E;">
+                <p style="font-size: 10px; font-weight: 700; color: #71717a; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 4px 0;">
+                  YOUR GIFT CARD CODE
+                </p>
+                <div style="font-family: 'Courier New', Courier, monospace; font-size: 22px; font-weight: 900; color: #A0463E; letter-spacing: 4px; word-break: break-all;">
+                  ${code}
+                </div>
+              </div>
+            </div>
+
+            <!-- How to Redeem -->
+            <div style="background-color: #fafafa; border: 1px solid #f4f4f5; border-radius: 10px; padding: 20px; margin-bottom: 28px;">
+              <h4 style="font-size: 12px; font-weight: 800; color: #18181b; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 10px 0;">
+                How to Redeem Your Gift Card
+              </h4>
+              <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #52525b; line-height: 1.6;">
+                <li>Visit our online store at <a href="${appUrl}" style="color: #A0463E; font-weight: 700; text-decoration: none;">lvstrendz.vercel.app</a></li>
+                <li>Add your favorite products to your cart and proceed to Checkout.</li>
+                <li>In the checkout summary, click <strong>"Have a Gift Card?"</strong> and enter code <strong style="color: #18181b;">${code}</strong>.</li>
+                <li>Click <strong>Apply</strong> to deduct up to ${formattedValue} from your order total!</li>
+              </ol>
+            </div>
+
+            <!-- Call to Action Button -->
+            <div style="text-align: center; margin-bottom: 24px;">
+              <a href="${appUrl}/shop" style="background-color: #A0463E; color: #ffffff; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; padding: 14px 32px; border-radius: 8px; text-decoration: none; display: inline-block; box-shadow: 0 4px 12px rgba(160,70,62,0.3);">
+                Shop Collection Now
+              </a>
+            </div>
+
+          </div>
+
+          <!-- Footer -->
+          <div style="background-color: #fafafa; border-top: 1px solid #e4e4e7; padding: 20px; text-align: center; font-size: 12px; color: #a1a1aa;">
+            <p style="margin: 0 0 6px 0;">If you have any questions regarding your gift card, email us at <a href="mailto:support@lvstrendz.com" style="color: #A0463E; text-decoration: none;">support@lvstrendz.com</a></p>
+            <p style="margin: 0; font-weight: 600; color: #71717a;">© ${new Date().getFullYear()} LVS Trendz. All rights reserved.</p>
+          </div>
+
+        </div>
+      </body>
+    </html>
+  `;
+
+  console.log(`[email] Sending Gift Card email to ${recipientEmail} (code: ${code})...`);
+
+  try {
+    const recipients = [recipientEmail];
+    // If it's a gift, also send a receipt copy to buyer if buyer email is provided & different
+    if (isGift && purchasedBy && purchasedBy.trim().toLowerCase() !== recipientEmail.trim().toLowerCase()) {
+      recipients.push(purchasedBy);
+    }
+
+    const { data, error } = await resend.emails.send({
+      from: fromSender,
+      to: recipients,
+      subject: subject,
+      html: htmlContent,
+    });
+
+    if (error) {
+      console.error("[email] ❌ Failed to send gift card email via Resend:", error);
+      return { success: false, error };
+    }
+
+    console.log(`[email] ✅ Gift Card email sent successfully! Email ID: ${data?.id}`);
+    return { success: true, emailId: data?.id };
+  } catch (err: any) {
+    console.error("[email] ❌ Unexpected error in sendGiftCardEmail:", err);
+    return { success: false, error: err?.message || err };
+  }
+}

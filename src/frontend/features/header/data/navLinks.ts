@@ -17,6 +17,10 @@ export const navLinks: NavLink[] = [
     href: "/collections",
   },
   {
+    label: "GIFT CARD",
+    href: "/gift-card",
+  },
+  {
     label: "CUSTOMER CARE",
     href: "/customer-care",
   },
