@@ -336,19 +336,18 @@ export default function RakhiOfferClient({
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2 flex-wrap mb-1">
                   <h3 className="text-base sm:text-lg font-bold text-gray-900 leading-snug">
-                    OFFER 2: Buy Outfit with Direct ₹500 OFF
+                    OFFER 2: Buy Any Product with Direct ₹500 OFF
                   </h3>
                   <span className="bg-emerald-700 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shrink-0">
                     Instant ₹500 OFF
                   </span>
                 </div>
                 <p className="text-xs text-gray-600 mt-1">
-                  Order the featured Roman Chanderi Silk Anarkali Gown Set directly and enjoy automatic ₹500 instant discount.
+                  Order any product across our entire store directly and enjoy automatic ₹500 instant discount.
                 </p>
                 <div className="mt-3 flex items-center gap-2">
-                  <span className="text-xl font-bold text-[#8C1D11]">{format(directOutfitPrice)}</span>
-                  <span className="text-xs text-gray-400 line-through">{format(product.price)}</span>
-                  <span className="text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">₹500 Flat Discount</span>
+                  <span className="text-xl font-bold text-[#8C1D11]">Flat ₹500 OFF</span>
+                  <span className="text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">All Products</span>
                 </div>
               </div>
             </div>
@@ -439,7 +438,7 @@ export default function RakhiOfferClient({
                     Select Your Size:
                   </label>
                   <div className="flex flex-wrap gap-2.5">
-                    {['XS (34)', 'S (36)', 'M (38)', 'L (40)', 'XL (42)', 'XXL (44)', 'Custom Size'].map((sz) => (
+                    {['XS (34)', 'S (36)', 'M (38)', 'L (40)', 'XL (42)', 'XXL (44)'].map((sz) => (
                       <button
                         key={sz}
                         onClick={() => setSelectedSize(sz)}
@@ -662,10 +661,8 @@ export default function RakhiOfferClient({
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
               {moreProducts.map((item) => {
-                const itemDiscount =
-                  item.compareAtPrice && item.compareAtPrice > item.price
-                    ? Math.round(((item.compareAtPrice - item.price) / item.compareAtPrice) * 100)
-                    : 0;
+                const originalPrice = item.price;
+                const discountedPrice = Math.max(0, item.price - 500);
 
                 return (
                   <div
@@ -682,11 +679,9 @@ export default function RakhiOfferClient({
                           className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
                           sizes="(max-width: 768px) 50vw, 25vw"
                         />
-                        {itemDiscount > 0 && (
-                          <div className="absolute top-2.5 left-2.5 bg-[#8C1D11] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
-                            {itemDiscount}% OFF
-                          </div>
-                        )}
+                        <div className="absolute top-2.5 left-2.5 bg-[#8C1D11] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow">
+                          ₹500 OFF
+                        </div>
                       </Link>
 
                       {/* Product Content */}
@@ -707,13 +702,11 @@ export default function RakhiOfferClient({
                     <div className="p-3.5 md:p-4 pt-0">
                       <div className="flex items-baseline gap-2 mb-3">
                         <span className="text-sm md:text-base font-extrabold text-[#3D1515]">
-                          {format(item.price)}
+                          {format(discountedPrice)}
                         </span>
-                        {item.compareAtPrice && item.compareAtPrice > item.price && (
-                          <span className="text-xs text-gray-400 line-through">
-                            {format(item.compareAtPrice)}
-                          </span>
-                        )}
+                        <span className="text-xs text-gray-400 line-through">
+                          {format(originalPrice)}
+                        </span>
                       </div>
 
                       <Link
