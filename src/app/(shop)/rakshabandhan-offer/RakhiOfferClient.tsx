@@ -74,19 +74,45 @@ export default function RakhiOfferClient({
   const [buyerName, setBuyerName] = useState('');
   const [isBuyingGiftCard, setIsBuyingGiftCard] = useState(false);
 
-  // Countdown Timer State (Calculated for Rakshabandhan urgency)
-  const [timeLeft, setTimeLeft] = useState({ hours: 5, minutes: 42, seconds: 18 });
+  // Countdown Timer State ending 27th August 2026 midnight 11:59 PM IST
+  const TARGET_DATE = new Date('2026-08-27T23:59:59+05:30').getTime();
+
+  const calculateTimeLeft = () => {
+    const now = new Date().getTime();
+    const difference = TARGET_DATE - now;
+
+    if (difference <= 0) {
+      return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+    }
+
+    return {
+      days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+      hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+      minutes: Math.floor((difference / 1000 / 60) % 60),
+      seconds: Math.floor((difference / 1000) % 60),
+    };
+  };
+
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
+    setTimeLeft(calculateTimeLeft());
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
-        if (prev.minutes > 0) return { ...prev, minutes: 59, seconds: 59 };
-        if (prev.hours > 0) return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        return { hours: 12, minutes: 0, seconds: 0 }; // Reset loop for continuous urgency
-      });
+      setTimeLeft(calculateTimeLeft());
     }, 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Auto-set RAKHI500 coupon code so it applies to any product purchased from the website
+  useEffect(() => {
+    const rakhiCoupon = {
+      code: 'RAKHI500',
+      name: 'Rakshabandhan ₹500 Off',
+      type: 'FIXED',
+      value: 500,
+      nonStackable: true,
+    };
+    localStorage.setItem('lvstrendz_coupon', JSON.stringify(rakhiCoupon));
   }, []);
 
   // Direct Product Purchase with ₹500 Instant Rakhi OFF
@@ -243,10 +269,12 @@ export default function RakhiOfferClient({
           </p>
 
           {/* Countdown Timer Widget */}
-          <div className="mt-5 inline-flex items-center gap-3 bg-white px-5 py-2.5 rounded-xl border border-amber-200 shadow-sm">
+          <div className="mt-5 inline-flex flex-wrap items-center justify-center gap-2 sm:gap-3 bg-white px-4 sm:px-5 py-2.5 rounded-xl border border-amber-200 shadow-sm">
             <Clock className="w-4 h-4 text-[#8C1D11] animate-bounce" />
-            <span className="text-xs font-semibold uppercase text-gray-500 tracking-wider">Rakhi Offer Expires In:</span>
-            <div className="flex items-center gap-1.5 font-mono text-sm font-bold text-[#3D1515]">
+            <span className="text-xs font-semibold uppercase text-gray-500 tracking-wider">Rakhi Offer Expires (27th Aug):</span>
+            <div className="flex items-center gap-1.5 font-mono text-xs sm:text-sm font-bold text-[#3D1515]">
+              <span className="bg-[#3D1515] text-amber-300 px-2 py-1 rounded">{String(timeLeft.days).padStart(2, '0')}d</span>
+              <span>:</span>
               <span className="bg-[#3D1515] text-amber-300 px-2 py-1 rounded">{String(timeLeft.hours).padStart(2, '0')}h</span>
               <span>:</span>
               <span className="bg-[#3D1515] text-amber-300 px-2 py-1 rounded">{String(timeLeft.minutes).padStart(2, '0')}m</span>
@@ -690,6 +718,16 @@ export default function RakhiOfferClient({
 
                       <Link
                         href={`/product/${item.slug}`}
+                        onClick={() => {
+                          const rakhiCoupon = {
+                            code: 'RAKHI500',
+                            name: 'Rakshabandhan ₹500 Off',
+                            type: 'FIXED',
+                            value: 500,
+                            nonStackable: true,
+                          };
+                          localStorage.setItem('lvstrendz_coupon', JSON.stringify(rakhiCoupon));
+                        }}
                         className="w-full bg-[#FAF7F2] hover:bg-[#3D1515] text-[#3D1515] hover:text-amber-200 border border-amber-200 hover:border-[#3D1515] text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all duration-200"
                       >
                         <span>VIEW OUTFIT</span>
