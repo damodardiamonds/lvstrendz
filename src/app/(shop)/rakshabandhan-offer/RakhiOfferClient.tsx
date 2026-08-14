@@ -39,7 +39,23 @@ interface ProductProp {
   variants: any[];
 }
 
-export default function RakhiOfferClient({ product }: { product: ProductProp }) {
+interface MoreProductProp {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  compareAtPrice: number | null;
+  image: string;
+  category?: string;
+}
+
+export default function RakhiOfferClient({
+  product,
+  moreProducts = [],
+}: {
+  product: ProductProp;
+  moreProducts?: MoreProductProp[];
+}) {
   const { format } = useCurrency();
   const router = useRouter();
 
@@ -204,7 +220,7 @@ export default function RakhiOfferClient({ product }: { product: ProductProp }) 
       {/* Top Rakshabandhan Urgent Announcement Bar */}
       <div className="bg-[#3D1515] text-amber-200 py-2.5 px-4 text-xs md:text-sm text-center font-medium border-b border-amber-500/20 flex items-center justify-center gap-2 tracking-wide">
         <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
-        <span>RAKSHABANDHAN SPECIAL META ADS EXCLUSIVE OFFER</span>
+        <span>RAKSHABANDHAN SPECIAL EXCLUSIVE OFFER</span>
         <span className="hidden sm:inline">•</span>
         <span className="text-amber-300 font-bold bg-amber-400/20 px-2 py-0.5 rounded text-[11px] uppercase">
           Limited Stock For Festive Season
@@ -245,21 +261,25 @@ export default function RakhiOfferClient({ product }: { product: ProductProp }) 
           {/* Card 1: Gift Card Offer */}
           <div
             onClick={() => setActiveOfferTab('gift-card')}
-            className={`cursor-pointer p-5 md:p-6 rounded-2xl border-2 transition-all relative overflow-hidden bg-white shadow-md ${
+            className={`cursor-pointer p-5 md:p-6 rounded-2xl border-2 transition-all relative bg-white shadow-md ${
               activeOfferTab === 'gift-card'
                 ? 'border-[#8C1D11] ring-2 ring-[#8C1D11]/20 bg-amber-50/30'
                 : 'border-gray-200 hover:border-amber-300'
             }`}
           >
-            <span className="absolute top-3 right-3 bg-[#8C1D11] text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">
-              50% Extra Value
-            </span>
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center text-[#8C1D11] shrink-0">
                 <Gift className="w-6 h-6" />
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">OFFER 1: Pay ₹500 → Get ₹1,000 Gift Card</h3>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2 flex-wrap mb-1">
+                  <h3 className="text-base sm:text-lg font-bold text-gray-900 leading-snug">
+                    OFFER 1: Pay ₹500 → Get ₹1,000 Gift Card
+                  </h3>
+                  <span className="bg-[#8C1D11] text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shrink-0">
+                    50% Extra Value
+                  </span>
+                </div>
                 <p className="text-xs text-gray-600 mt-1">
                   Buy a ₹1,000 Digital Voucher for ₹500 today. Use it on any outfit now or save for future couture shopping!
                 </p>
@@ -275,21 +295,25 @@ export default function RakhiOfferClient({ product }: { product: ProductProp }) 
           {/* Card 2: Direct Product Discount */}
           <div
             onClick={() => setActiveOfferTab('product')}
-            className={`cursor-pointer p-5 md:p-6 rounded-2xl border-2 transition-all relative overflow-hidden bg-white shadow-md ${
+            className={`cursor-pointer p-5 md:p-6 rounded-2xl border-2 transition-all relative bg-white shadow-md ${
               activeOfferTab === 'product'
                 ? 'border-[#8C1D11] ring-2 ring-[#8C1D11]/20 bg-amber-50/30'
                 : 'border-gray-200 hover:border-amber-300'
             }`}
           >
-            <span className="absolute top-3 right-3 bg-emerald-700 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">
-              Instant ₹500 OFF Outfit
-            </span>
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center text-[#8C1D11] shrink-0">
                 <Tag className="w-6 h-6" />
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">OFFER 2: Buy Outfit with Direct ₹500 OFF</h3>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2 flex-wrap mb-1">
+                  <h3 className="text-base sm:text-lg font-bold text-gray-900 leading-snug">
+                    OFFER 2: Buy Outfit with Direct ₹500 OFF
+                  </h3>
+                  <span className="bg-emerald-700 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shrink-0">
+                    Instant ₹500 OFF
+                  </span>
+                </div>
                 <p className="text-xs text-gray-600 mt-1">
                   Order the featured Roman Chanderi Silk Anarkali Gown Set directly and enjoy automatic ₹500 instant discount.
                 </p>
@@ -387,7 +411,7 @@ export default function RakhiOfferClient({ product }: { product: ProductProp }) 
                     Select Your Size:
                   </label>
                   <div className="flex flex-wrap gap-2.5">
-                    {['S (36)', 'M (38)', 'L (40)', 'XL (42)', 'XXL (44)', 'Custom Size'].map((sz) => (
+                    {['XS (34)', 'S (36)', 'M (38)', 'L (40)', 'XL (42)', 'XXL (44)', 'Custom Size'].map((sz) => (
                       <button
                         key={sz}
                         onClick={() => setSelectedSize(sz)}
@@ -436,7 +460,7 @@ export default function RakhiOfferClient({ product }: { product: ProductProp }) 
 
                   <div className="flex items-center justify-center gap-4 text-[11px] text-gray-500 pt-1">
                     <span className="flex items-center gap-1"><Truck className="w-3.5 h-3.5 text-emerald-600" /> Dispatch Before Rakhi</span>
-                    <span className="flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Cash on Delivery Available</span>
+                    <span className="flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> 100% Handwork Silk</span>
                     <span className="flex items-center gap-1"><RotateCcw className="w-3.5 h-3.5 text-emerald-600" /> Easy 7-Day Exchange</span>
                   </div>
                 </div>
@@ -534,7 +558,7 @@ export default function RakhiOfferClient({ product }: { product: ProductProp }) 
           <div className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm flex flex-col items-center">
             <Lock className="w-6 h-6 text-[#8C1D11] mb-2" />
             <h5 className="font-bold text-xs text-gray-900">Secure Payments</h5>
-            <p className="text-[11px] text-gray-500 mt-0.5">UPI, Cards & COD</p>
+            <p className="text-[11px] text-gray-500 mt-0.5">UPI, Cards & Net Banking</p>
           </div>
           <div className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm flex flex-col items-center">
             <RotateCcw className="w-6 h-6 text-[#8C1D11] mb-2" />
@@ -582,6 +606,102 @@ export default function RakhiOfferClient({ product }: { product: ProductProp }) 
             </div>
           </div>
         </div>
+
+        {/* Festive Product Row Section - Explore More Outfits */}
+        {moreProducts && moreProducts.length > 0 && (
+          <div className="mt-14">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+              <div>
+                <div className="inline-flex items-center gap-1.5 text-amber-700 text-xs font-bold uppercase tracking-widest mb-1">
+                  <Sparkles className="w-3.5 h-3.5 text-[#8C1D11]" /> Exclusive Festive Collection
+                </div>
+                <h3 className="text-2xl md:text-3xl font-serif font-bold text-[#3D1515]">
+                  Explore More Festive Favorites
+                </h3>
+                <p className="text-xs md:text-sm text-gray-600 mt-1">
+                  Discover handcrafted ethnic couture with Rakshabandhan special discounts.
+                </p>
+              </div>
+
+              <Link
+                href="/shop"
+                className="inline-flex items-center gap-2 text-xs font-bold text-[#8C1D11] hover:text-[#6e160d] transition-colors border-b border-[#8C1D11] pb-0.5 self-start md:self-auto"
+              >
+                <span>VIEW ALL COLLECTIONS</span>
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {moreProducts.map((item) => {
+                const itemDiscount =
+                  item.compareAtPrice && item.compareAtPrice > item.price
+                    ? Math.round(((item.compareAtPrice - item.price) / item.compareAtPrice) * 100)
+                    : 0;
+
+                return (
+                  <div
+                    key={item.id}
+                    className="group bg-white rounded-2xl border border-amber-100/90 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
+                  >
+                    <div>
+                      {/* Image Container */}
+                      <Link href={`/product/${item.slug}`} className="block relative aspect-[3/4] w-full bg-amber-50/50 overflow-hidden">
+                        <Image
+                          src={item.image}
+                          alt={item.name}
+                          fill
+                          className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                          sizes="(max-width: 768px) 50vw, 25vw"
+                        />
+                        {itemDiscount > 0 && (
+                          <div className="absolute top-2.5 left-2.5 bg-[#8C1D11] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
+                            {itemDiscount}% OFF
+                          </div>
+                        )}
+                      </Link>
+
+                      {/* Product Content */}
+                      <div className="p-3.5 md:p-4">
+                        {item.category && (
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 block mb-1">
+                            {item.category}
+                          </span>
+                        )}
+                        <Link href={`/product/${item.slug}`}>
+                          <h4 className="text-xs md:text-sm font-semibold text-gray-900 group-hover:text-[#8C1D11] transition-colors line-clamp-2 leading-snug">
+                            {item.name}
+                          </h4>
+                        </Link>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 md:p-4 pt-0">
+                      <div className="flex items-baseline gap-2 mb-3">
+                        <span className="text-sm md:text-base font-extrabold text-[#3D1515]">
+                          {format(item.price)}
+                        </span>
+                        {item.compareAtPrice && item.compareAtPrice > item.price && (
+                          <span className="text-xs text-gray-400 line-through">
+                            {format(item.compareAtPrice)}
+                          </span>
+                        )}
+                      </div>
+
+                      <Link
+                        href={`/product/${item.slug}`}
+                        className="w-full bg-[#FAF7F2] hover:bg-[#3D1515] text-[#3D1515] hover:text-amber-200 border border-amber-200 hover:border-[#3D1515] text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all duration-200"
+                      >
+                        <span>VIEW OUTFIT</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Floating Mobile Sticky CTA Bar */}
