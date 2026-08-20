@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle, Upload, Image as ImageIcon, Trash2, Plus, X, GripVertical } from "lucide-react";
 
 function SubmitButton({ label, isSubmitting }: { label: string; isSubmitting?: boolean }) {
@@ -58,13 +59,20 @@ interface SizeOption {
   value: string;
 }
 
+export interface ProductActionResult {
+  error?: string;
+  success?: boolean;
+  message?: string;
+  redirectUrl?: string;
+}
+
 interface ProductFormProps {
   product?: ProductData;
   selectedCategoryIds?: string[];
   categories?: CategoryOption[];
   availableColors?: ColorOption[];
   availableSizes?: SizeOption[];
-  action: (formData: FormData) => Promise<{ error?: string } | void>;
+  action: (formData: FormData) => Promise<ProductActionResult | void>;
   submitLabel: string;
   cancelHref?: string;
   returnPage?: string;
@@ -81,6 +89,7 @@ export default function ProductForm({
   cancelHref = "/admin/products",
   returnPage,
 }: ProductFormProps) {
+  const router = useRouter();
   const [name, setName] = useState(product?.name || "");
   const [slug, setSlug] = useState(product?.slug || "");
   const [autoSlug, setAutoSlug] = useState(!product);
@@ -184,11 +193,15 @@ export default function ProductForm({
     try {
       const formData = new FormData(e.currentTarget);
       const res = await action(formData);
-      if (res && (res as any).error) {
-        setError((res as any).error);
+      if (res && res.error) {
+        setError(res.error);
       } else {
-        setSuccessMsg((res as any)?.message || "Product updated successfully!");
+        setSuccessMsg(res?.message || "Product saved successfully!");
         setUploadQueue([]);
+        if (res?.redirectUrl) {
+          router.push(res.redirectUrl);
+          router.refresh();
+        }
       }
     } catch (err: any) {
       if (err?.message?.includes("NEXT_REDIRECT") || err?.digest?.startsWith("NEXT_REDIRECT")) {

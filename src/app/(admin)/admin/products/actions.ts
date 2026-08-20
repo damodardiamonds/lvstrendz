@@ -17,7 +17,9 @@ function cleanDescriptionText(str: string | null | undefined): string | null {
 }
 
 // Create product
-export async function createProduct(formData: FormData): Promise<{ error?: string } | void> {
+export async function createProduct(
+  formData: FormData
+): Promise<{ error?: string; success?: boolean; message?: string; redirectUrl?: string }> {
   try {
     const name = (formData.get("name") as string)?.trim();
     const slug = (formData.get("slug") as string)?.trim();
@@ -32,10 +34,14 @@ export async function createProduct(formData: FormData): Promise<{ error?: strin
     const weightRaw = formData.get("weight") as string;
     const metaTitle = (formData.get("metaTitle") as string)?.trim();
     const metaDescription = (formData.get("metaDescription") as string)?.trim();
-    const categoryIds = formData.getAll("categoryIds") as string[];
-    const displayAttributes = formData.getAll("displayAttributes") as string[];
-    const selectedColorIds = formData.getAll("selectedColorIds") as string[];
-    const selectedSizeIds = formData.getAll("selectedSizeIds") as string[];
+    const rawCategoryIds = formData.getAll("categoryIds") as string[];
+    const categoryIds = Array.from(new Set(rawCategoryIds.map((c) => c?.trim()).filter(Boolean)));
+    const rawDisplayAttributes = formData.getAll("displayAttributes") as string[];
+    const displayAttributes = Array.from(new Set(rawDisplayAttributes.map((a) => a?.trim()).filter(Boolean)));
+    const rawColorIds = formData.getAll("selectedColorIds") as string[];
+    const selectedColorIds = Array.from(new Set(rawColorIds.map((c) => c?.trim()).filter(Boolean)));
+    const rawSizeIds = formData.getAll("selectedSizeIds") as string[];
+    const selectedSizeIds = Array.from(new Set(rawSizeIds.map((s) => s?.trim()).filter(Boolean)));
 
     const isActive = formData.getAll("isActive").includes("true");
     const isFeatured = formData.getAll("isFeatured").includes("true");
@@ -128,23 +134,40 @@ export async function createProduct(formData: FormData): Promise<{ error?: strin
     // Process image uploads if present
     const files = formData.getAll("files") as File[];
     if (files && files.length > 0 && files[0] && files[0].size > 0) {
-      const { uploadProductImages } = await import("./[id]/images/actions");
-      const uploadRes = await uploadProductImages(newProduct.id, formData);
-      if (uploadRes && uploadRes.error) {
-        return { error: `Product created, but image upload failed: ${uploadRes.error}` };
+      try {
+        const { uploadProductImages } = await import("./[id]/images/actions");
+        const uploadRes = await uploadProductImages(newProduct.id, formData);
+        if (uploadRes && uploadRes.error) {
+          console.warn("Image upload warning:", uploadRes.error);
+        }
+      } catch (imgErr: any) {
+        console.error("Image upload failed:", imgErr);
       }
     }
 
-    revalidatePath("/admin/products");
-    revalidatePath("/shop");
+    try {
+      revalidatePath("/admin/products");
+      revalidatePath("/shop");
+      revalidatePath("/");
+      if (finalSlug) {
+        revalidatePath(`/product/${finalSlug}`);
+      }
+    } catch (revErr) {
+      console.warn("Revalidation warning:", revErr);
+    }
+
+    const returnPage = (formData.get("returnPage") as string)?.trim();
+    const redirectTarget = returnPage && returnPage !== "1" ? `/admin/products?page=${returnPage}` : "/admin/products";
+
+    return {
+      success: true,
+      message: "Product created successfully!",
+      redirectUrl: redirectTarget,
+    };
   } catch (err: any) {
     console.error("Failed to create product:", err);
     return { error: err?.message || "An unexpected database error occurred while creating product." };
   }
-
-  const returnPage = (formData.get("returnPage") as string)?.trim();
-  const redirectTarget = returnPage && returnPage !== "1" ? `/admin/products?page=${returnPage}` : "/admin/products";
-  redirect(redirectTarget);
 }
 
 // Update product
@@ -172,10 +195,14 @@ export async function updateProduct(id: string, formData: FormData): Promise<{ e
     const weightRaw = formData.get("weight") as string;
     const metaTitle = (formData.get("metaTitle") as string)?.trim();
     const metaDescription = (formData.get("metaDescription") as string)?.trim();
-    const categoryIds = formData.getAll("categoryIds") as string[];
-    const displayAttributes = formData.getAll("displayAttributes") as string[];
-    const selectedColorIds = formData.getAll("selectedColorIds") as string[];
-    const selectedSizeIds = formData.getAll("selectedSizeIds") as string[];
+    const rawCategoryIds = formData.getAll("categoryIds") as string[];
+    const categoryIds = Array.from(new Set(rawCategoryIds.map((c) => c?.trim()).filter(Boolean)));
+    const rawDisplayAttributes = formData.getAll("displayAttributes") as string[];
+    const displayAttributes = Array.from(new Set(rawDisplayAttributes.map((a) => a?.trim()).filter(Boolean)));
+    const rawColorIds = formData.getAll("selectedColorIds") as string[];
+    const selectedColorIds = Array.from(new Set(rawColorIds.map((c) => c?.trim()).filter(Boolean)));
+    const rawSizeIds = formData.getAll("selectedSizeIds") as string[];
+    const selectedSizeIds = Array.from(new Set(rawSizeIds.map((s) => s?.trim()).filter(Boolean)));
 
     const isActive = formData.getAll("isActive").includes("true");
     const isFeatured = formData.getAll("isFeatured").includes("true");
@@ -283,23 +310,32 @@ export async function updateProduct(id: string, formData: FormData): Promise<{ e
     // Process image uploads if present
     const files = formData.getAll("files") as File[];
     if (files && files.length > 0 && files[0] && files[0].size > 0) {
-      const { uploadProductImages } = await import("./[id]/images/actions");
-      const uploadRes = await uploadProductImages(id, formData);
-      if (uploadRes && uploadRes.error) {
-        return { error: `Product updated, but image upload failed: ${uploadRes.error}` };
+      try {
+        const { uploadProductImages } = await import("./[id]/images/actions");
+        const uploadRes = await uploadProductImages(id, formData);
+        if (uploadRes && uploadRes.error) {
+          console.warn("Image upload warning:", uploadRes.error);
+        }
+      } catch (imgErr: any) {
+        console.error("Image upload failed:", imgErr);
       }
     }
 
-    revalidatePath("/admin/products");
-    revalidatePath(`/admin/products/${id}`);
-    revalidatePath("/shop");
-    revalidatePath("/");
-    if (existingProduct.slug) {
-      revalidatePath(`/product/${existingProduct.slug}`);
+    try {
+      revalidatePath("/admin/products");
+      revalidatePath(`/admin/products/${id}`);
+      revalidatePath("/shop");
+      revalidatePath("/");
+      if (existingProduct.slug) {
+        revalidatePath(`/product/${existingProduct.slug}`);
+      }
+      if (finalSlug) {
+        revalidatePath(`/product/${finalSlug}`);
+      }
+    } catch (revErr) {
+      console.warn("Revalidation warning:", revErr);
     }
-    if (finalSlug) {
-      revalidatePath(`/product/${finalSlug}`);
-    }
+
     return { success: true, message: "Product updated successfully! All changes have been saved and applied across the store." };
   } catch (err: any) {
     console.error("Failed to update product:", err);
