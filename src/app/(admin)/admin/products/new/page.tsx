@@ -1,5 +1,5 @@
 
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import ProductForm from "../components/ProductForm";
 import { createProduct } from "../actions";
@@ -9,6 +9,8 @@ export const metadata = {
   title: "Add Product | Admin - LV's Trendz",
 };
 
+export const dynamic = "force-dynamic";
+
 interface NewProductPageProps {
   searchParams: Promise<{ page?: string }>;
 }
@@ -17,23 +19,35 @@ export default async function NewProductPage({ searchParams }: NewProductPagePro
   const { page } = (await searchParams) || {};
   const backHref = page && page !== "1" ? `/admin/products?page=${page}` : "/admin/products";
 
-  const [categories, attributes] = await Promise.all([
-    db.category.findMany({
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
-    }),
-    db.attribute.findMany({
-      include: {
-        values: { orderBy: { sortOrder: "asc" } },
-      },
-    }),
-  ]);
+  let categories: { id: string; name: string }[] = [];
+  let availableColors: { id: string; value: string; colorCode: string | null }[] = [];
+  let availableSizes: { id: string; value: string }[] = [];
+  let dbError: string | null = null;
 
-  const colorAttr = attributes.find((a) => a.slug === "color");
-  const sizeAttr = attributes.find((a) => a.slug === "size");
+  try {
+    const [fetchedCategories, attributes] = await Promise.all([
+      db.category.findMany({
+        orderBy: { name: "asc" },
+        select: { id: true, name: true },
+      }),
+      db.attribute.findMany({
+        include: {
+          values: { orderBy: { sortOrder: "asc" } },
+        },
+      }),
+    ]);
 
-  const availableColors = colorAttr ? colorAttr.values.map((v) => ({ id: v.id, value: v.value, colorCode: v.colorCode })) : [];
-  const availableSizes = sizeAttr ? sizeAttr.values.map((v) => ({ id: v.id, value: v.value })) : [];
+    categories = fetchedCategories;
+
+    const colorAttr = attributes.find((a) => a.slug === "color");
+    const sizeAttr = attributes.find((a) => a.slug === "size");
+
+    availableColors = colorAttr ? colorAttr.values.map((v) => ({ id: v.id, value: v.value, colorCode: v.colorCode })) : [];
+    availableSizes = sizeAttr ? sizeAttr.values.map((v) => ({ id: v.id, value: v.value })) : [];
+  } catch (err: any) {
+    console.error("Failed to load Add Product page data:", err);
+    dbError = err?.message || "Failed to load page data from database.";
+  }
 
   return (
     <div>
@@ -52,6 +66,17 @@ export default async function NewProductPage({ searchParams }: NewProductPagePro
           </p>
         </div>
       </div>
+
+      {/* DB Error Banner */}
+      {dbError && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+          <AlertCircle size={20} className="text-red-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-sm text-red-800">Failed to load page data</p>
+            <p className="text-xs text-red-600 mt-1">{dbError}</p>
+          </div>
+        </div>
+      )}
 
       {/* Form */}
       <ProductForm

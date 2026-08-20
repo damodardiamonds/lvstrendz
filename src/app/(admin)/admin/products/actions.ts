@@ -4,7 +4,6 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { uploadProductImages } from "./[id]/images/actions";
 
 function cleanDescriptionText(str: string | null | undefined): string | null {
   if (!str) return null;
@@ -129,6 +128,7 @@ export async function createProduct(formData: FormData): Promise<{ error?: strin
     // Process image uploads if present
     const files = formData.getAll("files") as File[];
     if (files && files.length > 0 && files[0] && files[0].size > 0) {
+      const { uploadProductImages } = await import("./[id]/images/actions");
       const uploadRes = await uploadProductImages(newProduct.id, formData);
       if (uploadRes && uploadRes.error) {
         return { error: `Product created, but image upload failed: ${uploadRes.error}` };
@@ -283,6 +283,7 @@ export async function updateProduct(id: string, formData: FormData): Promise<{ e
     // Process image uploads if present
     const files = formData.getAll("files") as File[];
     if (files && files.length > 0 && files[0] && files[0].size > 0) {
+      const { uploadProductImages } = await import("./[id]/images/actions");
       const uploadRes = await uploadProductImages(id, formData);
       if (uploadRes && uploadRes.error) {
         return { error: `Product updated, but image upload failed: ${uploadRes.error}` };
