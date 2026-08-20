@@ -17,9 +17,10 @@ export async function POST(req: NextRequest) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { sessionId, message } = await req.json();
-  if (!sessionId || !message?.trim()) {
-    return NextResponse.json({ error: 'sessionId and message required' }, { status: 400 });
+  const { sessionId, message, attachment } = await req.json();
+  const cleanMessage = message?.trim() || '';
+  if (!sessionId || (!cleanMessage && !attachment)) {
+    return NextResponse.json({ error: 'sessionId and message or attachment required' }, { status: 400 });
   }
 
   // Verify session exists
@@ -31,7 +32,8 @@ export async function POST(req: NextRequest) {
     data: {
       sessionId,
       sender: 'concierge',
-      message: message.trim(),
+      message: cleanMessage,
+      attachment: attachment || null,
       status: 'unread',
     },
   });

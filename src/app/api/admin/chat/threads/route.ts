@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       archived: s.archived,
       createdAt: s.createdAt,
       updatedAt: s.updatedAt,
-      latestMessage: latest?.message || '',
+      latestMessage: latest?.message || (latest?.attachment ? (latest.attachment.toLowerCase().endsWith('.pdf') || latest.attachment.includes('.pdf') ? '📄 Attachment (PDF)' : '📷 Photo Attachment') : ''),
       latestSender: latest?.sender || '',
       latestStatus: latest?.status || 'read',
       unread: latest?.sender === 'visitor' && latest?.status === 'unread',

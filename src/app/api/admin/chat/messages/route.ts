@@ -50,9 +50,11 @@ export async function GET(req: NextRequest) {
         attachment: m.attachment,
         createdAt: m.createdAt,
         time: new Date(m.createdAt).toLocaleTimeString('en-IN', {
+          timeZone: 'Asia/Kolkata',
           hour: '2-digit',
           minute: '2-digit',
-        }),
+          hour12: true,
+        }).toLowerCase(),
       })),
       visitor_typing: visitorTyping,
     },

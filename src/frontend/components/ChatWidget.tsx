@@ -22,6 +22,28 @@ function isBusinessOpen(): boolean {
   return day >= 1 && day <= 6 && hour >= 10 && hour < 20;
 }
 
+function formatISTTime(dateStr?: string, fallbackTime?: string): string {
+  if (!dateStr) return fallbackTime || '';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return fallbackTime || dateStr;
+    return d.toLocaleTimeString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    }).toLowerCase();
+  } catch {
+    return fallbackTime || dateStr;
+  }
+}
+
+function isPdfFile(url?: string | null): boolean {
+  if (!url) return false;
+  const clean = url.toLowerCase();
+  return clean.endsWith('.pdf') || clean.includes('.pdf') || clean.includes('/raw/upload') || clean.includes('application/pdf');
+}
+
 export default function ChatWidget() {
   const pathname = usePathname();
 
@@ -42,6 +64,13 @@ export default function ChatWidget() {
   const [productUrl, setProductUrl] = useState('');
   const [hasSentFirst, setHasSentFirst] = useState(false);
 
+  // Attachment states
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(false);
+  const [previewModalImg, setPreviewModalImg] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const feedRef = useRef<HTMLDivElement>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -125,20 +154,80 @@ export default function ChatWidget() {
     typingTimerRef.current = setTimeout(() => sendTypingIndicator(false), 2500);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 25 * 1024 * 1024) {
+      alert('Selected file exceeds 25MB limit.');
+      return;
+    }
+
+    setSelectedFile(file);
+    if (file.type.startsWith('image/')) {
+      const url = URL.createObjectURL(file);
+      setFilePreview(url);
+    } else {
+      setFilePreview(null);
+    }
+  };
+
+  const clearSelectedFile = () => {
+    if (filePreview) URL.revokeObjectURL(filePreview);
+    setSelectedFile(null);
+    setFilePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const uploadAttachment = async (file: File): Promise<string | null> => {
+    try {
+      setUploadProgress(true);
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/chat/upload', {
+        method: 'POST',
+        body: fd,
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        return data.url;
+      } else {
+        alert(data.error || 'Failed to upload attachment.');
+        return null;
+      }
+    } catch (err: any) {
+      alert('Upload failed: ' + (err?.message || 'Network error'));
+      return null;
+    } finally {
+      setUploadProgress(false);
+    }
+  };
+
   const handleSend = async (text?: string) => {
     const msg = (text || messageText).trim();
-    if (!msg || sending) return;
+    if ((!msg && !selectedFile) || sending || uploadProgress) return;
 
     setSending(true);
     sendTypingIndicator(false);
     if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
 
     try {
+      let attachmentUrl: string | null = null;
+      if (selectedFile) {
+        attachmentUrl = await uploadAttachment(selectedFile);
+        if (!attachmentUrl && !msg) {
+          // If attachment failed and no text, stop
+          setSending(false);
+          return;
+        }
+      }
+
       const res = await fetch('/api/chat/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: msg,
+          attachment: attachmentUrl,
           email: email || null,
           productTitle,
           productUrl,
@@ -150,6 +239,7 @@ export default function ChatWidget() {
         if (!emailSubmitted && email) setEmailSubmitted(true);
         setHasSentFirst(true);
         setMessageText('');
+        clearSelectedFile();
         await fetchMessages();
       }
     } catch {
@@ -217,6 +307,45 @@ export default function ChatWidget() {
             zIndex: 99998,
           }}
         />
+      )}
+
+      {/* Image Fullscreen Modal */}
+      {previewModalImg && (
+        <div
+          onClick={() => setPreviewModalImg(null)}
+          style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(0,0,0,0.85)',
+            zIndex: 1000000,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 20, cursor: 'zoom-out',
+          }}
+        >
+          <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
+            <img
+              src={previewModalImg}
+              alt="Full preview"
+              style={{
+                maxWidth: '100%', maxHeight: '90vh',
+                borderRadius: 8, objectFit: 'contain',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+              }}
+            />
+            <button
+              onClick={() => setPreviewModalImg(null)}
+              style={{
+                position: 'absolute', top: -14, right: -14,
+                width: 32, height: 32, borderRadius: '50%',
+                background: '#fff', color: '#111', border: 'none',
+                fontWeight: 'bold', fontSize: 16, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+              }}
+            >
+              ×
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Chat Popup */}
@@ -357,42 +486,107 @@ export default function ChatWidget() {
           )}
 
           {/* Conversation */}
-          {messages.map((m) => (
-            <div
-              key={m.id}
-              style={{
-                display: 'flex',
-                justifyContent: m.sender === 'visitor' ? 'flex-end' : 'flex-start',
-              }}
-            >
-              <div style={{
-                maxWidth: '75%',
-                padding: '11px 15px',
-                borderRadius: m.sender === 'visitor' ? '14px 14px 2px 14px' : '14px 14px 14px 2px',
-                background: m.sender === 'visitor' ? '#111' : '#fff',
-                color: m.sender === 'visitor' ? '#fff' : '#111',
-                border: m.sender === 'visitor' ? '1px solid #111' : '1px solid #e5e5e5',
-                fontSize: 13,
-                lineHeight: 1.5,
-                wordBreak: 'break-word',
-              }}>
-                {m.message}
-                <span style={{
-                  display: 'block', fontSize: 10,
-                  marginTop: 5, opacity: .65,
-                  textAlign: m.sender === 'visitor' ? 'right' : 'left',
-                  color: m.sender === 'visitor' ? '#fff' : '#888',
+          {messages.map((m) => {
+            const hasPdf = isPdfFile(m.attachment);
+            const istTime = formatISTTime(m.createdAt, m.time);
+            return (
+              <div
+                key={m.id}
+                style={{
+                  display: 'flex',
+                  justifyContent: m.sender === 'visitor' ? 'flex-end' : 'flex-start',
+                }}
+              >
+                <div style={{
+                  maxWidth: '82%',
+                  padding: '10px 14px',
+                  borderRadius: m.sender === 'visitor' ? '14px 14px 2px 14px' : '14px 14px 14px 2px',
+                  background: m.sender === 'visitor' ? '#111' : '#fff',
+                  color: m.sender === 'visitor' ? '#fff' : '#111',
+                  border: m.sender === 'visitor' ? '1px solid #111' : '1px solid #e5e5e5',
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  wordBreak: 'break-word',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
                 }}>
-                  {m.time}
-                  {m.sender === 'visitor' && (
-                    <span style={{ marginLeft: 4 }}>
-                      {m.status === 'read' ? ' ✓✓' : ' ✓'}
-                    </span>
+                  {/* Attachment rendering */}
+                  {m.attachment && (
+                    <div style={{ marginBottom: m.message ? 8 : 2 }}>
+                      {hasPdf ? (
+                        <a
+                          href={m.attachment}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            padding: '9px 12px',
+                            background: m.sender === 'visitor' ? '#222' : '#f8f9fa',
+                            border: `1px solid ${m.sender === 'visitor' ? '#444' : '#e2e8f0'}`,
+                            borderRadius: 8,
+                            textDecoration: 'none',
+                            color: 'inherit',
+                            transition: 'opacity 0.2s',
+                          }}
+                        >
+                          <span style={{ fontSize: 22 }}>📄</span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{
+                              fontWeight: 600,
+                              fontSize: 12,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              color: m.sender === 'visitor' ? '#d4af37' : '#1e293b',
+                            }}>
+                              {m.attachment.split('/').pop()?.split('?')[0] || 'Document (PDF)'}
+                            </div>
+                            <div style={{ fontSize: 10, opacity: 0.75 }}>
+                              Click to view PDF ↗
+                            </div>
+                          </div>
+                        </a>
+                      ) : (
+                        <div style={{ borderRadius: 8, overflow: 'hidden', cursor: 'pointer' }}>
+                          <img
+                            src={m.attachment}
+                            alt="Attachment"
+                            onClick={() => setPreviewModalImg(m.attachment)}
+                            style={{
+                              maxWidth: '100%',
+                              maxHeight: 220,
+                              borderRadius: 6,
+                              display: 'block',
+                              objectFit: 'cover',
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
                   )}
-                </span>
+
+                  {/* Text Message */}
+                  {m.message && <div>{m.message}</div>}
+
+                  {/* Timestamp & Status */}
+                  <span style={{
+                    display: 'block', fontSize: 10,
+                    marginTop: 5, opacity: .65,
+                    textAlign: m.sender === 'visitor' ? 'right' : 'left',
+                    color: m.sender === 'visitor' ? '#fff' : '#888',
+                  }}>
+                    {istTime}
+                    {m.sender === 'visitor' && (
+                      <span style={{ marginLeft: 4 }}>
+                        {m.status === 'read' ? ' ✓✓' : ' ✓'}
+                      </span>
+                    )}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {/* Admin Typing Indicator */}
           {adminTyping && (
@@ -419,7 +613,7 @@ export default function ChatWidget() {
 
         {/* Input Section */}
         <div style={{
-          padding: '14px 16px', background: '#fff',
+          padding: '12px 14px', background: '#fff',
           borderTop: '1px solid #f2f2f2', flexShrink: 0,
         }}>
           {/* Email */}
@@ -430,44 +624,134 @@ export default function ChatWidget() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Your email address (optional)"
               style={{
-                width: '100%', height: 40, padding: '0 14px',
+                width: '100%', height: 38, padding: '0 12px',
                 border: '1px solid #e5e5e5', borderRadius: 8,
-                fontSize: 13, marginBottom: 10, boxSizing: 'border-box',
+                fontSize: 12.5, marginBottom: 8, boxSizing: 'border-box',
                 fontFamily: 'inherit',
               }}
             />
           )}
 
+          {/* Attachment Preview Chip */}
+          {selectedFile && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              padding: '6px 10px',
+              borderRadius: 8,
+              marginBottom: 8,
+              fontSize: 12,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+                {filePreview ? (
+                  <img
+                    src={filePreview}
+                    alt="Preview"
+                    style={{ width: 28, height: 28, borderRadius: 4, objectFit: 'cover' }}
+                  />
+                ) : (
+                  <span style={{ fontSize: 18 }}>📄</span>
+                )}
+                <span style={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  fontWeight: 500,
+                  color: '#334155',
+                }}>
+                  {selectedFile.name}
+                </span>
+                <span style={{ fontSize: 10, color: '#94a3b8', flexShrink: 0 }}>
+                  ({(selectedFile.size / 1024).toFixed(0)} KB)
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={clearSelectedFile}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#ef4444',
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  padding: '0 4px',
+                  lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
+            </div>
+          )}
+
+          {/* Hidden File Input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept="image/*,application/pdf"
+            style={{ display: 'none' }}
+          />
+
           {/* Message Row */}
-          <div style={{ display: 'flex', gap: 8, height: 46 }}>
+          <div style={{ display: 'flex', gap: 8, height: 44, alignItems: 'center' }}>
+            {/* Attachment Button */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              title="Attach image or PDF"
+              style={{
+                width: 44,
+                height: 44,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: selectedFile ? '#f1f5f9' : '#fafafa',
+                border: '1px solid #e5e5e5',
+                borderRadius: 8,
+                cursor: 'pointer',
+                color: selectedFile ? '#214542' : '#64748b',
+                flexShrink: 0,
+                transition: 'all 0.2s',
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+              </svg>
+            </button>
+
             <input
               type="text"
               value={messageText}
               onChange={(e) => handleMessageInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-              placeholder="How may we assist you today?"
+              placeholder={selectedFile ? 'Add an optional caption...' : 'How may we assist you today?'}
               style={{
                 flex: 1, height: '100%',
-                padding: '0 14px',
+                padding: '0 12px',
                 border: '1px solid #e5e5e5',
                 borderRadius: 8, fontSize: 13,
                 fontFamily: 'inherit', boxSizing: 'border-box',
               }}
             />
+
             <button
               onClick={() => handleSend()}
-              disabled={sending || !messageText.trim()}
+              disabled={sending || uploadProgress || (!messageText.trim() && !selectedFile)}
               style={{
-                height: '100%', padding: '0 20px',
+                height: '100%', padding: '0 18px',
                 background: '#111', color: '#fff',
                 border: 'none', borderRadius: 8,
                 fontSize: 13, fontWeight: 600,
                 cursor: 'pointer', flexShrink: 0,
-                opacity: sending || !messageText.trim() ? 0.55 : 1,
-                letterSpacing: '.05em',
+                opacity: sending || uploadProgress || (!messageText.trim() && !selectedFile) ? 0.55 : 1,
+                letterSpacing: '.04em',
               }}
             >
-              {sending ? '...' : 'Send'}
+              {sending || uploadProgress ? '...' : 'Send'}
             </button>
           </div>
         </div>

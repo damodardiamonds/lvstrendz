@@ -11,8 +11,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { message, email, productTitle, productUrl, attachment } = body;
 
-    if (!message?.trim()) {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    const cleanMessage = message?.trim() || '';
+    if (!cleanMessage && !attachment) {
+      return NextResponse.json({ error: 'Message or attachment is required' }, { status: 400 });
     }
 
     const cookieStore = await cookies();
@@ -33,11 +34,14 @@ export async function POST(req: NextRequest) {
           productUrl: productUrl || null,
         },
       });
-    } else if (email && !session.email) {
-      // Update email if now provided
+    } else {
+      // Update email if now provided and touch updatedAt
       session = await db.chatSession.update({
         where: { id: session.id },
-        data: { email },
+        data: {
+          ...(email && !session.email ? { email } : {}),
+          updatedAt: new Date(),
+        },
       });
     }
 
@@ -46,7 +50,7 @@ export async function POST(req: NextRequest) {
       data: {
         sessionId: session.id,
         sender: 'visitor',
-        message: message.trim(),
+        message: cleanMessage,
         attachment: attachment || null,
         status: 'unread',
       },
@@ -54,9 +58,10 @@ export async function POST(req: NextRequest) {
 
     // Send push notification to admin
     const senderLabel = email || 'A visitor';
+    const notifBody = cleanMessage || (attachment ? '📎 Sent an attachment (Image/PDF)' : 'New message');
     await sendAdminPushNotification({
       title: `💬 New message from ${senderLabel}`,
-      body: message.trim().slice(0, 100),
+      body: notifBody.slice(0, 100),
       data: { url: '/admin/chat', screen: 'chat' },
     });
 

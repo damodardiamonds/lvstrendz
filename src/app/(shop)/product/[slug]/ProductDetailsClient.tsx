@@ -721,7 +721,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             {showSizeSelector && (
               <a
-                href="https://res.cloudinary.com/n5umtsub/image/upload/v1785663384/lvstrendz/brand/site-identity.jpg"
+                href="/size-guide.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-800 hover:text-[#A0463E] transition-colors"
