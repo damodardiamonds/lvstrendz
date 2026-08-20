@@ -9,7 +9,7 @@ export const metadata = {
 };
 
 async function getProducts() {
-  return db.product.findMany({
+  const products = await db.product.findMany({
     select: {
       id: true,
       name: true,
@@ -37,6 +37,12 @@ async function getProducts() {
     },
     orderBy: { createdAt: "desc" },
   });
+
+  return products.map((product) => ({
+    ...product,
+    price: Number(product.price),
+    compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : null,
+  }));
 }
 
 interface ProductsPageProps {

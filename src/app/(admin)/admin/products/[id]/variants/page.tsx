@@ -96,7 +96,13 @@ export default async function VariantsPage({ params, searchParams }: VariantsPag
       <AddVariantForm productId={id} attributes={attributes} />
 
       {/* Existing Variants List */}
-      <VariantList variants={product.variants} productId={id} />
+      <VariantList
+        variants={product.variants.map((v) => ({
+          ...v,
+          price: v.price ? Number(v.price) : null,
+        }))}
+        productId={id}
+      />
     </div>
   );
 }

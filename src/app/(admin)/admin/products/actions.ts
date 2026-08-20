@@ -103,6 +103,16 @@ export async function createProduct(
       }
     }
 
+    // Validate category IDs
+    let validCategoryIds: string[] = [];
+    if (categoryIds.length > 0) {
+      const existingCategories = await db.category.findMany({
+        where: { id: { in: categoryIds } },
+        select: { id: true },
+      });
+      validCategoryIds = existingCategories.map((c) => c.id);
+    }
+
     const newProduct = await db.product.create({
       data: {
         name,
@@ -124,7 +134,7 @@ export async function createProduct(
         metaTitle: metaTitle || null,
         metaDescription: metaDescription || null,
         categories: {
-          create: categoryIds.map((categoryId) => ({
+          create: validCategoryIds.map((categoryId) => ({
             category: { connect: { id: categoryId } },
           })),
         },
@@ -269,6 +279,16 @@ export async function updateProduct(id: string, formData: FormData): Promise<{ e
       }
     }
 
+    // Validate category IDs
+    let validCategoryIds: string[] = [];
+    if (categoryIds.length > 0) {
+      const existingCategories = await db.category.findMany({
+        where: { id: { in: categoryIds } },
+        select: { id: true },
+      });
+      validCategoryIds = existingCategories.map((c) => c.id);
+    }
+
     await db.product.update({
       where: { id },
       data: {
@@ -292,7 +312,7 @@ export async function updateProduct(id: string, formData: FormData): Promise<{ e
         metaDescription: metaDescription || null,
         categories: {
           deleteMany: {},
-          create: categoryIds.map((categoryId) => ({
+          create: validCategoryIds.map((categoryId) => ({
             category: { connect: { id: categoryId } },
           })),
         },
@@ -407,6 +427,15 @@ export async function quickUpdateProduct(
     throw new Error("Product not found");
   }
 
+  let validCategoryIds: string[] = [];
+  if (categoryIds.length > 0) {
+    const existingCategories = await db.category.findMany({
+      where: { id: { in: categoryIds } },
+      select: { id: true },
+    });
+    validCategoryIds = existingCategories.map((c) => c.id);
+  }
+
   await db.product.update({
     where: { id },
     data: {
@@ -415,7 +444,7 @@ export async function quickUpdateProduct(
       price,
       categories: {
         deleteMany: {},
-        create: categoryIds.map((categoryId) => ({
+        create: validCategoryIds.map((categoryId) => ({
           category: { connect: { id: categoryId } },
         })),
       },

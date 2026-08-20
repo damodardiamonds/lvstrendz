@@ -72,6 +72,13 @@ export default async function AdminInventoryPage() {
   const formattedProducts = products.map((p) => ({
     ...p,
     price: Number(p.price),
+    compareAtPrice: p.compareAtPrice ? Number(p.compareAtPrice) : null,
+    costPrice: p.costPrice ? Number(p.costPrice) : null,
+    weight: p.weight ? Number(p.weight) : null,
+    variants: p.variants.map((v) => ({
+      ...v,
+      price: v.price ? Number(v.price) : null,
+    })),
   }));
 
   return (

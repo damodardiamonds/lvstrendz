@@ -134,8 +134,10 @@ export async function uploadProductImages(productId: string, formData: FormData)
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     const alt = alts[i] || "";
-    const variantId = variantIds[i] || null;
-    const colorId = colorIds[i] || null;
+    const rawVariantId = variantIds[i]?.trim();
+    const variantId = rawVariantId && rawVariantId !== "null" && rawVariantId !== "undefined" ? rawVariantId : null;
+    const rawColorId = colorIds[i]?.trim();
+    const colorId = rawColorId && rawColorId !== "null" && rawColorId !== "undefined" ? rawColorId : null;
 
     if (!file || file.size === 0) {
       results.push({ error: "Empty file selected" });
