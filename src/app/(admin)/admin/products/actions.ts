@@ -157,11 +157,6 @@ export async function createProduct(
 
     try {
       revalidatePath("/admin/products");
-      revalidatePath("/shop");
-      revalidatePath("/");
-      if (finalSlug) {
-        revalidatePath(`/product/${finalSlug}`);
-      }
     } catch (revErr) {
       console.warn("Revalidation warning:", revErr);
     }

@@ -40,16 +40,19 @@ export default async function ProductPage({ params }: PageProps) {
     notFound();
   }
 
-  const selectedColorValues = product.selectedColorIds.length > 0
+  const selectedColorIds = product.selectedColorIds || [];
+  const selectedSizeIds = product.selectedSizeIds || [];
+
+  const selectedColorValues = selectedColorIds.length > 0
     ? await db.attributeValue.findMany({
-        where: { id: { in: product.selectedColorIds } },
+        where: { id: { in: selectedColorIds } },
         select: { id: true, value: true, slug: true, colorCode: true },
       })
     : [];
 
-  const selectedSizeValues = product.selectedSizeIds.length > 0
+  const selectedSizeValues = selectedSizeIds.length > 0
     ? await db.attributeValue.findMany({
-        where: { id: { in: product.selectedSizeIds } },
+        where: { id: { in: selectedSizeIds } },
         select: { id: true, value: true, slug: true },
       })
     : [];
