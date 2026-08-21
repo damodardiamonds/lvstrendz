@@ -192,6 +192,18 @@ export default function ProductForm({
 
     try {
       const formData = new FormData(e.currentTarget);
+
+      // Clean and append files directly from uploadQueue
+      formData.delete("files");
+      formData.delete("alts");
+      formData.delete("colorIds");
+
+      uploadQueue.forEach((item) => {
+        formData.append("files", item.file);
+        formData.append("alts", item.alt || "");
+        formData.append("colorIds", item.colorId || "");
+      });
+
       const res = await action(formData);
       if (res && res.error) {
         setError(res.error);
@@ -208,7 +220,12 @@ export default function ProductForm({
         return;
       }
       console.error("Product action error:", err);
-      setError(err?.message || "An unexpected error occurred. Please try again.");
+      const errMsg = err?.message || "";
+      if (errMsg.includes("Server Components render") || errMsg.includes("NEXT_DIGEST") || errMsg.includes("digest")) {
+        setError("An unexpected server error occurred while processing the product. Please verify required fields and try again.");
+      } else {
+        setError(errMsg || "An unexpected error occurred. Please try again.");
+      }
     } finally {
       setIsSubmitting(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -854,22 +871,6 @@ export default function ProductForm({
                   >
                     <Trash2 size={16} />
                   </button>
-
-                  {/* Hidden inputs to pass Files, alts & colorIds to Server Action */}
-                  <input
-                    type="file"
-                    name="files"
-                    className="hidden"
-                    ref={(inputRef) => {
-                      if (inputRef) {
-                        const dataTransfer = new DataTransfer();
-                        dataTransfer.items.add(item.file);
-                        inputRef.files = dataTransfer.files;
-                      }
-                    }}
-                  />
-                  <input type="hidden" name="alts" value={item.alt} />
-                  <input type="hidden" name="colorIds" value={item.colorId} />
                 </div>
               ))}
             </div>
