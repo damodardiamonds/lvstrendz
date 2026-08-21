@@ -4,7 +4,6 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { uploadProductImagesHelper } from "@/lib/product-images";
 
 function cleanDescriptionText(str: string | null | undefined): string | null {
   if (!str) return null;
@@ -146,6 +145,7 @@ export async function createProduct(
     const files = formData.getAll("files") as File[];
     if (files && files.length > 0 && files[0] && files[0].size > 0) {
       try {
+        const { uploadProductImagesHelper } = await import("@/lib/product-images");
         const uploadRes = await uploadProductImagesHelper(newProduct.id, formData);
         if (uploadRes && uploadRes.error) {
           console.warn("Image upload warning:", uploadRes.error);
@@ -326,6 +326,7 @@ export async function updateProduct(id: string, formData: FormData): Promise<{ e
     const files = formData.getAll("files") as File[];
     if (files && files.length > 0 && files[0] && files[0].size > 0) {
       try {
+        const { uploadProductImagesHelper } = await import("@/lib/product-images");
         const uploadRes = await uploadProductImagesHelper(id, formData);
         if (uploadRes && uploadRes.error) {
           console.warn("Image upload warning:", uploadRes.error);
