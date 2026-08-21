@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle, Upload, Image as ImageIcon, Trash2, Plus, X, GripVertical } from "lucide-react";
+import { uploadImagesForProduct } from "../image-actions";
 
 function SubmitButton({ label, isSubmitting }: { label: string; isSubmitting?: boolean }) {
   return (
@@ -64,6 +65,7 @@ export interface ProductActionResult {
   success?: boolean;
   message?: string;
   redirectUrl?: string;
+  productId?: string;
 }
 
 interface ProductFormProps {
@@ -191,29 +193,47 @@ export default function ProductForm({
     setIsSubmitting(true);
 
     try {
+      // Build form data WITHOUT files — images are uploaded as a separate server action call
       const formData = new FormData(e.currentTarget);
-
-      // Clean and append files directly from uploadQueue
       formData.delete("files");
       formData.delete("alts");
       formData.delete("colorIds");
 
-      uploadQueue.forEach((item) => {
-        formData.append("files", item.file);
-        formData.append("alts", item.alt || "");
-        formData.append("colorIds", item.colorId || "");
-      });
-
+      // Step 1: Save the product (DB only, no files)
       const res = await action(formData);
       if (res && res.error) {
         setError(res.error);
-      } else {
-        setSuccessMsg(res?.message || "Product saved successfully!");
-        setUploadQueue([]);
-        if (res?.redirectUrl) {
-          router.push(res.redirectUrl);
-          router.refresh();
+        return;
+      }
+
+      // Step 2: Upload any queued images via separate dedicated server action
+      const productId = res?.productId || product?.id;
+      if (productId && uploadQueue.length > 0) {
+        try {
+          const imageFormData = new FormData();
+          uploadQueue.forEach((item) => {
+            imageFormData.append("files", item.file);
+            imageFormData.append("alts", item.alt || "");
+            imageFormData.append("colorIds", item.colorId || "");
+          });
+          imageFormData.set("revalidate", "false");
+          const imgRes = await uploadImagesForProduct(productId, imageFormData);
+          if (imgRes?.error) {
+            // Product saved; images had issues. Don't block — let user manage from Manage Images.
+            console.warn("Image upload partial error:", imgRes.error);
+          }
+        } catch (imgErr: any) {
+          // Don't block product save redirect on image upload failure
+          console.error("Image upload step failed:", imgErr);
         }
+      }
+
+      // Step 3: Success
+      setSuccessMsg(res?.message || "Product saved successfully!");
+      setUploadQueue([]);
+      if (res?.redirectUrl) {
+        router.push(res.redirectUrl);
+        router.refresh();
       }
     } catch (err: any) {
       if (err?.message?.includes("NEXT_REDIRECT") || err?.digest?.startsWith("NEXT_REDIRECT")) {

@@ -19,7 +19,7 @@ function cleanDescriptionText(str: string | null | undefined): string | null {
 // Create product
 export async function createProduct(
   formData: FormData
-): Promise<{ error?: string; success?: boolean; message?: string; redirectUrl?: string }> {
+): Promise<{ error?: string; success?: boolean; message?: string; redirectUrl?: string; productId?: string }> {
   try {
     const name = (formData.get("name") as string)?.trim();
     const slug = (formData.get("slug") as string)?.trim();
@@ -141,20 +141,6 @@ export async function createProduct(
       },
     });
 
-    // Process image uploads if present
-    const files = formData.getAll("files") as File[];
-    if (files && files.length > 0 && files[0] && files[0].size > 0) {
-      try {
-        const { uploadProductImagesHelper } = await import("@/lib/product-images");
-        const uploadRes = await uploadProductImagesHelper(newProduct.id, formData);
-        if (uploadRes && uploadRes.error) {
-          console.warn("Image upload warning:", uploadRes.error);
-        }
-      } catch (imgErr: any) {
-        console.error("Image upload failed:", imgErr);
-      }
-    }
-
     try {
       revalidatePath("/admin/products");
     } catch (revErr) {
@@ -168,6 +154,7 @@ export async function createProduct(
       success: true,
       message: "Product created successfully!",
       redirectUrl: redirectTarget,
+      productId: newProduct.id,
     };
   } catch (err: any) {
     console.error("Failed to create product:", err);
@@ -176,7 +163,7 @@ export async function createProduct(
 }
 
 // Update product
-export async function updateProduct(id: string, formData: FormData): Promise<{ error?: string; success?: boolean; message?: string }> {
+export async function updateProduct(id: string, formData: FormData): Promise<{ error?: string; success?: boolean; message?: string; productId?: string }> {
   const existingProduct = await db.product.findUnique({
     where: { id },
     select: { slug: true },
@@ -322,20 +309,6 @@ export async function updateProduct(id: string, formData: FormData): Promise<{ e
       },
     });
 
-    // Process image uploads if present
-    const files = formData.getAll("files") as File[];
-    if (files && files.length > 0 && files[0] && files[0].size > 0) {
-      try {
-        const { uploadProductImagesHelper } = await import("@/lib/product-images");
-        const uploadRes = await uploadProductImagesHelper(id, formData);
-        if (uploadRes && uploadRes.error) {
-          console.warn("Image upload warning:", uploadRes.error);
-        }
-      } catch (imgErr: any) {
-        console.error("Image upload failed:", imgErr);
-      }
-    }
-
     try {
       revalidatePath("/admin/products");
       revalidatePath(`/admin/products/${id}`);
@@ -351,7 +324,7 @@ export async function updateProduct(id: string, formData: FormData): Promise<{ e
       console.warn("Revalidation warning:", revErr);
     }
 
-    return { success: true, message: "Product updated successfully! All changes have been saved and applied across the store." };
+    return { success: true, message: "Product updated successfully! All changes have been saved and applied across the store.", productId: id };
   } catch (err: any) {
     console.error("Failed to update product:", err);
     return { error: err?.message || "An unexpected database error occurred while updating product." };
