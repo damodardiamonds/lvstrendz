@@ -25,7 +25,7 @@ const protectedRoutes = ["/account", "/wishlist", "/orders"];
 const adminRoutes = ["/admin"];
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, searchParams } = request.nextUrl;
   const token = request.cookies.get("lvs-session")?.value;
 
   // Check protected routes
@@ -46,18 +46,28 @@ export async function middleware(request: NextRequest) {
     if (!payload) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("redirect", pathname);
-      return NextResponse.redirect(loginUrl);
+      const response = NextResponse.redirect(loginUrl);
+      response.cookies.delete("lvs-session");
+      return response;
     }
 
     // Admin routes require ADMIN role
     if (isAdmin && payload.role !== "ADMIN") {
-      return NextResponse.redirect(new URL("/", request.url));
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      const response = NextResponse.redirect(loginUrl);
+      response.cookies.delete("lvs-session");
+      return response;
     }
   }
 
-  // Redirect logged-in users away from login/register pages
+  // Redirect logged-in users away from login/register pages (unless trying to log in for admin)
   if (pathname === "/login" || pathname === "/register") {
-    if (token) {
+    const redirectParam = searchParams.get("redirect");
+    const isRedirectingToAdmin =
+      redirectParam && redirectParam.startsWith("/admin");
+
+    if (token && !isRedirectingToAdmin) {
       const payload = await verifyTokenEdge(token);
       if (payload) {
         return NextResponse.redirect(new URL("/account", request.url));
