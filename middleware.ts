@@ -61,13 +61,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Redirect logged-in users away from login/register pages (unless trying to log in for admin)
-  if (pathname === "/login" || pathname === "/register") {
-    const redirectParam = searchParams.get("redirect");
-    const isRedirectingToAdmin =
-      redirectParam && redirectParam.startsWith("/admin");
-
-    if (token && !isRedirectingToAdmin) {
+  // Redirect logged-in users away from register page
+  if (pathname === "/register") {
+    if (token) {
       const payload = await verifyTokenEdge(token);
       if (payload) {
         return NextResponse.redirect(new URL("/account", request.url));

@@ -6,12 +6,15 @@ export async function GET() {
   const user = await getCurrentUser();
 
   if (!user) {
-    return NextResponse.json(
+    const response = NextResponse.json(
       { error: "Not authenticated" },
       { status: 401 }
     );
+    response.cookies.delete("lvs-session");
+    return response;
   }
 
   return NextResponse.json({ user });
 }
+
 
