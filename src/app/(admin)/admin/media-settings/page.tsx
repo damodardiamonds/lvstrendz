@@ -55,6 +55,9 @@ const defaultCollections = [
 const defaultAboutUs = {
   storyImage: 'https://res.cloudinary.com/n5umtsub/image/upload/lvstrendz/products/fd41615365cea9a68738438feb0c1797.webp',
   missionVideo: 'https://res.cloudinary.com/n5umtsub/video/upload/v1783773052/lvstrendz/videos/78db5a9a-b0f4-42a3-bbf2-93a75e80f804.mp4',
+  krishnaImage: 'https://res.cloudinary.com/n5umtsub/image/upload/v1783772772/lvstrendz/products/krishna.webp',
+  divyeshImage: 'https://res.cloudinary.com/n5umtsub/image/upload/v1783772773/lvstrendz/products/divyesh-1.webp',
+  devangImage: 'https://res.cloudinary.com/n5umtsub/image/upload/v1783772774/lvstrendz/products/whatsapp-image-2026-05-31-at-4-38-56-pm.webp',
 };
 
 const defaultFaqs = {
@@ -396,6 +399,39 @@ export default function MediaSettingsPage() {
                   className="w-full bg-white border border-gray-250 px-4 py-2.5 rounded-lg text-sm font-mono text-xs focus:outline-none focus:border-[#A0463E]"
                   required
                 />
+              </div>
+
+              <div className="pt-4 border-t border-gray-200">
+                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide mb-4">Our Team Members</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs uppercase font-bold text-gray-700 mb-1">Krishna Kikani (Founder)</label>
+                    <input
+                      type="text"
+                      value={aboutUs.krishnaImage || ''}
+                      onChange={(e) => setAboutUs((prev) => ({ ...prev, krishnaImage: e.target.value }))}
+                      className="w-full bg-white border border-gray-250 px-3 py-2 rounded-lg text-xs font-mono focus:outline-none focus:border-[#A0463E]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase font-bold text-gray-700 mb-1">Divyesh Kikani (CEO)</label>
+                    <input
+                      type="text"
+                      value={aboutUs.divyeshImage || ''}
+                      onChange={(e) => setAboutUs((prev) => ({ ...prev, divyeshImage: e.target.value }))}
+                      className="w-full bg-white border border-gray-250 px-3 py-2 rounded-lg text-xs font-mono focus:outline-none focus:border-[#A0463E]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase font-bold text-gray-700 mb-1">Devang Kothiya (Tailor)</label>
+                    <input
+                      type="text"
+                      value={aboutUs.devangImage || ''}
+                      onChange={(e) => setAboutUs((prev) => ({ ...prev, devangImage: e.target.value }))}
+                      className="w-full bg-white border border-gray-250 px-3 py-2 rounded-lg text-xs font-mono focus:outline-none focus:border-[#A0463E]"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

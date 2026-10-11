@@ -18,12 +18,18 @@ export default async function Page() {
 
   let storyImage = "https://res.cloudinary.com/n5umtsub/image/upload/lvstrendz/products/fd41615365cea9a68738438feb0c1797.webp";
   let missionVideo = "https://res.cloudinary.com/n5umtsub/video/upload/v1783773052/lvstrendz/videos/78db5a9a-b0f4-42a3-bbf2-93a75e80f804.mp4";
+  let krishnaImage = "https://res.cloudinary.com/n5umtsub/image/upload/v1783772772/lvstrendz/products/krishna.webp";
+  let divyeshImage = "https://res.cloudinary.com/n5umtsub/image/upload/v1783772773/lvstrendz/products/divyesh-1.webp";
+  let devangImage = "https://res.cloudinary.com/n5umtsub/image/upload/v1783772774/lvstrendz/products/whatsapp-image-2026-05-31-at-4-38-56-pm.webp";
 
   if (mediaSetting) {
     try {
       const parsed = JSON.parse(mediaSetting.value);
       if (parsed.storyImage) storyImage = parsed.storyImage;
       if (parsed.missionVideo) missionVideo = parsed.missionVideo;
+      if (parsed.krishnaImage) krishnaImage = parsed.krishnaImage;
+      if (parsed.divyeshImage) divyeshImage = parsed.divyeshImage;
+      if (parsed.devangImage) devangImage = parsed.devangImage;
     } catch {}
   }
 
@@ -253,7 +259,7 @@ export default async function Page() {
           <div className="flex flex-col items-center text-center group">
             <div className="relative aspect-square w-full max-w-[280px] rounded-2xl overflow-hidden shadow-card border-4 border-white transition-all duration-500 group-hover:shadow-hover group-hover:scale-102">
               <Image
-                src="https://res.cloudinary.com/n5umtsub/image/upload/v1785663377/lvstrendz/hero/slide-1.webp"
+                src={krishnaImage}
                 alt="Krishna Kikani"
                 fill
                 className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -268,7 +274,7 @@ export default async function Page() {
           <div className="flex flex-col items-center text-center group">
             <div className="relative aspect-square w-full max-w-[280px] rounded-2xl overflow-hidden shadow-card border-4 border-white transition-all duration-500 group-hover:shadow-hover group-hover:scale-102">
               <Image
-                src="https://res.cloudinary.com/n5umtsub/image/upload/v1785663378/lvstrendz/hero/slide-2.webp"
+                src={divyeshImage}
                 alt="Divyesh Kikani"
                 fill
                 className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -283,7 +289,7 @@ export default async function Page() {
           <div className="flex flex-col items-center text-center group">
             <div className="relative aspect-square w-full max-w-[280px] rounded-2xl overflow-hidden shadow-card border-4 border-white transition-all duration-500 group-hover:shadow-hover group-hover:scale-102">
               <Image
-                src="https://res.cloudinary.com/n5umtsub/image/upload/v1785663379/lvstrendz/hero/slide-3.webp"
+                src={devangImage}
                 alt="Devang Kothiya"
                 fill
                 className="object-cover transition-transform duration-500 group-hover:scale-105"
