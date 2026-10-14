@@ -26,7 +26,7 @@ const generalFaqs = [
   },
   {
     question: 'Do you offer Cash on Delivery (COD)?',
-    answer: 'No, we currently do not offer Cash on Delivery (COD). All orders must be prepaid securely during checkout.'
+    answer: 'Yes! We offer Cash on Delivery (COD) for orders delivered within India with a nominal handling fee of ₹200. For orders outside India, Cash on Delivery is not available and orders must be prepaid securely online.'
   }
 ];
 

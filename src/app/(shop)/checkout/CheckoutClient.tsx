@@ -27,6 +27,7 @@ import {
   Gift,
   Tag,
   X,
+  Banknote,
 } from "lucide-react";
 
 export default function CheckoutClient() {
@@ -60,8 +61,8 @@ export default function CheckoutClient() {
   // Shipping choice
   const [shippingMethod, setShippingMethod] = useState<"standard" | "express">("standard");
 
-  // Payment choice (Default PayGlocal Gateway)
-  const [paymentMethod, setPaymentMethod] = useState<"PAYGLOCAL" | "CARD" | "UPI" | "NETBANKING">("PAYGLOCAL");
+  // Payment choice: "ONLINE" (default prepaid) or "COD" (Cash on Delivery, India only)
+  const [paymentMethod, setPaymentMethod] = useState<"ONLINE" | "COD">("ONLINE");
 
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -203,13 +204,28 @@ export default function CheckoutClient() {
     giftCardDiscount = Math.min(remainingAfterCoupon, Number(appliedGiftCard.balance));
   }
 
+  // Country & COD calculations
+  const isIndia = form.country.trim().toLowerCase() === "india";
+  const isCod = isIndia && paymentMethod === "COD";
+  const codFee = isCod ? 200 : 0;
+
+  // Automatically reset payment method to ONLINE if country is changed away from India
+  useEffect(() => {
+    if (!isIndia && paymentMethod === "COD") {
+      setPaymentMethod("ONLINE");
+      toast("Cash on Delivery is only available for deliveries within India. Switched to Online Payment.", {
+        icon: "ℹ️",
+      });
+    }
+  }, [isIndia, paymentMethod]);
+
   // Shipping logic
   const shippingCost =
     shippingMethod === "express"
       ? 250
       : 0;
 
-  const grandTotal = Math.max(0, subtotal - discount - giftCardDiscount + shippingCost);
+  const grandTotal = Math.max(0, subtotal - discount - giftCardDiscount + shippingCost + codFee);
 
   // Handlers for inputs
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -282,9 +298,10 @@ export default function CheckoutClient() {
         subtotal,
         discount,
         shipping: shippingCost,
+        codFee: codFee,
         total: grandTotal,
-        paymentMethod: grandTotal === 0 ? "Gift Card" : paymentMethod,
-        paymentId: grandTotal === 0 ? `GC-${appliedGiftCard?.code || Date.now()}` : "PENDING",
+        paymentMethod: grandTotal === 0 ? "Gift Card" : isCod ? "Cash on Delivery" : "Prepaid Gateway",
+        paymentId: grandTotal === 0 ? `GC-${appliedGiftCard?.code || Date.now()}` : isCod ? "COD" : "PENDING",
       };
 
       const res = await fetch("/api/orders", {
@@ -305,12 +322,27 @@ export default function CheckoutClient() {
             style: { background: "#1a4223", color: "#fff" },
           });
           localStorage.removeItem("lvstrendz_cart");
+          localStorage.removeItem("lvstrendz_coupon");
           localStorage.removeItem("lvstrendz_giftcard");
           window.location.href = `/checkout/order-received?orderNumber=${data.orderNumber}&clearCart=true`;
           return;
         }
 
-        // Always initiate Hosted Gateway
+        // If Cash on Delivery, skip online gateway redirect
+        if (isCod) {
+          toast.success("Order placed successfully with Cash on Delivery!", {
+            duration: 4000,
+            style: { background: "#1a4223", color: "#fff" },
+          });
+          localStorage.removeItem("lvstrendz_cart");
+          localStorage.removeItem("lvstrendz_coupon");
+          if (appliedGiftCard) localStorage.removeItem("lvstrendz_giftcard");
+          window.dispatchEvent(new Event("cartUpdated"));
+          window.location.href = `/checkout/order-received?orderNumber=${data.orderNumber}&clearCart=true`;
+          return;
+        }
+
+        // Always initiate Hosted Gateway for online payments
         toast.loading("Initiating secure payment gateway...", { id: "pg-init" });
 
         const initRes = await fetch("/api/payment/initiate", {
@@ -796,7 +828,7 @@ export default function CheckoutClient() {
                       </div>
                     )}
 
-                    <div className="flex justify-between items-center text-gray-600 font-medium border-b border-dashed border-[#F0EBE0] pb-3">
+                    <div className="flex justify-between items-center text-gray-600 font-medium pb-2 border-b border-dashed border-[#F0EBE0]">
                       <span>Shipping Method</span>
                       <div className="text-right">
                         <select
@@ -812,15 +844,25 @@ export default function CheckoutClient() {
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center text-sm font-black text-black pt-2">
-                      <span>Amount to Pay</span>
+                    {isCod && (
+                      <div className="flex justify-between items-center text-amber-900 font-semibold bg-amber-50/90 p-2.5 rounded-xl border border-amber-200">
+                        <span className="flex items-center gap-1.5 text-xs">
+                          <Banknote size={14} className="text-amber-700" />
+                          Cash on Delivery Fee
+                        </span>
+                        <span className="font-extrabold text-amber-900">+{format(200)}</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between items-center text-sm font-black text-black pt-1">
+                      <span>{isCod ? "Amount Due on Delivery" : "Amount to Pay"}</span>
                       <span className="text-lg text-[#A0463E] font-black">{format(grandTotal)}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Block 5: Select Payment Method & Gateway Portal */}
-                <div className="bg-white border border-gray-150 rounded-2xl p-6 shadow-sm space-y-6">
+                <div className="bg-white border border-gray-150 rounded-2xl p-6 shadow-sm space-y-5">
                   <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-1">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-[#A0463E]/10 flex items-center justify-center text-[#A0463E]">
@@ -836,24 +878,95 @@ export default function CheckoutClient() {
                     </span>
                   </div>
 
-                  {/* Payment Method Gateway Banner & Information */}
-                  <div className="p-4 rounded-xl border-2 border-[#A0463E] bg-[#A0463E]/5 space-y-3">
-                    <div className="flex justify-between items-center border-b border-[#A0463E]/10 pb-2">
-                      <span className="text-xs font-extrabold text-black uppercase tracking-wider flex items-center gap-1.5">
-                        <ShieldCheck size={16} className="text-[#A0463E]" />
-                        Secure Checkout
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-gray-600 font-semibold leading-relaxed">
-                      We accept Debit/Credit Cards, Apple Pay, Google Pay, American Express, and UPI. All transactions are securely encrypted
-                    </p>
-                    <div className="flex flex-wrap gap-2 pt-1 text-[10px] font-bold text-gray-500">
-                      <span className="bg-white border border-gray-200 rounded px-2 py-0.5">Visa / MasterCard</span>
-                      <span className="bg-white border border-gray-200 rounded px-2 py-0.5">Amex</span>
-                      <span className="bg-white border border-gray-200 rounded px-2 py-0.5">Apple Pay / GPay</span>
-                      <span className="bg-white border border-gray-200 rounded px-2 py-0.5">UPI / QR</span>
-                      <span className="bg-white border border-gray-200 rounded px-2 py-0.5">Net Banking</span>
-                    </div>
+                  {/* Payment Options Selection */}
+                  <div className="space-y-3">
+                    {/* Option 1: Online Payment (Prepaid) */}
+                    <label
+                      htmlFor="payment-online"
+                      className={`block p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                        paymentMethod === "ONLINE"
+                          ? "border-[#A0463E] bg-[#A0463E]/5 shadow-xs"
+                          : "border-gray-200 hover:border-gray-300 bg-white"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="radio"
+                          id="payment-online"
+                          name="paymentOption"
+                          value="ONLINE"
+                          checked={paymentMethod === "ONLINE"}
+                          onChange={() => setPaymentMethod("ONLINE")}
+                          className="mt-1 text-[#A0463E] focus:ring-[#A0463E]"
+                        />
+                        <div className="flex-1 space-y-1.5">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-extrabold text-black uppercase tracking-wide flex items-center gap-2">
+                              <CreditCard size={15} className="text-[#A0463E]" />
+                              Online Payment / UPI / Cards
+                            </span>
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                              Zero Extra Fee
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-500 font-medium leading-relaxed">
+                            Pay securely via UPI (Google Pay, PhonePe, Paytm), Credit / Debit Card, Net Banking, or Wallets.
+                          </p>
+                          <div className="flex flex-wrap gap-1.5 pt-1 text-[9.5px] font-bold text-gray-500">
+                            <span className="bg-white border border-gray-200 rounded px-1.5 py-0.5">UPI / QR</span>
+                            <span className="bg-white border border-gray-200 rounded px-1.5 py-0.5">Visa / MasterCard</span>
+                            <span className="bg-white border border-gray-200 rounded px-1.5 py-0.5">Amex</span>
+                            <span className="bg-white border border-gray-200 rounded px-1.5 py-0.5">Apple Pay / GPay</span>
+                            <span className="bg-white border border-gray-200 rounded px-1.5 py-0.5">Net Banking</span>
+                          </div>
+                        </div>
+                      </div>
+                    </label>
+
+                    {/* Option 2: Cash on Delivery (COD) - Available in India only */}
+                    {isIndia ? (
+                      <label
+                        htmlFor="payment-cod"
+                        className={`block p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                          paymentMethod === "COD"
+                            ? "border-[#A0463E] bg-[#A0463E]/5 shadow-xs"
+                            : "border-gray-200 hover:border-gray-300 bg-white"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <input
+                            type="radio"
+                            id="payment-cod"
+                            name="paymentOption"
+                            value="COD"
+                            checked={paymentMethod === "COD"}
+                            onChange={() => setPaymentMethod("COD")}
+                            className="mt-1 text-[#A0463E] focus:ring-[#A0463E]"
+                          />
+                          <div className="flex-1 space-y-1.5">
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs font-extrabold text-black uppercase tracking-wide flex items-center gap-2">
+                                <Banknote size={15} className="text-[#A0463E]" />
+                                Cash on Delivery (COD)
+                              </span>
+                              <span className="text-[10px] font-extrabold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                +₹200 Fee
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-gray-500 font-medium leading-relaxed">
+                              Pay in cash to the courier when your order arrives. A nominal ₹200 COD convenience fee is added to your total.
+                            </p>
+                          </div>
+                        </div>
+                      </label>
+                    ) : (
+                      <div className="p-3.5 rounded-xl border border-dashed border-gray-200 bg-gray-50/70 text-[11px] text-gray-500 font-medium flex items-center gap-2.5">
+                        <Globe size={16} className="text-gray-400 shrink-0" />
+                        <span>
+                          Cash on Delivery is currently available only for deliveries within <strong className="text-gray-700">India</strong>. International orders are handled via secure online payment.
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Submission triggers */}
@@ -865,16 +978,18 @@ export default function CheckoutClient() {
                     {isSubmitting ? (
                       <>
                         <Loader2 size={16} className="animate-spin mr-2" />
-                        Redirecting to Secure Gateway...
+                        {isCod ? "Placing Cash on Delivery Order..." : "Redirecting to Secure Gateway..."}
                       </>
                     ) : (
-                      `PAY NOW (${format(grandTotal)})`
+                      isCod
+                        ? `PLACE CASH ON DELIVERY ORDER (${format(grandTotal)})`
+                        : `PAY NOW (${format(grandTotal)})`
                     )}
                   </button>
 
                   <div className="flex items-center justify-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                     <Lock size={12} />
-                    <span>256-Bit Encrypted Secure Gateway</span>
+                    <span>{isCod ? "Cash Due Upon Delivery • Verified Order" : "256-Bit Encrypted Secure Gateway"}</span>
                   </div>
                 </div>
 

@@ -88,6 +88,8 @@ export async function sendOrderConfirmationEmail(orderId: string) {
       year: "numeric",
     });
 
+    const isCod = order.paymentMethod === "Cash on Delivery" || order.paymentMethod === "COD";
+
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -105,7 +107,7 @@ export async function sendOrderConfirmationEmail(orderId: string) {
                 LVS TRENDZ
               </h1>
               <p style="color: #9ca3af; font-size: 12px; margin-top: 6px; margin-bottom: 0; text-transform: uppercase; tracking: 1px;">
-                Thank you for your order!
+                ${isCod ? "Thank you for your order!" : "Thank you for your payment!"}
               </p>
             </div>
 
@@ -115,10 +117,14 @@ export async function sendOrderConfirmationEmail(orderId: string) {
               <!-- Greeting & Status -->
               <div style="text-align: center; margin-bottom: 28px;">
                 <h2 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0 0 8px 0;">
-                  Order Confirmed!
+                  ${isCod ? "Order Confirmed (Cash on Delivery)" : "Order Confirmed!"}
                 </h2>
                 <p style="font-size: 13px; color: #6b7280; margin: 0;">
-                  We have received your payment and your order <strong style="color: #111827;">#${order.orderNumber}</strong> is currently being processed.
+                  ${
+                    isCod
+                      ? `Your Cash on Delivery order <strong style="color: #111827;">#${order.orderNumber}</strong> has been placed and is currently being processed. Please keep <strong style="color: #A0463E;">${formatINR(Number(order.total))}</strong> ready in cash upon delivery.`
+                      : `We have received your payment and your order <strong style="color: #111827;">#${order.orderNumber}</strong> is currently being processed.`
+                  }
                 </p>
               </div>
 
@@ -139,7 +145,7 @@ export async function sendOrderConfirmationEmail(orderId: string) {
                   </tr>
                   <tr>
                     <td style="color: #64748b;">Payment Status:</td>
-                    <td style="text-align: right; font-weight: 700; color: #16a34a;">PAID</td>
+                    <td style="text-align: right; font-weight: 700; color: ${isCod ? "#d97706" : "#16a34a"};">${isCod ? "Pay on Delivery (Cash)" : "PAID"}</td>
                   </tr>
                 </table>
               </div>
@@ -185,8 +191,20 @@ export async function sendOrderConfirmationEmail(orderId: string) {
                       ${Number(order.shipping) === 0 ? "Free Shipping" : formatINR(Number(order.shipping))}
                     </td>
                   </tr>
+                  ${
+                    Number(order.codFee || 0) > 0
+                      ? `
+                    <tr>
+                      <td style="color: #b45309; padding-bottom: 8px;">Cash on Delivery Fee</td>
+                      <td style="text-align: right; color: #b45309; font-weight: 600; padding-bottom: 8px;">
+                        +${formatINR(Number(order.codFee))}
+                      </td>
+                    </tr>
+                    `
+                      : ""
+                  }
                   <tr style="border-top: 2px solid #111827;">
-                    <td style="color: #111827; font-weight: 800; font-size: 15px; padding-top: 10px;">Total Paid</td>
+                    <td style="color: #111827; font-weight: 800; font-size: 15px; padding-top: 10px;">${isCod ? "Total Payable on Delivery" : "Total Paid"}</td>
                     <td style="text-align: right; color: #A0463E; font-weight: 800; font-size: 16px; padding-top: 10px;">${formatINR(Number(order.total))}</td>
                   </tr>
                 </table>

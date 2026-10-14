@@ -35,8 +35,9 @@ export async function updatePaymentStatus(
     data: { paymentStatus },
   });
 
-  // If transitioning to PAID, deduct stock & apply coupon usage
-  if (paymentStatus === "PAID" && order.paymentStatus !== "PAID") {
+  // If transitioning to PAID, deduct stock & apply coupon usage (skip if already processed for COD)
+  const isCod = order.paymentMethod === "Cash on Delivery" || order.paymentMethod === "COD";
+  if (paymentStatus === "PAID" && order.paymentStatus !== "PAID" && !isCod) {
     await processOrderStockAndCoupon(orderId);
   }
 

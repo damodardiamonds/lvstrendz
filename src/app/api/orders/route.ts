@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { processOrderStockAndCoupon } from "@/lib/orders";
 import { sendAdminPushNotification } from "@/backend/lib/push-notifications";
+import { sendOrderConfirmationEmail } from "@/backend/lib/email";
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,6 +30,19 @@ export async function POST(request: NextRequest) {
       paymentId,
       notes,
     } = body;
+
+    const isIndia = country.trim().toLowerCase() === "india";
+    const isCod = paymentMethod === "Cash on Delivery" || paymentMethod === "COD";
+
+    // COD is only available for customers in India
+    if (isCod && !isIndia) {
+      return NextResponse.json(
+        { error: "Cash on Delivery is only available for deliveries within India." },
+        { status: 400 }
+      );
+    }
+
+    const codFee = isCod ? 200 : 0;
 
     // Validate inputs
     if (
@@ -120,16 +134,16 @@ export async function POST(request: NextRequest) {
             calculatedDiscount = Number(activeCoupon.maxDiscount);
           }
           finalDiscount = calculatedDiscount + Number(giftCardDiscount || 0);
-          finalTotal = Math.max(0, subVal - finalDiscount + Number(shipping || 0));
+          finalTotal = Math.max(0, subVal - finalDiscount + Number(shipping || 0) + codFee);
         }
       }
     }
 
-    // Determine initial payment status: If total is 0 (fully covered by gift card), mark as PAID and CONFIRMED
+    // Determine initial status & payment status
     const isZeroTotal = finalTotal <= 0;
-    const initialStatus = isZeroTotal ? "CONFIRMED" : "PENDING";
+    const initialStatus = isZeroTotal || isCod ? "CONFIRMED" : "PENDING";
     const initialPaymentStatus = isZeroTotal ? "PAID" : "UNPAID";
-    const finalPaymentMethod = isZeroTotal ? "Gift Card" : paymentMethod;
+    const finalPaymentMethod = isZeroTotal ? "Gift Card" : (isCod ? "Cash on Delivery" : paymentMethod);
 
     // 4. Create Order & Items
     const order = await db.order.create({
@@ -140,13 +154,22 @@ export async function POST(request: NextRequest) {
         status: initialStatus,
         paymentStatus: initialPaymentStatus,
         paymentMethod: finalPaymentMethod,
-        paymentId: isZeroTotal ? `GC-${giftCardCode || Date.now()}` : (paymentId || `PAY-${Date.now()}`),
+        paymentId: isZeroTotal
+          ? `GC-${giftCardCode || Date.now()}`
+          : isCod
+          ? `COD-${orderNumber}`
+          : (paymentId || `PAY-${Date.now()}`),
         subtotal: Number(subtotal),
         discount: finalDiscount,
         shipping: Number(shipping || 0),
+        codFee: Number(codFee),
         total: finalTotal,
         couponCode: finalCouponCode,
-        notes: giftCardCode ? `${notes ? notes + " | " : ""}Gift Card Applied: ${giftCardCode}` : (notes || null),
+        notes: isCod
+          ? `${notes ? notes + " | " : ""}Cash on Delivery (₹200 COD fee included)`
+          : giftCardCode
+          ? `${notes ? notes + " | " : ""}Gift Card Applied: ${giftCardCode}`
+          : (notes || null),
         shippingAddress: {
           name: `${firstName.trim()} ${lastName.trim()}`,
           phone: phone.trim(),
@@ -156,6 +179,7 @@ export async function POST(request: NextRequest) {
           state: state.trim(),
           pincode: pincode.trim(),
           country: country.trim(),
+          codFee: codFee,
         },
         items: {
           create: items.map((item: any) => ({
@@ -199,15 +223,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 5. Stock and Coupon Processing (only if paid immediately)
-    if (order.paymentStatus === "PAID") {
+    // 5. Stock and Coupon Processing (if paid immediately or if COD)
+    if (order.paymentStatus === "PAID" || isCod) {
       await processOrderStockAndCoupon(order.id);
+    }
+
+    // If COD, dispatch confirmation email immediately
+    if (isCod) {
+      sendOrderConfirmationEmail(order.id).catch((emailErr) => {
+        console.error("[orders] Admin/Customer email error for COD:", emailErr);
+      });
     }
 
     // 6. Push notification to admin app
     sendAdminPushNotification({
-      title: "📦 New Order Created",
-      body: `Order #${order.orderNumber} (₹${finalTotal.toFixed(2)}) placed via ${paymentMethod}.`,
+      title: isCod ? "💵 New COD Order Placed" : "📦 New Order Created",
+      body: `Order #${order.orderNumber} (₹${finalTotal.toFixed(2)}) placed via ${finalPaymentMethod}.`,
       data: { url: `/admin/orders/${order.id}`, screen: "orders" },
     }).catch((pushErr) => {
       console.error("[orders] Admin push notification error:", pushErr);

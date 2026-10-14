@@ -51,12 +51,13 @@ export default async function OrderReceivedPage({ searchParams }: PageProps) {
   };
 
   const isPaid = order.paymentStatus === "PAID";
+  const isCod = order.paymentMethod === "Cash on Delivery" || order.paymentMethod === "COD";
   const isSandbox = pending_verification === "true";
   // clearCart=true is sent by the payment callback on successful payment redirect.
   // The webhook may not have updated the DB yet when the browser lands here,
   // so we treat clearCart=true as a reliable success signal from PayGlocal.
   const isPaymentRedirect = clearCart === "true";
-  const showSuccess = isPaid || isSandbox || isPaymentRedirect;
+  const showSuccess = isPaid || isSandbox || isPaymentRedirect || isCod;
 
   return (
     <main className="bg-white min-h-screen py-16 px-4">
@@ -104,10 +105,12 @@ export default async function OrderReceivedPage({ searchParams }: PageProps) {
               <CheckCircle size={36} strokeWidth={2.5} />
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-wide">
-              {isSandbox ? "Order Registered" : "Payment Successful!"}
+              {isCod ? "Order Placed Successfully!" : isSandbox ? "Order Registered" : "Payment Successful!"}
             </h1>
             <p className="text-gray-500 font-semibold text-sm max-w-md mx-auto">
-              {isSandbox ? (
+              {isCod ? (
+                <>Your order has been confirmed with <span className="text-black font-extrabold">Cash on Delivery</span>. Please keep <span className="text-[#A0463E] font-extrabold">{format(Number(order.total))}</span> ready in cash to pay upon delivery. A confirmation has been sent to <span className="text-black font-extrabold">{order.user.email}</span>.</>
+              ) : isSandbox ? (
                 <>Your order is pending manual verification. We will send updates to <span className="text-black font-extrabold">{order.user.email}</span>.</>
               ) : (
                 <>Your payment was successful and your order has been placed successfully. A confirmation will be sent to <span className="text-black font-extrabold">{order.user.email}</span>.</>
@@ -233,8 +236,14 @@ export default async function OrderReceivedPage({ searchParams }: PageProps) {
                   {Number(order.shipping) === 0 ? "Free Shipping" : format(Number(order.shipping))}
                 </span>
               </div>
+              {Number(order.codFee || 0) > 0 && (
+                <div className="flex justify-between items-center text-amber-900">
+                  <span>Cash on Delivery Fee</span>
+                  <span className="font-extrabold text-amber-900">+{format(Number(order.codFee))}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center text-sm font-black text-black border-t border-gray-100 pt-4.5">
-                <span>{showSuccess ? "Total Amount Paid" : "Total Amount Due"}</span>
+                <span>{isCod ? "Total Payable on Delivery" : showSuccess ? "Total Amount Paid" : "Total Amount Due"}</span>
                 <span className="text-lg text-[#A0463E] font-black">{format(Number(order.total))}</span>
               </div>
             </div>

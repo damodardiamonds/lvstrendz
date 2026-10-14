@@ -161,6 +161,14 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                     : `₹${Number(order.shipping).toLocaleString("en-IN")}`}
                 </span>
               </div>
+              {Number(order.codFee || 0) > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">COD Fee</span>
+                  <span className="text-amber-800 font-medium">
+                    +₹{Number(order.codFee).toLocaleString("en-IN")}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between text-base font-semibold pt-2 border-t border-gray-200">
                 <span className="text-gray-900">Total</span>
                 <span className="text-[#A0463E]">
