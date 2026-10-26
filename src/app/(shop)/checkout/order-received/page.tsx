@@ -71,6 +71,16 @@ export default async function OrderReceivedPage({ searchParams }: PageProps) {
                 localStorage.removeItem("lvstrendz_coupon");
                 window.dispatchEvent(new Event("cartUpdated"));
 
+                var sId = localStorage.getItem("lvs_cart_session_id");
+                if (sId) {
+                  fetch("/api/cart/track", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "ORDERED", sessionId: sId }),
+                    keepalive: true
+                  }).catch(function() {});
+                }
+
                 if (!sessionStorage.getItem("tracked_order_${order.orderNumber}")) {
                   sessionStorage.setItem("tracked_order_${order.orderNumber}", "1");
                   var sendFbq = function() {
@@ -82,11 +92,28 @@ export default async function OrderReceivedPage({ searchParams }: PageProps) {
                         currency: 'INR',
                         content_type: 'product'
                       });
+                  sendFbq();
+
+                  var sendGtag = function() {
+                    if (window.gtag) {
+                      window.gtag('event', 'purchase', {
+                        transaction_id: '${order.orderNumber}',
+                        value: ${Number(order.total) || 0},
+                        currency: 'INR',
+                        items: ${JSON.stringify(
+                          order.items.map((i) => ({
+                            item_id: i.productId,
+                            item_name: i.name,
+                            price: Number(i.price) || 0,
+                            quantity: i.quantity,
+                          }))
+                        )}
+                      });
                     } else {
-                      setTimeout(sendFbq, 300);
+                      setTimeout(sendGtag, 300);
                     }
                   };
-                  sendFbq();
+                  sendGtag();
                 }
               } catch(e) {
                 console.error("Failed on order success script:", e);

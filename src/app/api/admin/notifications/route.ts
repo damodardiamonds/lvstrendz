@@ -16,7 +16,7 @@ export async function GET() {
       message: string;
       href: string;
       createdAt: string;
-      category: 'stock' | 'order' | 'chat' | 'system';
+      category: 'stock' | 'order' | 'chat' | 'cart' | 'system';
     }> = [];
 
     // 1. Fetch low stock variants
@@ -84,6 +84,29 @@ export async function GET() {
       });
     } catch {
       // Chat table might be uninitialized
+    }
+
+    // 4. Fetch recent cart additions (last 5)
+    try {
+      const recentCartAdds = await db.cartEvent.findMany({
+        where: { eventType: 'ADD' },
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+      });
+
+      recentCartAdds.forEach((cartEv) => {
+        notifications.push({
+          id: `cart-${cartEv.id}`,
+          type: 'info',
+          title: 'Product Added to Cart',
+          message: `${cartEv.customerName || 'A shopper'} added "${cartEv.productName}" (Qty: ${cartEv.quantity || 1}) to cart.`,
+          href: '/admin/cart',
+          createdAt: cartEv.createdAt.toISOString(),
+          category: 'cart',
+        });
+      });
+    } catch {
+      // Cart table might be uninitialized
     }
 
     // Sort all notifications newest first

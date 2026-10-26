@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useCurrency } from "@/context/CurrencyContext";
 import toast from "react-hot-toast";
 import { trackInitiateCheckout } from "@/lib/metaPixel";
+import { trackGABeginCheckout } from "@/lib/googleAnalytics";
+import { trackCartOrderCompletedEvent } from "@/frontend/lib/cartTracker";
 import {
   CreditCard,
   Lock,
@@ -142,6 +144,7 @@ export default function CheckoutClient() {
       if (cart.length > 0) {
         const initialSubtotal = cart.reduce((t: number, i: any) => t + Number(i.price) * i.quantity, 0);
         trackInitiateCheckout({ items: cart, value: initialSubtotal });
+        trackGABeginCheckout({ items: cart, value: initialSubtotal });
       }
 
       const coupon = localStorage.getItem("lvstrendz_coupon");
@@ -317,6 +320,11 @@ export default function CheckoutClient() {
       if (res.ok && data.success) {
         // If grandTotal is 0 (Gift Card covers full amount), skip payment gateway
         if (grandTotal === 0) {
+          trackCartOrderCompletedEvent({
+            name: `${form.firstName} ${form.lastName}`.trim(),
+            email: form.email,
+            phone: form.phone,
+          });
           toast.success("Order confirmed! Full amount paid with Gift Card.", {
             duration: 3000,
             style: { background: "#1a4223", color: "#fff" },
@@ -330,6 +338,11 @@ export default function CheckoutClient() {
 
         // If Cash on Delivery, skip online gateway redirect
         if (isCod) {
+          trackCartOrderCompletedEvent({
+            name: `${form.firstName} ${form.lastName}`.trim(),
+            email: form.email,
+            phone: form.phone,
+          });
           toast.success("Order placed successfully with Cash on Delivery!", {
             duration: 4000,
             style: { background: "#1a4223", color: "#fff" },

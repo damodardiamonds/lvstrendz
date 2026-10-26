@@ -11,6 +11,7 @@ import {
   XCircle,
   Truck,
   ArrowUpRight,
+  ShoppingBag,
 } from "lucide-react";
 import Link from "next/link";
 import StatCard from "../components/StatCard";
@@ -110,6 +111,19 @@ async function getAnalyticsData() {
     console.error("Order analytics query error:", err);
   }
 
+  let activeCartShoppers = 0;
+  let activeCartUnits = 0;
+  try {
+    const activeCarts = await db.cartItem.findMany({
+      where: { status: "ACTIVE" },
+      select: { sessionId: true, quantity: true },
+    });
+    activeCartUnits = activeCarts.reduce((acc, c) => acc + c.quantity, 0);
+    activeCartShoppers = new Set(activeCarts.map((c) => c.sessionId)).size;
+  } catch {
+    // Cart table may not exist yet
+  }
+
   return {
     totalProducts,
     totalVariants,
@@ -124,6 +138,8 @@ async function getAnalyticsData() {
     averageOrderValue,
     statusCounts,
     recentOrders,
+    activeCartShoppers,
+    activeCartUnits,
   };
 }
 
@@ -146,8 +162,15 @@ export default async function AnalyticsPage() {
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href="/admin/orders"
+            href="/admin/cart"
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#A0463E] rounded-lg shadow hover:bg-[#883a33] transition-colors"
+          >
+            <ShoppingBag size={16} />
+            Cart Activity ({data.activeCartShoppers})
+          </Link>
+          <Link
+            href="/admin/orders"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
           >
             <ShoppingCart size={16} />
             Manage Orders

@@ -1,5 +1,5 @@
 
-import { Package, ShoppingCart, IndianRupee, AlertTriangle, Gift } from "lucide-react";
+import { Package, ShoppingCart, IndianRupee, AlertTriangle, Gift, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import StatCard from "./components/StatCard";
@@ -35,12 +35,28 @@ async function getDashboardStats() {
     // Orders table may not exist yet
   }
 
+  // Active Carts stats
+  let activeCartItemsCount = 0;
+  let activeCartShoppersCount = 0;
+  try {
+    const activeCarts = await db.cartItem.findMany({
+      where: { status: "ACTIVE" },
+      select: { sessionId: true, quantity: true },
+    });
+    activeCartItemsCount = activeCarts.reduce((acc, c) => acc + c.quantity, 0);
+    activeCartShoppersCount = new Set(activeCarts.map((c) => c.sessionId)).size;
+  } catch {
+    // Cart table may not exist yet
+  }
+
   return {
     totalProducts,
     totalVariants,
     lowStockVariants,
     totalOrders,
     totalRevenue,
+    activeCartItemsCount,
+    activeCartShoppersCount,
   };
 }
 
@@ -58,12 +74,18 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <StatCard
           title="Total Products"
           value={stats.totalProducts}
           subtitle={`${stats.totalVariants} variants`}
           icon={Package}
+        />
+        <StatCard
+          title="Active Carts"
+          value={`${stats.activeCartShoppersCount} shoppers`}
+          subtitle={`${stats.activeCartItemsCount} items currently in cart`}
+          icon={ShoppingBag}
         />
         <StatCard
           title="Total Orders"
@@ -90,7 +112,19 @@ export default async function AdminDashboard() {
         <h2 className="text-lg font-semibold text-gray-800 mb-4">
           Quick Actions
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <Link
+            href="/admin/cart"
+            className="flex items-center gap-3 p-4 rounded-lg border border-[#A0463E]/20 bg-[#A0463E]/5 hover:bg-[#A0463E]/10 hover:border-[#A0463E] transition-all group"
+          >
+            <ShoppingBag
+              size={20}
+              className="text-[#A0463E]"
+            />
+            <span className="text-sm font-semibold text-[#A0463E]">
+              Cart Activity & Demand
+            </span>
+          </Link>
           <Link
             href="/admin/products/new"
             className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:border-[#A0463E] hover:bg-[#A0463E]/5 transition-all group"

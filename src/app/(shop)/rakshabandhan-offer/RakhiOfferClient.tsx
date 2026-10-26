@@ -23,8 +23,10 @@ import {
   Info,
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
+import { trackAddToCartEvent } from '@/frontend/lib/cartTracker';
 import { useCurrency } from '@/context/CurrencyContext';
 import { trackAddToCart, trackInitiateCheckout } from '@/lib/metaPixel';
+import { trackGAAddToCart } from '@/lib/googleAnalytics';
 
 interface ProductProp {
   id: string;
@@ -165,6 +167,22 @@ export default function RakhiOfferClient({
       name: product.name,
       price: discountPrice,
       quantity: 1,
+    });
+    trackGAAddToCart({
+      id: product.id,
+      name: product.name,
+      price: discountPrice,
+      quantity: 1,
+      size: cartItem.size,
+    });
+    trackAddToCartEvent({
+      productId: product.id,
+      name: product.name,
+      slug: product.slug,
+      image: cartItem.image,
+      price: discountPrice,
+      quantity: 1,
+      size: cartItem.size,
     });
     trackInitiateCheckout({ items: [cartItem], value: discountPrice });
 

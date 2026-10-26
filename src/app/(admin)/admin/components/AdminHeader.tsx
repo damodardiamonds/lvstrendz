@@ -20,7 +20,7 @@ interface NotificationItem {
   message: string;
   href: string;
   createdAt: string;
-  category: "stock" | "order" | "chat" | "system";
+  category: "stock" | "order" | "chat" | "cart" | "system";
 }
 
 export default function AdminHeader({ user }: AdminHeaderProps) {
@@ -78,6 +78,9 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
   };
 
   const renderIcon = (category: string, type: string) => {
+    if (category === "cart") {
+      return <ShoppingCart size={16} className="text-[#A0463E]" />;
+    }
     if (category === "stock" || type === "warning") {
       return <AlertTriangle size={16} className="text-amber-600" />;
     }

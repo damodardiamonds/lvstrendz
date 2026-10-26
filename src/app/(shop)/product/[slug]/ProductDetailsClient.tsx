@@ -7,6 +7,8 @@ import { Heart, ShoppingBag, Check, Truck, RotateCcw, ShieldCheck, Star, Chevron
 import toast, { Toaster } from 'react-hot-toast';
 import { useCurrency } from '@/context/CurrencyContext';
 import { trackViewContent, trackAddToCart } from '@/lib/metaPixel';
+import { trackGAViewItem, trackGAAddToCart } from '@/lib/googleAnalytics';
+import { trackAddToCartEvent } from '@/frontend/lib/cartTracker';
 
 // Module-level image cache
 const imageCache: Record<string, HTMLImageElement> = {};
@@ -50,6 +52,7 @@ interface ProductDetailsProps {
   product: {
     id: string;
     name: string;
+    slug?: string;
     description: string | null;
     shortDescription: string | null;
     sku: string | null;
@@ -165,9 +168,14 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
   const [customShoulder, setCustomShoulder] = useState('');
   const [customNotes, setCustomNotes] = useState('');
 
-  // Track Meta Pixel ViewContent on mount
+  // Track Meta Pixel & Google Analytics ViewContent on mount
   useEffect(() => {
     trackViewContent({
+      id: product.id,
+      name: product.name,
+      price: Number(product.price) || 0,
+    });
+    trackGAViewItem({
       id: product.id,
       name: product.name,
       price: Number(product.price) || 0,
@@ -527,12 +535,35 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
     // Dispatch custom event to notify header cart icon of updates
     window.dispatchEvent(new Event('cartUpdated'));
 
-    // Track Meta Pixel AddToCart
+    // Track Meta Pixel & Google Analytics AddToCart
     trackAddToCart({
       id: product.id,
       name: product.name,
       price: Number(activePrice) || 0,
       quantity,
+    });
+    trackGAAddToCart({
+      id: product.id,
+      name: product.name,
+      price: Number(activePrice) || 0,
+      quantity,
+      size: selectedSize === 'CS' ? 'Custom Size' : selectedSize || null,
+      color: selectedColor || null,
+    });
+
+    // Track real-time cart addition for Admin Panel
+    trackAddToCartEvent({
+      productId: product.id,
+      name: product.name,
+      slug: product.slug,
+      image: activeImage,
+      variantId: selectedVariant?.id || null,
+      sku: selectedVariant?.sku || product.sku,
+      price: Number(activePrice) || 0,
+      quantity,
+      size: selectedSize === 'CS' ? 'Custom Size' : selectedSize || null,
+      color: selectedColor || null,
+      customMeasurements: cartItem.customMeasurements,
     });
     
     toast.success(`${product.name} added to cart successfully!`, {

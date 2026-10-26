@@ -5,6 +5,11 @@ import Link from "next/link";
 import { Trash2, Minus, Plus, ChevronDown, ChevronUp, ArrowRight, ShoppingCart } from "lucide-react";
 import { useCurrency } from "@/context/CurrencyContext";
 import toast from "react-hot-toast";
+import {
+  trackUpdateCartQuantityEvent,
+  trackRemoveFromCartEvent,
+} from "@/frontend/lib/cartTracker";
+import { trackGARemoveFromCart } from "@/lib/googleAnalytics";
 
 export default function CartClient() {
   const { format } = useCurrency();
@@ -61,21 +66,58 @@ export default function CartClient() {
   };
 
   const handleUpdateQuantity = (key: { productId: string; variantId: string | null }, amount: number) => {
+    let targetItem: any = null;
+    let targetQty = 1;
     const updated = items.map((item) => {
       if (item.productId === key.productId && item.variantId === key.variantId) {
         const newQty = item.quantity + amount;
-        return { ...item, quantity: Math.max(1, newQty) };
+        targetItem = item;
+        targetQty = Math.max(1, newQty);
+        return { ...item, quantity: targetQty };
       }
       return item;
     });
     updateCartItems(updated);
+
+    if (targetItem) {
+      trackUpdateCartQuantityEvent({
+        productId: key.productId,
+        variantId: key.variantId,
+        quantity: targetQty,
+        size: targetItem.size,
+        color: targetItem.color,
+      });
+    }
   };
 
   const handleRemoveItem = (key: { productId: string; variantId: string | null }, name: string) => {
+    const targetItem = items.find(
+      (item) => item.productId === key.productId && item.variantId === key.variantId
+    );
     const updated = items.filter(
       (item) => !(item.productId === key.productId && item.variantId === key.variantId)
     );
     updateCartItems(updated);
+
+    trackRemoveFromCartEvent({
+      productId: key.productId,
+      variantId: key.variantId,
+      size: targetItem?.size,
+      color: targetItem?.color,
+      name,
+    });
+
+    if (targetItem) {
+      trackGARemoveFromCart({
+        id: targetItem.productId,
+        name: targetItem.name,
+        price: Number(targetItem.price) || 0,
+        quantity: targetItem.quantity || 1,
+        size: targetItem.size,
+        color: targetItem.color,
+      });
+    }
+
     toast.success(`${name} removed from cart.`, {
       style: {
         background: "#3D1515",

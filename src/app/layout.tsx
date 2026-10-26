@@ -6,6 +6,7 @@ import "./globals.css";
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import ChatWidget from "@/components/ChatWidget";
 import MetaPixel from "@/components/analytics/MetaPixel";
+import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -32,6 +33,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <Suspense fallback={null}>
           <MetaPixel />
+          <GoogleAnalytics />
         </Suspense>
         <CurrencyProvider>
           {children}
