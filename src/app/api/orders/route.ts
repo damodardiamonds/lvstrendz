@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { processOrderStockAndCoupon } from "@/lib/orders";
 import { sendAdminPushNotification } from "@/backend/lib/push-notifications";
 import { sendOrderConfirmationEmail } from "@/backend/lib/email";
+import { verifyPhoneVerificationToken } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +13,7 @@ export async function POST(request: NextRequest) {
       firstName,
       lastName,
       phone,
+      phoneVerificationToken,
       line1,
       line2,
       city,
@@ -63,12 +65,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 2-Factor Mobile OTP verification check (stops fake orders)
+    const cleanedPhone = phone.replace(/\D/g, "").slice(-10);
+    const isVerified =
+      phoneVerificationToken &&
+      verifyPhoneVerificationToken(phoneVerificationToken, cleanedPhone);
+
+    if (!isVerified) {
+      return NextResponse.json(
+        {
+          error: "Mobile 2-Factor verification required. Please verify your mobile number via OTP to place this order.",
+          requiresOtp: true,
+        },
+        { status: 403 }
+      );
+    }
+
     // 1. User resolution (Find or create Customer account for Guest)
     let user = await db.user.findFirst({
       where: {
         OR: [
           { email: email.trim().toLowerCase() },
-          { phone: phone.trim() }
+          { phone: cleanedPhone }
         ]
       }
     });
@@ -77,10 +95,16 @@ export async function POST(request: NextRequest) {
       user = await db.user.create({
         data: {
           email: email.trim().toLowerCase(),
-          phone: phone.trim(),
+          phone: cleanedPhone,
           name: `${firstName.trim()} ${lastName.trim()}`,
+          phoneVerified: true,
           role: "CUSTOMER",
         },
+      });
+    } else if (!user.phoneVerified) {
+      await db.user.update({
+        where: { id: user.id },
+        data: { phoneVerified: true },
       });
     }
 
@@ -172,7 +196,10 @@ export async function POST(request: NextRequest) {
           : (notes || null),
         shippingAddress: {
           name: `${firstName.trim()} ${lastName.trim()}`,
-          phone: phone.trim(),
+          phone: cleanedPhone,
+          phoneVerified: true,
+          verifiedVia: "MOBILE_OTP_2FA",
+          verifiedAt: new Date().toISOString(),
           line1: line1.trim(),
           line2: line2 ? line2.trim() : null,
           city: city.trim(),

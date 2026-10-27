@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Trash2, Minus, Plus, ChevronDown, ChevronUp, ArrowRight, ShoppingCart } from "lucide-react";
 import { useCurrency } from "@/context/CurrencyContext";
-import toast from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import {
   trackUpdateCartQuantityEvent,
   trackRemoveFromCartEvent,
@@ -221,6 +221,7 @@ export default function CartClient() {
 
   return (
     <div className="space-y-8">
+      <Toaster position="top-right" reverseOrder={false} />
       {/* Desktop Cart Table */}
       <div className="hidden md:block overflow-x-auto border border-gray-100 rounded-xl shadow-xs bg-white">
         <table className="w-full text-left border-collapse">

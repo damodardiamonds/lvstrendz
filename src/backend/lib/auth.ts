@@ -36,3 +36,28 @@ export function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+// Generate signed phone verification token for checkout 2FA
+export function generatePhoneVerificationToken(phone: string): string {
+  const cleanedPhone = phone.replace(/\D/g, "").slice(-10);
+  return jwt.sign(
+    { phone: cleanedPhone, purpose: "order_phone_verification" },
+    JWT_SECRET,
+    { expiresIn: "1h" }
+  );
+}
+
+// Verify signed phone verification token for checkout 2FA
+export function verifyPhoneVerificationToken(token: string, phone: string): boolean {
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as { phone: string; purpose: string };
+    const cleanedPhone = phone.replace(/\D/g, "").slice(-10);
+    return Boolean(
+      payload &&
+      payload.purpose === "order_phone_verification" &&
+      payload.phone === cleanedPhone
+    );
+  } catch {
+    return false;
+  }
+}
+

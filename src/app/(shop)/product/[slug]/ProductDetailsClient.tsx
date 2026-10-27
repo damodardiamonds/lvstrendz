@@ -3,7 +3,8 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Image from 'next/image';
-import { Heart, ShoppingBag, Check, Truck, RotateCcw, ShieldCheck, Star, ChevronLeft, ChevronRight, Play } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Heart, ShoppingBag, Check, Truck, RotateCcw, ShieldCheck, Star, ChevronLeft, ChevronRight, Play, Loader2 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useCurrency } from '@/context/CurrencyContext';
 import { trackViewContent, trackAddToCart } from '@/lib/metaPixel';
@@ -69,7 +70,9 @@ interface ProductDetailsProps {
 }
 
 export default function ProductDetailsClient({ product }: ProductDetailsProps) {
+  const router = useRouter();
   const { format } = useCurrency();
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   const displayAttributes = product.displayAttributes || ['size', 'color'];
   const showSizeSelector = displayAttributes.includes('size');
   const showColorSelector = displayAttributes.includes('color');
@@ -470,8 +473,13 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
     ? Math.round(((activeComparePrice - activePrice) / activeComparePrice) * 100)
     : 0;
 
+  // Prefetch cart page so transition on add-to-cart is instantaneous
+  useEffect(() => {
+    router.prefetch('/cart');
+  }, [router]);
+
   const handleAddToCart = () => {
-    if (isOutOfStock) return;
+    if (isOutOfStock || isAddingToCart) return;
 
     // Validation for custom tailoring
     if (selectedSize === 'CS' || selectedSize === 'Custom Size') {
@@ -579,6 +587,9 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
     setCustomHip('');
     setCustomShoulder('');
     setCustomNotes('');
+
+    // Open cart page instantly so the customer can proceed ahead
+    router.push('/cart');
   };
 
   return (
@@ -955,15 +966,24 @@ export default function ProductDetailsClient({ product }: ProductDetailsProps) {
 
             <button
               onClick={handleAddToCart}
-              disabled={isOutOfStock}
+              disabled={isOutOfStock || isAddingToCart}
               className={`flex-1 h-12 flex items-center justify-center gap-2.5 text-white text-xs font-bold uppercase tracking-widest transition-all duration-300 ${
                 isOutOfStock
                   ? 'bg-gray-300 cursor-not-allowed text-gray-500'
                   : 'bg-[#A0463E] hover:bg-[#853a33] active:scale-98 shadow-md hover:shadow-lg'
               }`}
             >
-              <ShoppingBag size={16} />
-              Add to Cart
+              {isAddingToCart ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Opening Cart...
+                </>
+              ) : (
+                <>
+                  <ShoppingBag size={16} />
+                  Add to Cart
+                </>
+              )}
             </button>
 
             <button 

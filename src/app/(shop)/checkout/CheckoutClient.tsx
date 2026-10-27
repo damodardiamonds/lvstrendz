@@ -31,6 +31,7 @@ import {
   X,
   Banknote,
 } from "lucide-react";
+import CheckoutOtpModal from "./CheckoutOtpModal";
 
 export default function CheckoutClient() {
   const { format } = useCurrency();
@@ -68,6 +69,11 @@ export default function CheckoutClient() {
 
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 2-Factor Mobile OTP verification states
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [phoneVerificationToken, setPhoneVerificationToken] = useState<string | null>(null);
+  const [verifiedPhone, setVerifiedPhone] = useState<string | null>(null);
 
   // Gift Card State & Handlers
   const [giftCardInput, setGiftCardInput] = useState("");
@@ -237,6 +243,11 @@ export default function CheckoutClient() {
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
+    // If customer changes the phone number after verifying, reset verification
+    if (name === "phone" && phoneVerificationToken && value.trim() !== verifiedPhone?.trim()) {
+      setPhoneVerificationToken(null);
+      setVerifiedPhone(null);
+    }
   };
 
   // PayGlocal integration logic
@@ -268,12 +279,22 @@ export default function CheckoutClient() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handlePlaceOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handlePlaceOrder = async (e?: React.FormEvent, explicitToken?: string) => {
+    if (e) e.preventDefault();
     if (!validateForm()) {
       toast.error("Please correct the errors in the form before placing order.", {
         style: { background: "#3D1515", color: "#fff" },
       });
+      return;
+    }
+
+    const tokenToUse = explicitToken || phoneVerificationToken;
+    const currentCleaned = form.phone.replace(/\D/g, "").slice(-10);
+    const verifiedCleaned = verifiedPhone ? verifiedPhone.replace(/\D/g, "").slice(-10) : "";
+
+    // 2-Factor Authentication: Ensure phone number is verified before placing any order
+    if (!tokenToUse || currentCleaned !== verifiedCleaned) {
+      setShowOtpModal(true);
       return;
     }
 
@@ -282,6 +303,7 @@ export default function CheckoutClient() {
     try {
       const orderPayload = {
         ...form,
+        phoneVerificationToken: tokenToUse,
         items: items.map((item) => ({
           productId: item.productId,
           variantId: item.variantId,
@@ -316,6 +338,17 @@ export default function CheckoutClient() {
       });
 
       const data = await res.json();
+
+      if (!res.ok) {
+        if (data.requiresOtp) {
+          setPhoneVerificationToken(null);
+          setVerifiedPhone(null);
+          setShowOtpModal(true);
+          toast.error("Please verify your mobile number with OTP to place this order.");
+          return;
+        }
+        throw new Error(data.error || "Failed to submit order");
+      }
 
       if (res.ok && data.success) {
         // If grandTotal is 0 (Gift Card covers full amount), skip payment gateway
@@ -394,6 +427,14 @@ export default function CheckoutClient() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleOtpVerified = (token: string) => {
+    setPhoneVerificationToken(token);
+    setVerifiedPhone(form.phone);
+    setShowOtpModal(false);
+    // Submit order immediately using the verified token
+    handlePlaceOrder(undefined, token);
   };
 
   if (!isMounted) {
@@ -546,9 +587,22 @@ export default function CheckoutClient() {
                   </div>
 
                   <div>
-                    <label htmlFor="phone" className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-2">
-                      Phone Number <span className="text-red-500">*</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label htmlFor="phone" className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider">
+                        Phone Number <span className="text-red-500">*</span>
+                      </label>
+                      {phoneVerificationToken && verifiedPhone?.replace(/\D/g, "").slice(-10) === form.phone.replace(/\D/g, "").slice(-10) ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                          <CheckCircle size={12} className="text-emerald-600" />
+                          2FA Verified
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-[#A0463E] uppercase tracking-wider flex items-center gap-1 bg-red-50 px-2 py-0.5 rounded border border-red-100">
+                          <ShieldCheck size={11} />
+                          Mobile OTP 2FA Required
+                        </span>
+                      )}
+                    </div>
                     <input
                       type="tel"
                       id="phone"
@@ -560,9 +614,13 @@ export default function CheckoutClient() {
                         errors.phone ? "border-red-500" : "border-gray-200"
                       }`}
                     />
-                    {errors.phone && (
+                    {errors.phone ? (
                       <p className="text-red-500 text-xs font-bold mt-1.5 flex items-center gap-1">
                         <AlertCircle size={12} /> {errors.phone}
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-gray-400 mt-1">
+                        A quick 6-digit OTP will be sent to verify your phone and protect against fake orders.
                       </p>
                     )}
                   </div>
@@ -1002,7 +1060,7 @@ export default function CheckoutClient() {
 
                   <div className="flex items-center justify-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                     <Lock size={12} />
-                    <span>{isCod ? "Cash Due Upon Delivery • Verified Order" : "256-Bit Encrypted Secure Gateway"}</span>
+                    <span>{isCod ? "Cash Due Upon Delivery • Mobile OTP 2FA Protected" : "Mobile OTP 2FA Protected • 256-Bit Encrypted"}</span>
                   </div>
                 </div>
 
@@ -1010,6 +1068,17 @@ export default function CheckoutClient() {
             </div>
           </form>
       </section>
+
+      {/* 2-Factor Authentication Mobile OTP Modal */}
+      <CheckoutOtpModal
+        key={`${form.phone}-${showOtpModal}`}
+        isOpen={showOtpModal}
+        onClose={() => setShowOtpModal(false)}
+        phone={form.phone}
+        onVerified={handleOtpVerified}
+        isCod={isCod}
+        formattedAmount={format(grandTotal)}
+      />
     </main>
   );
 }
