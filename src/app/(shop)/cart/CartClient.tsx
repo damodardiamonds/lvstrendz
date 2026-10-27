@@ -33,13 +33,68 @@ export default function CartClient() {
     try {
       const cart = JSON.parse(localStorage.getItem("lvstrendz_cart") || "[]");
       setItems(cart);
+      const cartSubtotal = cart.reduce((t: number, i: any) => t + Number(i.price) * i.quantity, 0);
 
-      const coupon = localStorage.getItem("lvstrendz_coupon");
-      if (coupon) {
-        setAppliedCoupon(JSON.parse(coupon));
-      } else {
-        setAppliedCoupon(null);
+      const storedCouponRaw = localStorage.getItem("lvstrendz_coupon");
+      let storedCoupon = storedCouponRaw ? JSON.parse(storedCouponRaw) : null;
+
+      // Invalidate RAKHI500 immediately
+      if (storedCoupon && storedCoupon.code?.toUpperCase() === "RAKHI500") {
+        localStorage.removeItem("lvstrendz_coupon");
+        storedCoupon = null;
       }
+
+      fetch("/api/coupons/active")
+        .then((res) => res.json())
+        .then(async (data) => {
+          const activeCoupon = data.success && data.coupon ? data.coupon : null;
+
+          if (storedCoupon) {
+            if (activeCoupon && storedCoupon.code.toUpperCase() === activeCoupon.code.toUpperCase()) {
+              if (!activeCoupon.minOrderValue || cartSubtotal >= activeCoupon.minOrderValue) {
+                setAppliedCoupon(activeCoupon);
+                localStorage.setItem("lvstrendz_coupon", JSON.stringify(activeCoupon));
+              } else {
+                setAppliedCoupon(null);
+                localStorage.removeItem("lvstrendz_coupon");
+              }
+              return;
+            }
+
+            try {
+              const valRes = await fetch("/api/coupons/validate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code: storedCoupon.code }),
+              });
+              const valData = await valRes.json();
+              if (valRes.ok && valData.success && valData.coupon) {
+                if (!valData.coupon.minOrderValue || cartSubtotal >= valData.coupon.minOrderValue) {
+                  setAppliedCoupon(valData.coupon);
+                  localStorage.setItem("lvstrendz_coupon", JSON.stringify(valData.coupon));
+                  return;
+                }
+              }
+            } catch (err) {
+              console.warn("Coupon validation error in cart:", err);
+            }
+
+            localStorage.removeItem("lvstrendz_coupon");
+          }
+
+          if (activeCoupon && cartSubtotal > 0) {
+            const isDismissed = localStorage.getItem("lvstrendz_coupon_dismissed") === "true";
+            if (!isDismissed && (!activeCoupon.minOrderValue || cartSubtotal >= activeCoupon.minOrderValue)) {
+              setAppliedCoupon(activeCoupon);
+              localStorage.setItem("lvstrendz_coupon", JSON.stringify(activeCoupon));
+            } else {
+              setAppliedCoupon(null);
+            }
+          } else {
+            setAppliedCoupon(null);
+          }
+        })
+        .catch((e) => console.error("Cart coupon check error:", e));
     } catch (e) {
       console.error("Error reading cart/coupon storage:", e);
     }

@@ -15,6 +15,13 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
+declare global {
+  interface Window {
+    recaptchaVerifier?: RecaptchaVerifier;
+    __checkoutConfirmationResult?: ConfirmationResult;
+  }
+}
+
 interface CheckoutOtpModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -36,11 +43,15 @@ export default function CheckoutOtpModal({
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [resendCountdown, setResendCountdown] = useState(30);
+  const [resendCountdown, setResendCountdown] = useState(45);
   const [otpSent, setOtpSent] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [isFallbackMode, setIsFallbackMode] = useState(false);
 
+  const confirmationResultRef = useRef<ConfirmationResult | null>(null);
+  const hasTriggeredInitialSend = useRef(false);
+  const isSendingRef = useRef(false);
+  const isVerifyingRef = useRef(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const cleanedPhone = phone.replace(/\D/g, "").slice(-10);
@@ -60,92 +71,122 @@ export default function CheckoutOtpModal({
     }
   }, []);
 
-  const triggerSendOtp = useCallback(async () => {
-    if (!cleanedPhone || cleanedPhone.length !== 10) {
-      setErrorMessage("A valid 10-digit mobile number is required.");
-      return;
-    }
-
-    setIsSendingOtp(true);
-    setErrorMessage("");
-
-    try {
-      cleanupRecaptcha();
-
-      const auth = getFirebaseAuth();
-      const container = document.getElementById("checkout-recaptcha-container");
-      if (!container) {
-        throw new Error("reCAPTCHA container not found.");
+  const triggerSendOtp = useCallback(
+    async (isResend = false) => {
+      if (!cleanedPhone || cleanedPhone.length !== 10) {
+        setErrorMessage("A valid 10-digit mobile number is required.");
+        return;
       }
 
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, "checkout-recaptcha-container", {
-        size: "invisible",
-        callback: () => {
-          // reCAPTCHA solved automatically
-        },
-        "expired-callback": () => {
-          setErrorMessage("Security verification expired. Please click Resend OTP.");
-        },
-      });
+      if (isSendingRef.current) return;
+      isSendingRef.current = true;
+      setIsSendingOtp(true);
+      setErrorMessage("");
 
-      const formattedPhone = `+91${cleanedPhone}`;
-      const confirmation = await signInWithPhoneNumber(
-        auth,
-        formattedPhone,
-        window.recaptchaVerifier
-      );
-
-      setConfirmationResult(confirmation);
-      setOtpSent(true);
-      setResendCountdown(30);
-      setIsFallbackMode(false);
-      toast.success(`OTP sent to +91 ${cleanedPhone}`, {
-        icon: "📱",
-        style: { background: "#1a4223", color: "#fff" },
-      });
-
-      setTimeout(() => {
-        inputRefs.current[0]?.focus();
-      }, 150);
-    } catch (err: unknown) {
-      console.warn("Firebase phone auth notice, activating server verification fallback:", err);
-      cleanupRecaptcha();
+      if (isResend) {
+        setDigits(["", "", "", "", "", ""]);
+      }
 
       try {
-        const res = await fetch("/api/checkout/send-otp", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone: cleanedPhone }),
+        cleanupRecaptcha();
+
+        const auth = getFirebaseAuth();
+        const container = document.getElementById("checkout-recaptcha-container");
+        if (!container) {
+          throw new Error("Security verification container not found.");
+        }
+
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, "checkout-recaptcha-container", {
+          size: "invisible",
+          callback: () => {
+            // Invisible reCAPTCHA solved automatically
+          },
+          "expired-callback": () => {
+            setErrorMessage("Security verification expired. Please click Resend OTP.");
+          },
         });
 
-        const data = await res.json();
-        if (res.ok && data.success) {
-          setIsFallbackMode(true);
-          setOtpSent(true);
-          setResendCountdown(30);
+        const formattedPhone = `+91${cleanedPhone}`;
+        const confirmation = await signInWithPhoneNumber(
+          auth,
+          formattedPhone,
+          window.recaptchaVerifier
+        );
 
-          if (data.devOtp) {
-            toast(`Dev OTP: ${data.devOtp}`, {
-              icon: "🔑",
-              duration: 8000,
-            });
-          } else {
-            toast.success(`Verification code sent to +91 ${cleanedPhone}`);
-          }
-
-          setTimeout(() => {
-            inputRefs.current[0]?.focus();
-          }, 150);
-        } else {
-          setErrorMessage(data.error || "Unable to send verification code. Please try again.");
+        confirmationResultRef.current = confirmation;
+        if (typeof window !== "undefined") {
+          window.__checkoutConfirmationResult = confirmation;
         }
-      } catch {
-        setErrorMessage("Failed to send OTP. Please check your connection and try again.");
+        setConfirmationResult(confirmation);
+        setOtpSent(true);
+        setResendCountdown(45);
+        setIsFallbackMode(false);
+
+        if (isResend) {
+          toast.success("New OTP sent! If you received multiple SMS messages, please enter the code from the most recent one.", {
+            icon: "📱",
+            duration: 6000,
+            style: { background: "#1a4223", color: "#fff" },
+          });
+        } else {
+          toast.success(`OTP sent to +91 ${cleanedPhone}`, {
+            icon: "📱",
+            style: { background: "#1a4223", color: "#fff" },
+          });
+        }
+
+        setTimeout(() => {
+          inputRefs.current[0]?.focus();
+        }, 150);
+      } catch (err: any) {
+        console.warn("Firebase phone auth notice, activating server verification fallback:", err);
+        cleanupRecaptcha();
+
+        let clientErrorMsg = "";
+        if (err?.code === "auth/too-many-requests") {
+          clientErrorMsg = "Too many OTP requests. Please wait a few minutes before trying again.";
+        } else if (err?.code === "auth/captcha-check-failed") {
+          clientErrorMsg = "Security reCAPTCHA verification failed. Please try again.";
+        }
+
+        try {
+          const res = await fetch("/api/checkout/send-otp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone: cleanedPhone }),
+          });
+
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setIsFallbackMode(true);
+            setOtpSent(true);
+            setResendCountdown(45);
+
+            if (data.devOtp) {
+              toast(`Dev OTP: ${data.devOtp}`, {
+                icon: "🔑",
+                duration: 8000,
+              });
+            } else {
+              toast.success(`Verification code sent to +91 ${cleanedPhone}`);
+            }
+
+            setTimeout(() => {
+              inputRefs.current[0]?.focus();
+            }, 150);
+          } else {
+            setErrorMessage(clientErrorMsg || data.error || "Unable to send verification code. Please try again.");
+          }
+        } catch {
+          setErrorMessage(clientErrorMsg || "Failed to send OTP. Please check your connection and try again.");
+        }
+      } finally {
+        isSendingRef.current = false;
+        setIsSendingOtp(false);
       }
-    } finally {
-      setIsSendingOtp(false);
-    }
-  }, [cleanedPhone, cleanupRecaptcha]);
+    },
+    [cleanedPhone, cleanupRecaptcha]
+  );
 
   // Countdown timer for resend
   useEffect(() => {
@@ -160,80 +201,75 @@ export default function CheckoutOtpModal({
     };
   }, [isOpen, otpSent, resendCountdown]);
 
-  // Trigger OTP on open
+  // Trigger initial OTP send strictly ONCE per modal opening
   useEffect(() => {
     if (!isOpen) {
-      cleanupRecaptcha();
+      hasTriggeredInitialSend.current = false;
       return;
     }
 
+    if (hasTriggeredInitialSend.current) return;
+    hasTriggeredInitialSend.current = true;
+
     const timer = setTimeout(() => {
-      triggerSendOtp();
-    }, 10);
+      triggerSendOtp(false);
+    }, 20);
 
     return () => {
       clearTimeout(timer);
+    };
+  }, [isOpen, triggerSendOtp]);
+
+  // Clean up reCAPTCHA when modal unmounts or closes
+  useEffect(() => {
+    return () => {
       cleanupRecaptcha();
     };
-  }, [isOpen, triggerSendOtp, cleanupRecaptcha]);
+  }, [cleanupRecaptcha]);
 
-  const handleDigitChange = (index: number, value: string) => {
-    const cleaned = value.replace(/\D/g, "");
-
-    // Handle paste of full or partial code
-    if (cleaned.length > 1) {
-      const pasteDigits = cleaned.slice(0, 6).split("");
-      const newDigits = [...digits];
-      for (let i = 0; i < 6; i++) {
-        if (pasteDigits[i]) {
-          newDigits[i] = pasteDigits[i];
-        }
-      }
-      setDigits(newDigits);
-      const nextIndex = Math.min(pasteDigits.length, 5);
-      inputRefs.current[nextIndex]?.focus();
-      return;
-    }
-
-    const newDigits = [...digits];
-    newDigits[index] = cleaned.slice(-1);
-    setDigits(newDigits);
-    setErrorMessage("");
-
-    if (cleaned && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !digits[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleVerifyOtp = async (e?: React.FormEvent) => {
+  const handleVerifyOtp = async (e?: React.FormEvent, codeToVerify?: string) => {
     if (e) e.preventDefault();
 
-    const otpCode = digits.join("").trim();
+    if (isVerifyingRef.current) return;
+
+    const otpCode = (codeToVerify || digits.join("")).trim();
     if (otpCode.length !== 6) {
       setErrorMessage("Please enter the complete 6-digit verification code.");
       return;
     }
 
+    isVerifyingRef.current = true;
     setIsVerifying(true);
     setErrorMessage("");
 
     try {
       let idToken = "";
+      const activeConfirmation =
+        confirmationResultRef.current ||
+        confirmationResult ||
+        (typeof window !== "undefined" ? window.__checkoutConfirmationResult : null);
 
       // 1. If Firebase verification
-      if (!isFallbackMode && confirmationResult) {
+      if (!isFallbackMode && activeConfirmation) {
         try {
-          const result = await confirmationResult.confirm(otpCode);
+          const result = await activeConfirmation.confirm(otpCode);
           idToken = await result.user.getIdToken();
-        } catch (firebaseConfirmErr: unknown) {
+        } catch (firebaseConfirmErr: any) {
           console.error("Firebase confirm error:", firebaseConfirmErr);
-          throw new Error("Invalid or expired OTP code. Please check and try again.");
+          let friendlyError = "Invalid or expired OTP code. Please check and try again.";
+          if (firebaseConfirmErr?.code === "auth/invalid-verification-code") {
+            friendlyError =
+              "The verification code is incorrect. If you received multiple SMS messages, please enter the code from the most recent SMS.";
+          } else if (firebaseConfirmErr?.code === "auth/code-expired") {
+            friendlyError = "This verification code has expired. Please click Resend OTP to receive a new code.";
+          } else if (firebaseConfirmErr?.code === "auth/session-expired") {
+            friendlyError = "Verification session expired. Please click Resend OTP to request a new code.";
+          } else if (firebaseConfirmErr?.code === "auth/too-many-requests") {
+            friendlyError = "Too many attempts. Please wait a few minutes before trying again.";
+          } else if (firebaseConfirmErr?.message) {
+            friendlyError = firebaseConfirmErr.message;
+          }
+          throw new Error(friendlyError);
         }
       }
 
@@ -244,7 +280,7 @@ export default function CheckoutOtpModal({
         body: JSON.stringify({
           phone: cleanedPhone,
           otp: otpCode,
-          isFirebase: !isFallbackMode && Boolean(confirmationResult),
+          isFirebase: !isFallbackMode && Boolean(activeConfirmation),
           idToken,
         }),
       });
@@ -262,12 +298,64 @@ export default function CheckoutOtpModal({
       });
 
       cleanupRecaptcha();
+      if (typeof window !== "undefined") {
+        delete window.__checkoutConfirmationResult;
+      }
       onVerified(verifyData.token);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Invalid OTP code. Please check and try again.";
       setErrorMessage(msg);
     } finally {
+      isVerifyingRef.current = false;
       setIsVerifying(false);
+    }
+  };
+
+  const handleDigitChange = (index: number, value: string) => {
+    const cleaned = value.replace(/\D/g, "");
+
+    // Handle paste of full or partial code
+    if (cleaned.length > 1) {
+      const pasteDigits = cleaned.slice(0, 6).split("");
+      const newDigits = [...digits];
+      for (let i = 0; i < 6; i++) {
+        if (pasteDigits[i]) {
+          newDigits[i] = pasteDigits[i];
+        }
+      }
+      setDigits(newDigits);
+      const nextIndex = Math.min(pasteDigits.length, 5);
+      inputRefs.current[nextIndex]?.focus();
+
+      const fullCode = newDigits.join("").trim();
+      if (fullCode.length === 6 && !newDigits.includes("")) {
+        setTimeout(() => {
+          handleVerifyOtp(undefined, fullCode);
+        }, 50);
+      }
+      return;
+    }
+
+    const newDigits = [...digits];
+    newDigits[index] = cleaned.slice(-1);
+    setDigits(newDigits);
+    setErrorMessage("");
+
+    if (cleaned && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+
+    const fullCode = newDigits.join("").trim();
+    if (fullCode.length === 6 && !newDigits.includes("")) {
+      setTimeout(() => {
+        handleVerifyOtp(undefined, fullCode);
+      }, 50);
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !digits[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
     }
   };
 
@@ -387,8 +475,8 @@ export default function CheckoutOtpModal({
               ) : (
                 <button
                   type="button"
-                  onClick={triggerSendOtp}
-                  disabled={isSendingOtp}
+                  onClick={() => triggerSendOtp(true)}
+                  disabled={isSendingOtp || isVerifying}
                   className="text-[#A0463E] hover:text-black font-extrabold flex items-center gap-1 transition-colors uppercase tracking-wider text-[11px]"
                 >
                   <RotateCcw size={12} className={isSendingOtp ? "animate-spin" : ""} />
@@ -442,3 +530,4 @@ export default function CheckoutOtpModal({
     </div>
   );
 }
+

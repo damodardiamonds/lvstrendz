@@ -126,13 +126,43 @@ export async function POST(request: NextRequest) {
     // 3. Generate Order Number
     const orderNumber = `LVS-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    // Auto-apply active eligible coupon server-side if client didn't specify a coupon
-    let finalCouponCode = couponCode || null;
-    let finalDiscount = Number(discount || 0) + Number(giftCardDiscount || 0);
-    let finalTotal = Number(total);
+    // Strictly validate coupon with database or auto-apply active coupon
+    let finalCouponCode: string | null = null;
+    let couponDiscountAmount = 0;
+    const now = new Date();
+    const subVal = Number(subtotal);
 
-    if (!finalCouponCode && Number(discount || 0) === 0) {
-      const now = new Date();
+    if (couponCode && typeof couponCode === "string") {
+      const candidateCoupon = await db.coupon.findFirst({
+        where: {
+          code: { equals: couponCode.trim(), mode: "insensitive" },
+          isActive: true,
+          OR: [{ startsAt: null }, { startsAt: { lte: now } }],
+          AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] }],
+        },
+      });
+
+      if (
+        candidateCoupon &&
+        (candidateCoupon.usageLimit === null || candidateCoupon.usedCount < candidateCoupon.usageLimit)
+      ) {
+        const minVal = candidateCoupon.minOrderValue ? Number(candidateCoupon.minOrderValue) : 0;
+        if (subVal >= minVal) {
+          finalCouponCode = candidateCoupon.code;
+          if (candidateCoupon.type === "PERCENTAGE") {
+            couponDiscountAmount = (subVal * Number(candidateCoupon.value)) / 100;
+          } else {
+            couponDiscountAmount = Number(candidateCoupon.value);
+          }
+          if (candidateCoupon.maxDiscount && couponDiscountAmount > Number(candidateCoupon.maxDiscount)) {
+            couponDiscountAmount = Number(candidateCoupon.maxDiscount);
+          }
+        }
+      }
+    }
+
+    // If client coupon was invalid, inactive, or not provided, fallback to active eligible coupon in DB (e.g. FLAT20)
+    if (!finalCouponCode) {
       const activeCoupon = await db.coupon.findFirst({
         where: {
           isActive: true,
@@ -142,26 +172,27 @@ export async function POST(request: NextRequest) {
         orderBy: { createdAt: "desc" },
       });
 
-      if (activeCoupon) {
+      if (
+        activeCoupon &&
+        (activeCoupon.usageLimit === null || activeCoupon.usedCount < activeCoupon.usageLimit)
+      ) {
         const minVal = activeCoupon.minOrderValue ? Number(activeCoupon.minOrderValue) : 0;
-        const subVal = Number(subtotal);
-
-        if (subVal >= minVal && (activeCoupon.usageLimit === null || activeCoupon.usedCount < activeCoupon.usageLimit)) {
+        if (subVal >= minVal) {
           finalCouponCode = activeCoupon.code;
-          let calculatedDiscount = 0;
           if (activeCoupon.type === "PERCENTAGE") {
-            calculatedDiscount = (subVal * Number(activeCoupon.value)) / 100;
+            couponDiscountAmount = (subVal * Number(activeCoupon.value)) / 100;
           } else {
-            calculatedDiscount = Number(activeCoupon.value);
+            couponDiscountAmount = Number(activeCoupon.value);
           }
-          if (activeCoupon.maxDiscount && calculatedDiscount > Number(activeCoupon.maxDiscount)) {
-            calculatedDiscount = Number(activeCoupon.maxDiscount);
+          if (activeCoupon.maxDiscount && couponDiscountAmount > Number(activeCoupon.maxDiscount)) {
+            couponDiscountAmount = Number(activeCoupon.maxDiscount);
           }
-          finalDiscount = calculatedDiscount + Number(giftCardDiscount || 0);
-          finalTotal = Math.max(0, subVal - finalDiscount + Number(shipping || 0) + codFee);
         }
       }
     }
+
+    const finalDiscount = couponDiscountAmount + Number(giftCardDiscount || 0);
+    const finalTotal = Math.max(0, subVal - finalDiscount + Number(shipping || 0) + codFee);
 
     // Determine initial status & payment status
     const isZeroTotal = finalTotal <= 0;

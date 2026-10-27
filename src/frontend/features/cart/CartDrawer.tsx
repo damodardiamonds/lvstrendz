@@ -41,12 +41,15 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     try {
       const cart = JSON.parse(localStorage.getItem("lvstrendz_cart") || "[]");
       setItems(cart);
+      const cartSubtotal = cart.reduce((t: number, i: any) => t + Number(i.price) * i.quantity, 0);
 
-      const coupon = localStorage.getItem("lvstrendz_coupon");
-      if (coupon) {
-        setAppliedCoupon(JSON.parse(coupon));
-      } else {
-        setAppliedCoupon(null);
+      const storedCouponRaw = localStorage.getItem("lvstrendz_coupon");
+      let storedCoupon = storedCouponRaw ? JSON.parse(storedCouponRaw) : null;
+
+      // Invalidate RAKHI500 immediately
+      if (storedCoupon && storedCoupon.code?.toUpperCase() === "RAKHI500") {
+        localStorage.removeItem("lvstrendz_coupon");
+        storedCoupon = null;
       }
 
       const giftCard = localStorage.getItem("lvstrendz_giftcard");
@@ -56,33 +59,61 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         setAppliedGiftCard(null);
       }
 
-      // Check for auto-apply active coupon if no coupon is applied
-      if (!coupon) {
-        const cartSubtotal = cart.reduce((t: number, i: any) => t + Number(i.price) * i.quantity, 0);
-        checkAndAutoApplyCoupon(cartSubtotal);
-      }
+      checkAndAutoApplyCoupon(cartSubtotal, storedCoupon);
     } catch (e) {
       console.error("Error loading cart/coupon/giftcard state:", e);
     }
   };
 
-  const checkAndAutoApplyCoupon = async (cartSubtotal: number) => {
-    if (cartSubtotal <= 0) return;
+  const checkAndAutoApplyCoupon = async (cartSubtotal: number, storedCoupon?: any) => {
+    if (cartSubtotal <= 0) {
+      setAppliedCoupon(null);
+      return;
+    }
     try {
-      const isDismissed = localStorage.getItem("lvstrendz_coupon_dismissed") === "true";
-      if (isDismissed) return;
-
       const res = await fetch("/api/coupons/active");
       const data = await res.json();
-      if (data.success && data.coupon) {
-        const activeCoupon = data.coupon;
-        if (!activeCoupon.minOrderValue || cartSubtotal >= activeCoupon.minOrderValue) {
-          setAppliedCoupon(activeCoupon);
-          localStorage.setItem("lvstrendz_coupon", JSON.stringify(activeCoupon));
-          toast.success(`Active offer code (${activeCoupon.code}) auto-applied!`, {
-            style: { background: "#3D1515", color: "#fff" },
-          });
+      const activeCoupon = data.success && data.coupon ? data.coupon : null;
+
+      if (storedCoupon) {
+        if (activeCoupon && storedCoupon.code?.toUpperCase() === activeCoupon.code?.toUpperCase()) {
+          if (!activeCoupon.minOrderValue || cartSubtotal >= activeCoupon.minOrderValue) {
+            setAppliedCoupon(activeCoupon);
+            localStorage.setItem("lvstrendz_coupon", JSON.stringify(activeCoupon));
+          } else {
+            setAppliedCoupon(null);
+            localStorage.removeItem("lvstrendz_coupon");
+          }
+          return;
         }
+
+        try {
+          const valRes = await fetch("/api/coupons/validate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code: storedCoupon.code }),
+          });
+          const valData = await valRes.json();
+          if (valRes.ok && valData.success && valData.coupon) {
+            if (!valData.coupon.minOrderValue || cartSubtotal >= valData.coupon.minOrderValue) {
+              setAppliedCoupon(valData.coupon);
+              localStorage.setItem("lvstrendz_coupon", JSON.stringify(valData.coupon));
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn("Coupon validation error in drawer:", err);
+        }
+
+        localStorage.removeItem("lvstrendz_coupon");
+      }
+
+      const isDismissed = localStorage.getItem("lvstrendz_coupon_dismissed") === "true";
+      if (!isDismissed && activeCoupon && (!activeCoupon.minOrderValue || cartSubtotal >= activeCoupon.minOrderValue)) {
+        setAppliedCoupon(activeCoupon);
+        localStorage.setItem("lvstrendz_coupon", JSON.stringify(activeCoupon));
+      } else {
+        setAppliedCoupon(null);
       }
     } catch (e) {
       console.error("Auto coupon check error:", e);

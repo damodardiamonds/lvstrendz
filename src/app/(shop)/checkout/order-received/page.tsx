@@ -11,6 +11,7 @@ interface PageProps {
     orderNumber?: string;
     pending_verification?: string;
     clearCart?: string;
+    payment?: string;
   }>;
 }
 
@@ -18,7 +19,7 @@ export const revalidate = 0; // Don't cache receipt page
 
 export default async function OrderReceivedPage({ searchParams }: PageProps) {
   const resolvedParams = await searchParams;
-  const { orderNumber, pending_verification, clearCart } = resolvedParams;
+  const { orderNumber, pending_verification, clearCart, payment } = resolvedParams;
 
   if (!orderNumber) {
     redirect("/shop");
@@ -53,11 +54,13 @@ export default async function OrderReceivedPage({ searchParams }: PageProps) {
   const isPaid = order.paymentStatus === "PAID";
   const isCod = order.paymentMethod === "Cash on Delivery" || order.paymentMethod === "COD";
   const isSandbox = pending_verification === "true";
-  // clearCart=true is sent by the payment callback on successful payment redirect.
-  // The webhook may not have updated the DB yet when the browser lands here,
-  // so we treat clearCart=true as a reliable success signal from PayGlocal.
-  const isPaymentRedirect = clearCart === "true";
-  const showSuccess = isPaid || isSandbox || isPaymentRedirect || isCod;
+  const isFailedOrCancelled =
+    order.paymentStatus === "FAILED" ||
+    order.status === "CANCELLED" ||
+    payment === "cancelled" ||
+    payment === "failed";
+  const isPaymentRedirect = clearCart === "true" && !isFailedOrCancelled;
+  const showSuccess = !isFailedOrCancelled && (isPaid || isSandbox || isPaymentRedirect || isCod);
 
   return (
     <main className="bg-white min-h-screen py-16 px-4">
@@ -150,10 +153,16 @@ export default async function OrderReceivedPage({ searchParams }: PageProps) {
               <AlertCircle size={36} strokeWidth={2.5} />
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-wide">
-              Payment Required
+              {payment === "cancelled" || order.status === "CANCELLED"
+                ? "Payment Cancelled"
+                : "Payment Incomplete / Required"}
             </h1>
             <p className="text-gray-500 font-semibold text-sm max-w-md mx-auto">
-              Your order has been registered, but payment was not completed or failed. Please click the button below to pay now and complete your order.
+              {payment === "cancelled" || order.status === "CANCELLED" ? (
+                <>Payment was cancelled or could not be completed on PayGlocal. Your order is not confirmed. You can click below to retry payment or continue shopping.</>
+              ) : (
+                <>Your order has been registered, but payment was not completed or failed. Please click the button below to pay now and complete your order.</>
+              )}
             </p>
           </div>
         )}

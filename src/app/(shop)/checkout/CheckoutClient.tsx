@@ -153,29 +153,73 @@ export default function CheckoutClient() {
         trackGABeginCheckout({ items: cart, value: initialSubtotal });
       }
 
-      const coupon = localStorage.getItem("lvstrendz_coupon");
-      if (coupon) {
-        setAppliedCoupon(JSON.parse(coupon));
-      } else {
-        const cartSubtotal = cart.reduce((t: number, i: any) => t + Number(i.price) * i.quantity, 0);
-        if (cartSubtotal > 0) {
-          const isDismissed = localStorage.getItem("lvstrendz_coupon_dismissed") === "true";
-          if (!isDismissed) {
-            fetch("/api/coupons/active")
-              .then((res) => res.json())
-              .then((data) => {
-                if (data.success && data.coupon) {
-                  const activeCoupon = data.coupon;
-                  if (!activeCoupon.minOrderValue || cartSubtotal >= activeCoupon.minOrderValue) {
-                    setAppliedCoupon(activeCoupon);
-                    localStorage.setItem("lvstrendz_coupon", JSON.stringify(activeCoupon));
-                  }
-                }
-              })
-              .catch((e) => console.error("Checkout auto coupon check error:", e));
-          }
-        }
+      const cartSubtotal = cart.reduce((t: number, i: any) => t + Number(i.price) * i.quantity, 0);
+
+      // Verify and sync coupon with currently active coupon in DB
+      const storedCouponRaw = localStorage.getItem("lvstrendz_coupon");
+      let storedCoupon = storedCouponRaw ? JSON.parse(storedCouponRaw) : null;
+
+      // Invalidate RAKHI500 or any deprecated promo immediately
+      if (storedCoupon && storedCoupon.code?.toUpperCase() === "RAKHI500") {
+        localStorage.removeItem("lvstrendz_coupon");
+        storedCoupon = null;
       }
+
+      fetch("/api/coupons/active")
+        .then((res) => res.json())
+        .then(async (data) => {
+          const activeCoupon = data.success && data.coupon ? data.coupon : null;
+
+          if (storedCoupon) {
+            // If stored coupon matches the active coupon, update details
+            if (activeCoupon && storedCoupon.code.toUpperCase() === activeCoupon.code.toUpperCase()) {
+              if (!activeCoupon.minOrderValue || cartSubtotal >= activeCoupon.minOrderValue) {
+                setAppliedCoupon(activeCoupon);
+                localStorage.setItem("lvstrendz_coupon", JSON.stringify(activeCoupon));
+              } else {
+                setAppliedCoupon(null);
+                localStorage.removeItem("lvstrendz_coupon");
+              }
+              return;
+            }
+
+            // Otherwise, validate custom coupon code with backend
+            try {
+              const valRes = await fetch("/api/coupons/validate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code: storedCoupon.code }),
+              });
+              const valData = await valRes.json();
+              if (valRes.ok && valData.success && valData.coupon) {
+                if (!valData.coupon.minOrderValue || cartSubtotal >= valData.coupon.minOrderValue) {
+                  setAppliedCoupon(valData.coupon);
+                  localStorage.setItem("lvstrendz_coupon", JSON.stringify(valData.coupon));
+                  return;
+                }
+              }
+            } catch (err) {
+              console.warn("Coupon validation error:", err);
+            }
+
+            // If stored coupon is invalid/expired, remove it
+            localStorage.removeItem("lvstrendz_coupon");
+          }
+
+          // Auto-apply current active coupon (e.g. FLAT20) if eligible
+          if (activeCoupon && cartSubtotal > 0) {
+            const isDismissed = localStorage.getItem("lvstrendz_coupon_dismissed") === "true";
+            if (!isDismissed && (!activeCoupon.minOrderValue || cartSubtotal >= activeCoupon.minOrderValue)) {
+              setAppliedCoupon(activeCoupon);
+              localStorage.setItem("lvstrendz_coupon", JSON.stringify(activeCoupon));
+            } else {
+              setAppliedCoupon(null);
+            }
+          } else {
+            setAppliedCoupon(null);
+          }
+        })
+        .catch((e) => console.error("Checkout auto coupon check error:", e));
 
       const giftCard = localStorage.getItem("lvstrendz_giftcard");
       if (giftCard) {
@@ -205,8 +249,7 @@ export default function CheckoutClient() {
 
   let giftCardDiscount = 0;
   if (appliedGiftCard) {
-    // Rakshabandhan Offer Rule: Gift Card redemptions cannot be combined with direct promo coupons
-    if (appliedCoupon?.code === "RAKHI500" || appliedCoupon?.nonStackable) {
+    if (appliedCoupon?.nonStackable) {
       discount = 0;
     }
     const remainingAfterCoupon = Math.max(0, subtotal - discount);
@@ -1070,15 +1113,16 @@ export default function CheckoutClient() {
       </section>
 
       {/* 2-Factor Authentication Mobile OTP Modal */}
-      <CheckoutOtpModal
-        key={`${form.phone}-${showOtpModal}`}
-        isOpen={showOtpModal}
-        onClose={() => setShowOtpModal(false)}
-        phone={form.phone}
-        onVerified={handleOtpVerified}
-        isCod={isCod}
-        formattedAmount={format(grandTotal)}
-      />
+      {showOtpModal && (
+        <CheckoutOtpModal
+          isOpen={showOtpModal}
+          onClose={() => setShowOtpModal(false)}
+          phone={form.phone}
+          onVerified={handleOtpVerified}
+          isCod={isCod}
+          formattedAmount={format(grandTotal)}
+        />
+      )}
     </main>
   );
 }

@@ -105,19 +105,7 @@ export default function RakhiOfferClient({
     return () => clearInterval(timer);
   }, []);
 
-  // Auto-set RAKHI500 coupon code so it applies to any product purchased from the website
-  useEffect(() => {
-    const rakhiCoupon = {
-      code: 'RAKHI500',
-      name: 'Rakshabandhan ₹500 Off',
-      type: 'FIXED',
-      value: 500,
-      nonStackable: true,
-    };
-    localStorage.setItem('lvstrendz_coupon', JSON.stringify(rakhiCoupon));
-  }, []);
-
-  // Direct Product Purchase with ₹500 Instant Rakhi OFF
+  // Direct Product Purchase with Instant OFF
   const handleBuyProductDirect = () => {
     const discountPrice = Math.max(0, product.price - 500);
 
@@ -147,16 +135,6 @@ export default function RakhiOfferClient({
       existingCart.push(cartItem);
     }
     localStorage.setItem('lvstrendz_cart', JSON.stringify(existingCart));
-
-    // Save Direct ₹500 OFF Coupon in localStorage (non-stackable with gift card)
-    const rakhiCoupon = {
-      code: 'RAKHI500',
-      name: 'Rakshabandhan Direct ₹500 Off',
-      type: 'FIXED',
-      value: 500,
-      nonStackable: true,
-    };
-    localStorage.setItem('lvstrendz_coupon', JSON.stringify(rakhiCoupon));
 
     // Dispatch update for header
     window.dispatchEvent(new Event('cartUpdated'));
@@ -729,16 +707,6 @@ export default function RakhiOfferClient({
 
                       <Link
                         href={`/product/${item.slug}`}
-                        onClick={() => {
-                          const rakhiCoupon = {
-                            code: 'RAKHI500',
-                            name: 'Rakshabandhan ₹500 Off',
-                            type: 'FIXED',
-                            value: 500,
-                            nonStackable: true,
-                          };
-                          localStorage.setItem('lvstrendz_coupon', JSON.stringify(rakhiCoupon));
-                        }}
                         className="w-full bg-[#FAF7F2] hover:bg-[#3D1515] text-[#3D1515] hover:text-amber-200 border border-amber-200 hover:border-[#3D1515] text-xs font-bold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all duration-200"
                       >
                         <span>VIEW OUTFIT</span>
