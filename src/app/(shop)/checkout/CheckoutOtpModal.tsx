@@ -49,6 +49,7 @@ export default function CheckoutOtpModal({
   const [isFallbackMode, setIsFallbackMode] = useState(false);
 
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
+  const verifiedTokenRef = useRef<string | null>(null);
   const hasTriggeredInitialSend = useRef(false);
   const isSendingRef = useRef(false);
   const isVerifyingRef = useRef(false);
@@ -84,6 +85,7 @@ export default function CheckoutOtpModal({
       setErrorMessage("");
 
       if (isResend) {
+        verifiedTokenRef.current = null;
         setDigits(["", "", "", "", "", ""]);
       }
 
@@ -230,6 +232,11 @@ export default function CheckoutOtpModal({
   const handleVerifyOtp = async (e?: React.FormEvent, codeToVerify?: string) => {
     if (e) e.preventDefault();
 
+    if (verifiedTokenRef.current) {
+      onVerified(verifiedTokenRef.current);
+      return;
+    }
+
     if (isVerifyingRef.current) return;
 
     const otpCode = (codeToVerify || digits.join("")).trim();
@@ -301,6 +308,7 @@ export default function CheckoutOtpModal({
       if (typeof window !== "undefined") {
         delete window.__checkoutConfirmationResult;
       }
+      verifiedTokenRef.current = verifyData.token;
       onVerified(verifyData.token);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Invalid OTP code. Please check and try again.";
@@ -495,7 +503,7 @@ export default function CheckoutOtpModal({
                 {isVerifying ? (
                   <>
                     <Loader2 size={16} className="animate-spin" />
-                    <span>Verifying OTP...</span>
+                    <span>Verifying OTP & Placing Order...</span>
                   </>
                 ) : (
                   <>

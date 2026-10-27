@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -70,10 +70,12 @@ export default function CheckoutClient() {
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 2-Factor Mobile OTP verification states
+  // 2-Factor Mobile OTP verification states & persistent refs
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [phoneVerificationToken, setPhoneVerificationToken] = useState<string | null>(null);
   const [verifiedPhone, setVerifiedPhone] = useState<string | null>(null);
+  const phoneVerificationTokenRef = useRef<string | null>(null);
+  const verifiedPhoneRef = useRef<string | null>(null);
 
   // Gift Card State & Handlers
   const [giftCardInput, setGiftCardInput] = useState("");
@@ -287,9 +289,15 @@ export default function CheckoutClient() {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
     // If customer changes the phone number after verifying, reset verification
-    if (name === "phone" && phoneVerificationToken && value.trim() !== verifiedPhone?.trim()) {
-      setPhoneVerificationToken(null);
-      setVerifiedPhone(null);
+    if (name === "phone" && (phoneVerificationTokenRef.current || phoneVerificationToken)) {
+      const newCleaned = value.replace(/\D/g, "").slice(-10);
+      const activeVerified = (verifiedPhoneRef.current || verifiedPhone || "").replace(/\D/g, "").slice(-10);
+      if (newCleaned !== activeVerified) {
+        phoneVerificationTokenRef.current = null;
+        verifiedPhoneRef.current = null;
+        setPhoneVerificationToken(null);
+        setVerifiedPhone(null);
+      }
     }
   };
 
@@ -331,12 +339,14 @@ export default function CheckoutClient() {
       return;
     }
 
-    const tokenToUse = explicitToken || phoneVerificationToken;
     const currentCleaned = form.phone.replace(/\D/g, "").slice(-10);
-    const verifiedCleaned = verifiedPhone ? verifiedPhone.replace(/\D/g, "").slice(-10) : "";
+    const tokenToUse = explicitToken || phoneVerificationTokenRef.current || phoneVerificationToken;
+    const verifiedPhoneCleaned = explicitToken
+      ? currentCleaned
+      : (verifiedPhoneRef.current || verifiedPhone || "").replace(/\D/g, "").slice(-10);
 
     // 2-Factor Authentication: Ensure phone number is verified before placing any order
-    if (!tokenToUse || currentCleaned !== verifiedCleaned) {
+    if (!tokenToUse || currentCleaned !== verifiedPhoneCleaned) {
       setShowOtpModal(true);
       return;
     }
@@ -384,6 +394,8 @@ export default function CheckoutClient() {
 
       if (!res.ok) {
         if (data.requiresOtp) {
+          phoneVerificationTokenRef.current = null;
+          verifiedPhoneRef.current = null;
           setPhoneVerificationToken(null);
           setVerifiedPhone(null);
           setShowOtpModal(true);
@@ -473,6 +485,8 @@ export default function CheckoutClient() {
   };
 
   const handleOtpVerified = (token: string) => {
+    phoneVerificationTokenRef.current = token;
+    verifiedPhoneRef.current = form.phone;
     setPhoneVerificationToken(token);
     setVerifiedPhone(form.phone);
     setShowOtpModal(false);
